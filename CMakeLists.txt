@@ -10,8 +10,8 @@ set(CMAKE_CXX_EXTENSIONS NO)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/settingsgen)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/strgen)
 
-find_package(png)
-find_package(zlib)
+find_package(ZLIB)
+find_package(PNG)
 
 file(READ ${CMAKE_SOURCE_DIR}/source.list SOURCE_LIST)
 string(REGEX REPLACE "\n" ";" SOURCE_LIST "${SOURCE_LIST}")
