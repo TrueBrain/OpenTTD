@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
 
+if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+    message(FATAL_ERROR "In-source builds not allowed. Please run \"cmake ..\" from the bin directory")
+endif (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+
 project(OpenTTD)
 
 # Ensure we are at least C++11 compatible
