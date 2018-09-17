@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 
 project(OpenTTD)
 
-# Ensure we are at least c++11 compatible
+# Ensure we are at least C++11 compatible
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)
@@ -101,6 +101,13 @@ foreach (FILE IN LISTS SOURCE_LIST)
     list(APPEND SOURCE_FILES ${CMAKE_SOURCE_DIR}/src/${FILE})
 endforeach(FILE)
 
+include(TestBigEndian)
+TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
+if (IS_BIG_ENDIAN)
+    add_compile_definitions(TTD_ENDIAN=TTD_BIG_ENDIAN)
+else (IS_BIG_ENDIAN)
+    add_compile_definitions(TTD_ENDIAN=TTD_LITTLE_ENDIAN)
+endif (IS_BIG_ENDIAN)
 #list(APPEND SOURCE_FILES ${CMAKE_BINARY_DIR}/generated/rev.cpp)
 #include_directories(${CMAKE_SOURCE_DIR}/src)
 
