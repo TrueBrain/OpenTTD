@@ -39,6 +39,7 @@ set(OPTION_MORPHOS NO)
 set(OPTION_BEOS NO)
 set(OPTION_COCOA NO)
 set(OPTION_HAVE_THREAD YES)
+set(OPTION_DATA_DIR "share/games/openttd")
 
 set(SCAN_SKIP 0)
 set(SCAN_DEPTH 0)
@@ -115,13 +116,19 @@ endif (IS_BIG_ENDIAN)
 #list(APPEND SOURCE_FILES ${CMAKE_BINARY_DIR}/generated/rev.cpp)
 #include_directories(${CMAKE_SOURCE_DIR}/src)
 
+# Defines
+add_compile_definitions(GLOBAL_DATA_DIR="${CMAKE_INSTALL_PREFIX}/${OPTION_DATA_DIR}")
+
+# Compiler flags
+add_compile_options(-Wno-multichar)
+
 add_executable(openttd WIN32 ${SOURCE_FILES})
 include_directories(${CMAKE_SOURCE_DIR}/src/3rdparty/squirrel/include)
 
 if (NOT PNG_FOUND)
     message("libpng not found; functionality will be limited")
 else(NOT PNG_FOUND)
-    add_definitions(-DWITH_PNG)
+    add_compile_definitions(WITH_PNG)
     include_directories(${PNG_INCLUDE_DIR})
     target_link_libraries(openttd ${PNG_LIBRARIES})
 endif (NOT PNG_FOUND)
@@ -129,7 +136,7 @@ endif (NOT PNG_FOUND)
 if (NOT ZLIB_FOUND)
     message("zlib not found; functionality will be limited")
 else(NOT ZLIB_FOUND)
-    add_definitions(-DWITH_ZLIB)
+    add_compile_definitions(WITH_ZLIB)
     include_directories(${ZLIB_INCLUDE_DIR})
     target_link_libraries(openttd ${ZLIB_LIBRARIES})
 endif (NOT ZLIB_FOUND)
