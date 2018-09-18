@@ -23,7 +23,11 @@ string(REGEX REPLACE ";\t*" ";" SOURCE_LIST "${SOURCE_LIST}")
 string(REGEX REPLACE "[;]+;" ";" SOURCE_LIST "${SOURCE_LIST}")
 string(REGEX REPLACE ";$" "" SOURCE_LIST "${SOURCE_LIST}")
 
-set(OPTION_WIN32 YES)
+if (WIN32)
+    set(OPTION_WIN32 YES)
+else (WIN32)
+    set(OPTION_WIN32 NO)
+endif (WIN32)
 set(OPTION_OSX NO)
 set(OPTION_SDL NO)
 set(OPTION_WINCE NO)
@@ -142,7 +146,22 @@ else(NOT ZLIB_FOUND)
 endif (NOT ZLIB_FOUND)
 
 target_link_libraries(openttd
-        openttd::languages
-        openttd::settings
-        ws2_32 winmm gdi32 dxguid ole32 imm32
+    openttd::languages
+    openttd::settings
 )
+
+if (WIN32)
+    # TODO Do these need to be linked explicitly?
+    target_link_libraries(openttd
+        ws2_32
+        winmm
+        gdi32
+        dxguid
+        ole32
+        imm32
+    )
+else (WIN32)
+    target_link_libraries(openttd
+        pthread
+    )
+endif (WIN32)
