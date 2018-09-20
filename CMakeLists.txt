@@ -29,7 +29,7 @@ else (WIN32)
     set(OPTION_WIN32 NO)
 endif (WIN32)
 set(OPTION_OSX NO)
-set(OPTION_SDL NO)
+set(OPTION_SDL NOT WIN32)
 set(OPTION_WINCE NO)
 set(OPTION_OS2 NO)
 set(OPTION_LIBTIMIDITY NO)
@@ -145,6 +145,13 @@ else(NOT ZLIB_FOUND)
     target_link_libraries(openttd ${ZLIB_LIBRARIES})
 endif (NOT ZLIB_FOUND)
 
+if (OPTION_SDL)
+    add_compile_definitions(WITH_SDL)
+	find_package(SDL REQUIRED)
+	include_directories(${SDL_INCLUDE_DIR})
+	target_link_libraries(openttd ${SDL_LIBRARY})
+endif (OPTION_SDL)
+
 target_link_libraries(openttd
     openttd::languages
     openttd::settings
@@ -161,7 +168,4 @@ if (WIN32)
         imm32
     )
 else (WIN32)
-    target_link_libraries(openttd
-        pthread
-    )
 endif (WIN32)
