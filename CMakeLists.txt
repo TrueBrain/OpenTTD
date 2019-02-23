@@ -1,20 +1,10 @@
 cmake_minimum_required(VERSION 3.5)
 
+project(OpenTTD)
+
 if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "In-source builds not allowed. Please run \"cmake ..\" from the bin directory")
 endif (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
-
-project(OpenTTD)
-
-if (APPLE)
-    set(AUTODETECT_OS "OSX")
-elseif (WIN32)
-    set(AUTODETECT_OS "WIN32")
-elseif (MSVC)
-    set(AUTODETECT_OS "WIN32")
-elseif (UNIX)
-    set(AUTODETECT_OS "UNIX")
-endif ()
 
 set(AUTODETECT_SDL NO)
 set(AUTODETECT_COCOA NO)
@@ -23,40 +13,67 @@ set(AUTODETECT_UNISCRIBE NO)
 set(AUTODETECT_GLOBAL_DIR "")
 set(AUTODETECT_PERSONAL_DIR "")
 
-if (AUTODETECT_OS STREQUAL "UNIX")
-    set(AUTODETECT_SDL YES)
-    set(AUTODETECT_GLOBAL_DIR "/share/games/openttd")
-    set(AUTODETECT_PERSONAL_DIR ".openttd")
-elseif (AUTODETECT_OS STREQUAL "WIN32")
+if (APPLE)
+    set(AUTODETECT_OS "OSX")
+    set(AUTODETECT_COCOA YES)
+    set(AUTODETECT_PERSONAL_DIR "Documents/OpenTTD")
+elseif (WIN32 OR MSVC)
+    set(AUTODETECT_OS "WIN32")
     set(AUTODETECT_DIRECTMUSIC YES)
     set(AUTODETECT_UNISCRIBE YES)
     set(AUTODETECT_PERSONAL_DIR "OpenTTD")
-elseif (AUTODETECT_OS STREQUAL "OSX")
-    set(AUTODETECT_COCOA YES)
-    set(AUTODETECT_PERSONAL_DIR "Documents/OpenTTD")
+elseif (UNIX)
+    set(AUTODETECT_OS "UNIX")
+    set(AUTODETECT_GLOBAL_DIR "/share/games/openttd")
+    set(AUTODETECT_PERSONAL_DIR ".openttd")
 endif ()
 
-find_package(ZLIB)
+find_package(ZLIB QUIET)
 if (ZLIB_FOUND)
     set(AUTODETECT_ZLIB YES)
 else (ZLIB_FOUND)
     set(AUTODETECT_ZLIB NO)
-    message(WARNING "zlib not found; compiling OpenTTD without zlib is strongly disencouraged")
 endif (ZLIB_FOUND)
 
-find_package(PNG)
+find_package(PNG QUIET)
 if (PNG_FOUND)
     set(AUTODETECT_PNG YES)
 else (PNG_FOUND)
     set(AUTODETECT_PNG NO)
-    message(WARNING "png not found; compiling OpenTTD without png is strongly disencouraged")
 endif (PNG_FOUND)
 
+find_package(SDL QUIET)
+if (SDL_FOUND)
+    set(AUTODETECT_SDL YES)
+else (SDL_FOUND)
+    set(AUTODETECT_SDL NO)
+endif (SDL_FOUND)
+
 include(FindPkgConfig)
-pkg_search_module(FLUIDSYNTH REQUIRED fluidsynth)
+pkg_search_module(FLUIDSYNTH fluidsynth)
 if (FLUIDSYNTH_FOUND)
     set(AUTODETECT_FLUIDSYNTH YES)
+else (FLUIDSYNTH_FOUND)
+    set(AUTODETECT_FLUIDSYNTH NO)
 endif (FLUIDSYNTH_FOUND)
+
+include(CheckCXXSourceRuns)
+set(CMAKE_REQUIRED_FLAGS "")
+if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_CLANG)
+    set(CMAKE_REQUIRED_FLAGS "-msse4.1")
+endif (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_CLANG)
+
+check_cxx_source_runs("
+    #include <xmmintrin.h>
+    #include <smmintrin.h>
+    #include <tmmintrin.h>
+    int main() { return 0; }"
+    SSE_FOUND)
+if (SSE_FOUND)
+    set(AUTODETECT_SSE YES)
+else (SSE_FOUND)
+    set(AUTODETECT_SSE NO)
+endif (SSE_FOUND)
 
 
 set(OPTION_OS ${AUTODETECT_OS} CACHE STRING "OS to compile for")
@@ -89,7 +106,7 @@ message(STATUS "png: ${OPTION_PNG}")
 set(OPTION_UNISCRIBE ${AUTODETECT_UNISCRIBE} CACHE BOOL "Use uniscribe support")
 message(STATUS "Uniscribe: ${OPTION_UNISCRIBE}")
 
-set(OPTION_SSE NO CACHE BOOL "Use SSE support")
+set(OPTION_SSE ${AUTODETECT_SSE} CACHE BOOL "Use SSE support")
 message(STATUS "SSE: ${OPTION_SSE}")
 set(OPTION_HAVE_THREAD YES CACHE BOOL "Use threads")
 message(STATUS "Threads: ${OPTION_HAVE_THREAD}")
@@ -98,6 +115,21 @@ set(OPTION_GLOBAL_DIR ${AUTODETECT_GLOBAL_DIR} CACHE STRING "Global data directo
 message(STATUS "Global dir: ${OPTION_GLOBAL_DIR}")
 set(OPTION_PERSONAL_DIR ${AUTODETECT_PERSONAL_DIR} CACHE STRING "Personal data directory to use")
 message(STATUS "Personal dir: ${OPTION_PERSONAL_DIR}")
+
+if (OPTION_OS STREQUAL "UNIX")
+    if (NOT OPTION_SDL)
+        message(FATAL_ERROR "SDL is required for this platform")
+    endif (NOT OPTION_SDL)
+endif (OPTION_OS STREQUAL "UNIX")
+
+if (OPTION_OS STREQUAL "OSX")
+    if (NOT OPTION_COCOA)
+        message(FATAL_ERROR "Cocoa is required for this platform")
+    endif (NOT OPTION_COCOA)
+endif (OPTION_OS STREQUAL "OSX")
+
+if (OPTION_OS STREQUAL "WIN32")
+endif (OPTION_OS STREQUAL "WIN32")
 
 if (MSVC)
     # C++17 for MSVC
@@ -263,15 +295,32 @@ set_target_properties(openttd PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_
 
 add_definitions(-D${OPTION_OS})
 
-if (NOT PNG_FOUND AND OPTION_PNG)
-    message(FATAL_ERROR "png not found but was set to YES in options")
-endif (NOT PNG_FOUND AND OPTION_PNG)
-if (NOT ZLIB_FOUND AND OPTION_ZLIB)
-    message(FATAL_ERROR "zlib not found but was set to YES in options")
-endif (NOT ZLIB_FOUND AND OPTION_ZLIB)
-if (NOT FLUIDSYNTH_FOUND AND OPTION_FLUIDSYNTH)
-    message(FATAL_ERROR "fluidsynth not found but was set to YES in options")
-endif (NOT FLUIDSYNTH_FOUND AND OPTION_FLUIDSYNTH)
+if (NOT OPTION_PNG)
+    message(WARNING "png not selected; compiling OpenTTD without png is strongly disencouraged")
+elseif (NOT PNG_FOUND)
+    message(FATAL_ERROR "png not found but was expected to be found")
+endif ()
+
+if (NOT OPTION_ZLIB)
+    message(WARNING "zlib not selected; compiling OpenTTD without zlib is strongly disencouraged")
+elseif (NOT ZLIB_FOUND)
+    message(FATAL_ERROR "zlib not found but was expected to be found")
+endif ()
+
+if (NOT OPTION_FLUIDSYNTH)
+elseif (NOT FLUIDSYNTH_FOUND)
+    message(FATAL_ERROR "fluidsync not found but was expected to be found")
+endif ()
+
+if (NOT OPTION_SDL)
+elseif (NOT SDL_FOUND)
+    message(FATAL_ERROR "SDL not found but was expected to be found")
+endif ()
+
+if (NOT OPTION_SSE)
+elseif (NOT SSE_FOUND)
+    message(FATAL_ERROR "SSE not found but was expected to be found")
+endif ()
 
 if (OPTION_PNG)
     add_definitions(-DWITH_PNG)
@@ -292,7 +341,6 @@ endif (OPTION_FLUIDSYNTH)
 
 if (OPTION_SDL)
     add_definitions(-DWITH_SDL)
-	find_package(SDL REQUIRED)
 	include_directories(${SDL_INCLUDE_DIR})
 	target_link_libraries(openttd ${SDL_LIBRARY})
 endif (OPTION_SDL)
@@ -317,6 +365,10 @@ endif (OPTION_SSE)
 if (OPTION_NETWORK)
     add_definitions(-DENABLE_NETWORK)
 endif (OPTION_NETWORK)
+
+if (NOT OPTION_HAVE_THREAD)
+    add_definitions(-DNO_THREADS)
+endif (NOT OPTION_HAVE_THREAD)
 
 if (OPTION_WIN32)
     add_definitions(-DWITH_ASSERT)  # TODO -- Should this be on in all situations?
