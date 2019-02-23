@@ -87,9 +87,6 @@ set(CMAKE_CXX_EXTENSIONS NO)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/settingsgen)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/strgen)
 
-find_package(ZLIB)
-find_package(PNG)
-
 # source.list uses per OS a variable; translate the OS variable into a per variable.
 set(OPTION_WIN32 NO)
 set(OPTION_OSX NO)
@@ -222,35 +219,12 @@ else (MSVC)
     add_compile_options(-Wno-multichar)
 endif (MSVC)
 
-add_executable(openttd
-        WIN32
-        ${SOURCE_FILES})
-
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/src/3rdparty/squirrel/include)
 
-if (NOT PNG_FOUND)
-    message(WARNING "libpng not found; functionality will be limited")
-else(NOT PNG_FOUND)
-    add_definitions(-DWITH_PNG)
-    include_directories(${PNG_INCLUDE_DIR})
-    target_link_libraries(openttd ${PNG_LIBRARIES})
-endif (NOT PNG_FOUND)
-
-if (NOT ZLIB_FOUND)
-    message(WARNING "zlib not found; functionality will be limited")
-else(NOT ZLIB_FOUND)
-    add_definitions(-DWITH_ZLIB)
-    include_directories(${ZLIB_INCLUDE_DIR})
-    target_link_libraries(openttd ${ZLIB_LIBRARIES})
-endif (NOT ZLIB_FOUND)
-
-if (OPTION_SDL)
-    add_definitions(-DWITH_SDL)
-	find_package(SDL REQUIRED)
-	include_directories(${SDL_INCLUDE_DIR})
-	target_link_libraries(openttd ${SDL_LIBRARY})
-endif (OPTION_SDL)
+add_executable(openttd
+        WIN32
+        ${SOURCE_FILES})
 
 target_link_libraries(openttd
     openttd::languages
@@ -260,6 +234,31 @@ target_link_libraries(openttd
 set_target_properties(openttd PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
 add_definitions(-D${OPTION_OS})
+
+find_package(PNG)
+if (PNG_FOUND)
+    add_definitions(-DWITH_PNG)
+    include_directories(${PNG_INCLUDE_DIR})
+    target_link_libraries(openttd ${PNG_LIBRARIES})
+else (PNG_FOUND)
+    message(WARNING "libpng not found; functionality will be limited")
+endif (PNG_FOUND)
+
+find_package(ZLIB)
+if (ZLIB_FOUND)
+    add_definitions(-DWITH_ZLIB)
+    include_directories(${ZLIB_INCLUDE_DIR})
+    target_link_libraries(openttd ${ZLIB_LIBRARIES})
+else (ZLIB_FOUND)
+    message(WARNING "zlib not found; functionality will be limited")
+endif (ZLIB_FOUND)
+
+if (OPTION_SDL)
+    add_definitions(-DWITH_SDL)
+	find_package(SDL REQUIRED)
+	include_directories(${SDL_INCLUDE_DIR})
+	target_link_libraries(openttd ${SDL_LIBRARY})
+endif (OPTION_SDL)
 
 if (OPTION_GLOBAL_DIR)
     add_definitions(-DGLOBAL_DATA_DIR="${OPTION_GLOBAL_DIR}")
