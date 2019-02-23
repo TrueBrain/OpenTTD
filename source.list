@@ -67,7 +67,6 @@ order_backup.cpp
 pbs.cpp
 progress.cpp
 rail.cpp
-rev.cpp
 road.cpp
 roadstop.cpp
 screenshot.cpp
@@ -1172,7 +1171,6 @@ sound/null_s.cpp
 # Windows files
 #if WIN32
 	os/windows/crashlog_win.cpp
-	os/windows/ottdres.rc
 	os/windows/string_uniscribe.cpp
 	os/windows/win32.cpp
 #end
