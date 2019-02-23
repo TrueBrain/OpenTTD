@@ -216,20 +216,21 @@ if (IS_BIG_ENDIAN)
 else (IS_BIG_ENDIAN)
     add_definitions(-DTTD_ENDIAN=TTD_LITTLE_ENDIAN)
 endif (IS_BIG_ENDIAN)
-#list(APPEND SOURCE_FILES ${CMAKE_BINARY_DIR}/generated/rev.cpp)
-#include_directories(${CMAKE_SOURCE_DIR}/src)
 
-# Defines
-add_definitions(-DGLOBAL_DATA_DIR="${CMAKE_INSTALL_PREFIX}/${OPTION_DATA_DIR}")
+if (MSVC)
+else (MSVC)
+    add_compile_options(-Wno-multichar)
+endif (MSVC)
 
-# Compiler flags
-add_compile_options(-Wno-multichar)
+add_executable(openttd
+        WIN32
+        ${SOURCE_FILES})
 
-add_executable(openttd WIN32 ${SOURCE_FILES})
+include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/src/3rdparty/squirrel/include)
 
 if (NOT PNG_FOUND)
-    message("libpng not found; functionality will be limited")
+    message(WARNING "libpng not found; functionality will be limited")
 else(NOT PNG_FOUND)
     add_definitions(-DWITH_PNG)
     include_directories(${PNG_INCLUDE_DIR})
@@ -237,7 +238,7 @@ else(NOT PNG_FOUND)
 endif (NOT PNG_FOUND)
 
 if (NOT ZLIB_FOUND)
-    message("zlib not found; functionality will be limited")
+    message(WARNING "zlib not found; functionality will be limited")
 else(NOT ZLIB_FOUND)
     add_definitions(-DWITH_ZLIB)
     include_directories(${ZLIB_INCLUDE_DIR})
@@ -256,15 +257,41 @@ target_link_libraries(openttd
     openttd::settings
 )
 
-if (WIN32)
-    # TODO Do these need to be linked explicitly?
+set_target_properties(openttd PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+
+add_definitions(-D${OPTION_OS})
+
+if (OPTION_GLOBAL_DIR)
+    add_definitions(-DGLOBAL_DATA_DIR="${OPTION_GLOBAL_DIR}")
+endif (OPTION_GLOBAL_DIR)
+
+if (OPTION_PERSONAL_DIR)
+    add_definitions(-DWITH_PERSONAL_DIR)
+    add_definitions(-DPERSONAL_DIR="${OPTION_PERSONAL_DIR}")
+endif (OPTION_PERSONAL_DIR)
+
+if (OPTION_UNISCRIBE)
+    add_definitions(-DWITH_UNISCRIBE)
+endif (OPTION_UNISCRIBE)
+
+if (OPTION_SSE)
+    add_definitions(-DWITH_SSE)
+endif (OPTION_SSE)
+
+if (OPTION_NETWORK)
+    add_definitions(-DENABLE_NETWORK)
+endif (OPTION_NETWORK)
+
+if (OPTION_WIN32)
+    add_definitions(-DWITH_ASSERT)  # TODO -- Should this be on in all situations?
+
     target_link_libraries(openttd
         ws2_32
         winmm
-        gdi32
-        dxguid
-        ole32
         imm32
     )
-else (WIN32)
-endif (WIN32)
+endif (OPTION_WIN32)
+
+if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+    add_definitions(-D_SQ64)
+endif (CMAKE_SIZEOF_VOID_P EQUAL 8)
