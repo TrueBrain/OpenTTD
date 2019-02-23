@@ -392,7 +392,7 @@ static inline char *mkpath(char *buf, const char *last, const char *path, const 
 	return buf;
 }
 
-#if defined(__MINGW32__)
+#if defined(_WIN32)
 /**
  * On MingW, it is common that both / as \ are accepted in the
  * params. To go with those flow, we rewrite all incoming /
