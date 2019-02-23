@@ -225,6 +225,14 @@ foreach (FILE IN LISTS SOURCE_LIST)
     list(APPEND SOURCE_FILES ${CMAKE_SOURCE_DIR}/src/${FILE})
 endforeach(FILE)
 
+# Add the correct (S)SSE flag for (S)SSE files
+file(GLOB SSE2_FILES ${CMAKE_SOURCE_DIR}/src/*_sse2.cpp ${CMAKE_SOURCE_DIR}/src/*/*_sse2.cpp)
+file(GLOB SSSE3_FILES ${CMAKE_SOURCE_DIR}/src/*_ssse3.cpp ${CMAKE_SOURCE_DIR}/src/*/*_ssse3.cpp)
+file(GLOB SSE4_FILES ${CMAKE_SOURCE_DIR}/src/*_sse4.cpp ${CMAKE_SOURCE_DIR}/src/*/*_sse4.cpp)
+set_source_files_properties(${SSE2_FILES} PROPERTIES COMPILE_FLAGS -msse2)
+set_source_files_properties(${SSSE3_FILES} PROPERTIES COMPILE_FLAGS -mssse3)
+set_source_files_properties(${SSE4_FILES} PROPERTIES COMPILE_FLAGS -msse4.1)
+
 # TODO -- Don't put this in here like this; make this a target or something
 # TODO -- Run this every run
 execute_process(COMMAND ./findversion.sh
