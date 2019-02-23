@@ -12,8 +12,6 @@
 #ifndef STRING_UNISCRIBE_H
 #define STRING_UNISCRIBE_H
 
-#if defined(WITH_UNISCRIBE)
-
 #include "../../gfx_layout.h"
 #include "../../string_base.h"
 #include <vector>
@@ -86,7 +84,5 @@ public:
 	virtual size_t Next(IterType what);
 	virtual size_t Prev(IterType what);
 };
-
-#endif /* defined(WITH_UNISCRIBE) */
 
 #endif /* STRING_UNISCRIBE_H */
