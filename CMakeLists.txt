@@ -273,6 +273,9 @@ else (IS_BIG_ENDIAN)
 endif (IS_BIG_ENDIAN)
 
 if (MSVC)
+    # Build OpenTTD in a static form via MSVC
+    set(CMAKE_CXX_FLAGS_RELEASE "/MT")
+    set(CMAKE_CXX_FLAGS_DEBUG "/MTd")
 else (MSVC)
     add_compile_options(-Wno-multichar)
 endif (MSVC)
