@@ -12,6 +12,13 @@ set(sourcefiles
 add_definitions(-DSTRGEN)
 add_executable(strgen ${sourcefiles})
 
+include(TestBigEndian)
+TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
+if (IS_BIG_ENDIAN)
+    add_definitions(-DTTD_ENDIAN=TTD_BIG_ENDIAN)
+else (IS_BIG_ENDIAN)
+    add_definitions(-DTTD_ENDIAN=TTD_LITTLE_ENDIAN)
+endif (IS_BIG_ENDIAN)
 
 set(LANG_BINARY_DIR ${CMAKE_BINARY_DIR}/lang)
 set(LANG_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/lang)

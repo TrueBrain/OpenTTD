@@ -25,4 +25,8 @@
 /** Big endian builds use this for TTD_ENDIAN. */
 #define TTD_BIG_ENDIAN 1
 
+#if !defined(TTD_ENDIAN)
+#	error "TTD_ENDIAN is not defined; please set it to either TTD_LITTLE_ENDIAN or TTD_BIG_ENDIAN"
+#endif /* !TTD_ENDIAN */
+
 #endif /* ENDIAN_TYPE_HPP */
