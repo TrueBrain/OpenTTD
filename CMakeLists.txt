@@ -283,6 +283,7 @@ endif (OPTION_NETWORK)
 
 if (OPTION_WIN32)
     add_definitions(-DWITH_ASSERT)  # TODO -- Should this be on in all situations?
+    add_definitions(-DUNICODE -D_UNICODE)
 
     target_link_libraries(openttd
         ws2_32
