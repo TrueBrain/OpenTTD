@@ -26,7 +26,6 @@ Sub UpdateFile(modified, isodate, version, cur_date, githash, istag, filename)
 	FindReplaceInFile filename, "!!MODIFIED!!", modified
 	FindReplaceInFile filename, "!!ISODATE!!", isodate
 	FindReplaceInFile filename, "!!VERSION!!", version
-	FindReplaceInFile filename, "!!DATE!!", cur_date
 	FindReplaceInFile filename, "!!GITHASH!!", githash
 	FindReplaceInFile filename, "!!ISTAG!!", istag
 End Sub
