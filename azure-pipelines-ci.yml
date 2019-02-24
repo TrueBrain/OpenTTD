@@ -12,9 +12,9 @@ jobs:
   strategy:
     matrix:
       Win32:
-        BuildPlatform: 'Win32'
+        OptionalBuildArch: ''
       Win64:
-        BuildPlatform: 'Win64'
+        OptionalBuildArch: ' Win64'
 
   steps:
   - template: azure-pipelines/templates/ci-git-rebase.yml
@@ -22,7 +22,7 @@ jobs:
   - template: azure-pipelines/templates/ci-opengfx.yml
   - template: azure-pipelines/templates/windows-build.yml
     parameters:
-      BuildPlatform: $(BuildPlatform)
+      OptionalBuildArch: $(OptionalBuildArch)
   - script: |
       call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86
       cd projects
