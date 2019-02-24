@@ -1104,7 +1104,7 @@ video/null_v.cpp
 #if ALLEGRO
 	music/allegro_m.cpp
 #end
-#if DIRECTMUSIC
+#if WIN32
 	music/dmusic.cpp
 #end
 #end
