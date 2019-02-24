@@ -106,10 +106,10 @@ message(STATUS "png: ${OPTION_PNG}")
 set(OPTION_UNISCRIBE ${AUTODETECT_UNISCRIBE} CACHE BOOL "Use uniscribe support")
 message(STATUS "Uniscribe: ${OPTION_UNISCRIBE}")
 
-set(OPTION_SSE ${AUTODETECT_SSE} CACHE BOOL "Use SSE support")
-message(STATUS "SSE: ${OPTION_SSE}")
-set(OPTION_HAVE_THREAD YES CACHE BOOL "Use threads")
-message(STATUS "Threads: ${OPTION_HAVE_THREAD}")
+set(OPTION_USE_SSE ${AUTODETECT_SSE} CACHE BOOL "Use SSE support")
+message(STATUS "SSE: ${OPTION_USE_SSE}")
+set(OPTION_USE_THREADS YES CACHE BOOL "Use threads")
+message(STATUS "Threads: ${OPTION_USE_THREADS}")
 
 set(OPTION_GLOBAL_DIR ${AUTODETECT_GLOBAL_DIR} CACHE STRING "Global data directory to use")
 message(STATUS "Global dir: ${OPTION_GLOBAL_DIR}")
@@ -225,14 +225,6 @@ foreach (FILE IN LISTS SOURCE_LIST)
     list(APPEND SOURCE_FILES ${CMAKE_SOURCE_DIR}/src/${FILE})
 endforeach(FILE)
 
-# Add the correct (S)SSE flag for (S)SSE files
-file(GLOB SSE2_FILES ${CMAKE_SOURCE_DIR}/src/*_sse2.cpp ${CMAKE_SOURCE_DIR}/src/*/*_sse2.cpp)
-file(GLOB SSSE3_FILES ${CMAKE_SOURCE_DIR}/src/*_ssse3.cpp ${CMAKE_SOURCE_DIR}/src/*/*_ssse3.cpp)
-file(GLOB SSE4_FILES ${CMAKE_SOURCE_DIR}/src/*_sse4.cpp ${CMAKE_SOURCE_DIR}/src/*/*_sse4.cpp)
-set_source_files_properties(${SSE2_FILES} PROPERTIES COMPILE_FLAGS -msse2)
-set_source_files_properties(${SSSE3_FILES} PROPERTIES COMPILE_FLAGS -mssse3)
-set_source_files_properties(${SSE4_FILES} PROPERTIES COMPILE_FLAGS -msse4.1)
-
 # TODO -- Don't put this in here like this; make this a target or something
 # TODO -- Run this every run
 execute_process(COMMAND ./findversion.sh
@@ -326,7 +318,7 @@ elseif (NOT SDL_FOUND)
     message(FATAL_ERROR "SDL not found but was expected to be found")
 endif ()
 
-if (NOT OPTION_SSE)
+if (NOT OPTION_USE_SSE)
 elseif (NOT SSE_FOUND)
     message(FATAL_ERROR "SSE not found but was expected to be found")
 endif ()
@@ -367,17 +359,25 @@ if (OPTION_UNISCRIBE)
     add_definitions(-DWITH_UNISCRIBE)
 endif (OPTION_UNISCRIBE)
 
-if (OPTION_SSE)
+if (OPTION_USE_SSE)
     add_definitions(-DWITH_SSE)
-endif (OPTION_SSE)
+
+    # Add the correct (S)SSE flag for (S)SSE files
+    file(GLOB SSE2_FILES ${CMAKE_SOURCE_DIR}/src/*_sse2.cpp ${CMAKE_SOURCE_DIR}/src/*/*_sse2.cpp)
+    file(GLOB SSSE3_FILES ${CMAKE_SOURCE_DIR}/src/*_ssse3.cpp ${CMAKE_SOURCE_DIR}/src/*/*_ssse3.cpp)
+    file(GLOB SSE4_FILES ${CMAKE_SOURCE_DIR}/src/*_sse4.cpp ${CMAKE_SOURCE_DIR}/src/*/*_sse4.cpp)
+    set_source_files_properties(${SSE2_FILES} PROPERTIES COMPILE_FLAGS -msse2)
+    set_source_files_properties(${SSSE3_FILES} PROPERTIES COMPILE_FLAGS -mssse3)
+    set_source_files_properties(${SSE4_FILES} PROPERTIES COMPILE_FLAGS -msse4.1)
+endif (OPTION_USE_SSE)
 
 if (OPTION_NETWORK)
     add_definitions(-DENABLE_NETWORK)
 endif (OPTION_NETWORK)
 
-if (NOT OPTION_HAVE_THREAD)
+if (NOT OPTION_USE_THREADS)
     add_definitions(-DNO_THREADS)
-endif (NOT OPTION_HAVE_THREAD)
+endif (NOT OPTION_USE_THREADS)
 
 if (OPTION_WIN32)
     add_definitions(-DWITH_ASSERT)  # TODO -- Should this be on in all situations?
