@@ -136,6 +136,10 @@ target_link_libraries(openttd
 set_target_properties(openttd PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
 add_definitions(-D${OPTION_OS})
+# OSX also sets the UNIX flag
+if (OPTION_OS STREQUAL "OSX")
+    add_definitions(-DUNIX)
+endif (OPTION_OS STREQUAL "OSX")
 
 include(OpenTTD REQUIRED)
 
