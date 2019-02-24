@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 
 project(strgen)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/../../cmake")
+
 set(sourcefiles
         strgen.cpp
         strgen_base.cpp
@@ -12,13 +14,8 @@ set(sourcefiles
 add_definitions(-DSTRGEN)
 add_executable(strgen ${sourcefiles})
 
-include(TestBigEndian)
-TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
-if (IS_BIG_ENDIAN)
-    add_definitions(-DTTD_ENDIAN=TTD_BIG_ENDIAN)
-else (IS_BIG_ENDIAN)
-    add_definitions(-DTTD_ENDIAN=TTD_LITTLE_ENDIAN)
-endif (IS_BIG_ENDIAN)
+include(Endian REQUIRED)
+add_endian_definition()
 
 set(LANG_BINARY_DIR ${CMAKE_BINARY_DIR}/lang)
 set(LANG_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/lang)
