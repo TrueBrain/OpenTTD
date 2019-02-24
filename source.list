@@ -1140,7 +1140,9 @@ sound/null_s.cpp
 #end
 #if WIN32
 	sound/win32_s.cpp
-	sound/xaudio2_s.cpp
+	#if USE_XAUDIO
+		sound/xaudio2_s.cpp
+	#end
 #end
 #end
 
