@@ -9,31 +9,24 @@ endif (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 set(OPTION_OS "")
-set(OPTION_COCOA NO)
-set(OPTION_GLOBAL_DIR "")
-set(OPTION_PERSONAL_DIR "")
-set(OPTION_SHARED_DIR "")
+set(GLOBAL_DIR "")
+set(PERSONAL_DIR "")
+set(SHARED_DIR "")
 
 if (APPLE)
-    set(OPTION_OS "OSX")
-    set(OPTION_COCOA YES)
-    set(OPTION_PERSONAL_DIR "Documents/OpenTTD")
-    set(OPTION_SHARED_DIR "/Library/Application Support/OpenTTD")
+    set(PERSONAL_DIR "Documents/OpenTTD")
+    set(SHARED_DIR "/Library/Application Support/OpenTTD")
 elseif (WIN32 OR MSVC)
-    set(OPTION_OS "WIN32")
-    set(OPTION_PERSONAL_DIR "OpenTTD")
+    set(PERSONAL_DIR "OpenTTD")
 elseif (UNIX)
-    set(OPTION_OS "UNIX")
-    set(OPTION_PERSONAL_DIR ".openttd")
+    set(PERSONAL_DIR ".openttd")
 endif ()
 
-set(OPTION_GLOBAL_DIR "${CMAKE_INSTALL_PREFIX}/share/games/openttd")
+set(GLOBAL_DIR "${CMAKE_INSTALL_PREFIX}/share/games/openttd")
 
-message(STATUS "Detecting OS - ${OPTION_OS}")
-message(STATUS "Detecting Cocoa - ${OPTION_COCOA}")
-message(STATUS "Detecting Global Data directory - ${OPTION_GLOBAL_DIR}")
-message(STATUS "Detecting Personal Data directory - ${OPTION_PERSONAL_DIR}")
-message(STATUS "Detecting Shared Data directory - ${OPTION_SHARED_DIR}")
+message(STATUS "Detecting Global Data directory - ${GLOBAL_DIR}")
+message(STATUS "Detecting Personal Data directory - ${PERSONAL_DIR}")
+message(STATUS "Detecting Shared Data directory - ${SHARED_DIR}")
 
 include(AutodetectLibrary REQUIRED)
 autodetect_library("zlib" ZLIB ZLIB zlib zlib.h libz)
@@ -58,22 +51,14 @@ message(STATUS "Option Threads - ${OPTION_USE_THREADS}")
 set(OPTION_USE_ASSERTS YES CACHE STRING "Use assertions; leave enabled for nightlies, betas, and RCs")
 message(STATUS "Option Assert - ${OPTION_USE_ASSERTS}")
 
-set(OPTION_TIMIDITY NO CACHE BOOL "Enable LibTimidity support")
+# TODO -- Support timidity
+set(OPTION_TIMIDITY NO)
 
-if (OPTION_OS STREQUAL "UNIX")
+if (UNIX)
     if (NOT SDL_FOUND)
         message(FATAL_ERROR "SDL is required for this platform")
     endif (NOT SDL_FOUND)
-endif (OPTION_OS STREQUAL "UNIX")
-
-if (OPTION_OS STREQUAL "OSX")
-    if (NOT OPTION_COCOA)
-        message(FATAL_ERROR "Cocoa is required for this platform")
-    endif (NOT OPTION_COCOA)
-endif (OPTION_OS STREQUAL "OSX")
-
-if (OPTION_OS STREQUAL "WIN32")
-endif (OPTION_OS STREQUAL "WIN32")
+endif (UNIX)
 
 if (MSVC)
     # C++17 for MSVC
@@ -103,13 +88,13 @@ configure_file("${CMAKE_SOURCE_DIR}/src/rev.cpp.in"
 set_source_files_properties("${CMAKE_BINARY_DIR}/generated/rev.cpp" GENERATED)
 list(APPEND SOURCE_FILES "${CMAKE_BINARY_DIR}/generated/rev.cpp")
 
-if (OPTION_WIN32)
+if (WIN32 OR MSVC)
     message(STATUS "Generating src/os/windows/ottdres.rc")
     configure_file("${CMAKE_SOURCE_DIR}/src/os/windows/ottdres.rc.in"
             "${CMAKE_BINARY_DIR}/generated/ottdres.rc")
     set_source_files_properties("${CMAKE_BINARY_DIR}/generated/ottdres.rc" GENERATED)
     list(APPEND SOURCE_FILES "${CMAKE_BINARY_DIR}/generated/ottdres.rc")
-endif (OPTION_WIN32)
+endif (WIN32 OR MSVC)
 
 include(Endian REQUIRED)
 add_endian_definition()
@@ -136,11 +121,9 @@ target_link_libraries(openttd
 
 set_target_properties(openttd PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
-add_definitions(-D${OPTION_OS})
-# OSX also sets the UNIX flag
-if (OPTION_OS STREQUAL "OSX")
+if (APPLE OR UNIX)
     add_definitions(-DUNIX)
-endif (OPTION_OS STREQUAL "OSX")
+endif (APPLE OR UNIX)
 
 include(OpenTTD REQUIRED)
 
@@ -154,21 +137,21 @@ add_library(ALLEGRO)
 add_library(FREETYPE)
 add_library(FONTCONFIG)
 
-if (OPTION_GLOBAL_DIR)
-    add_definitions(-DGLOBAL_DATA_DIR="${OPTION_GLOBAL_DIR}")
-endif (OPTION_GLOBAL_DIR)
+if (GLOBAL_DIR)
+    add_definitions(-DGLOBAL_DATA_DIR="${GLOBAL_DIR}")
+endif (GLOBAL_DIR)
 
-if (OPTION_PERSONAL_DIR)
+if (PERSONAL_DIR)
     add_definitions(-DWITH_PERSONAL_DIR)
-    add_definitions(-DPERSONAL_DIR="${OPTION_PERSONAL_DIR}")
-endif (OPTION_PERSONAL_DIR)
+    add_definitions(-DPERSONAL_DIR="${PERSONAL_DIR}")
+endif (PERSONAL_DIR)
 
-if (OPTION_SHARED_DIR)
+if (SHARED_DIR)
     add_definitions(-DWITH_SHARED_DIR)
-    add_definitions(-DSHARED_DIR="${OPTION_SHARED_DIR}")
-endif (OPTION_SHARED_DIR)
+    add_definitions(-DSHARED_DIR="${SHARED_DIR}")
+endif (SHARED_DIR)
 
-if (OPTION_USE_SSE)
+if (SSE_FOUND)
     add_definitions(-DWITH_SSE)
 
     # Add the correct (S)SSE flag for (S)SSE files
@@ -178,7 +161,7 @@ if (OPTION_USE_SSE)
     set_source_files_properties(${SSE2_FILES} PROPERTIES COMPILE_FLAGS -msse2)
     set_source_files_properties(${SSSE3_FILES} PROPERTIES COMPILE_FLAGS -mssse3)
     set_source_files_properties(${SSE4_FILES} PROPERTIES COMPILE_FLAGS -msse4.1)
-endif (OPTION_USE_SSE)
+endif (SSE_FOUND)
 
 if (OPTION_NETWORK)
     add_definitions(-DENABLE_NETWORK)
@@ -198,7 +181,7 @@ else (OPTION_USE_ASSERTS)
     add_definitions(-DNDEBUG)
 endif (OPTION_USE_ASSERTS)
 
-if (OPTION_WIN32)
+if (WIN32 OR MSVC)
     add_definitions(-DUNICODE -D_UNICODE)
     add_definitions(-DWITH_UNISCRIBE)
 
@@ -207,7 +190,7 @@ if (OPTION_WIN32)
         winmm
         imm32
     )
-endif (OPTION_WIN32)
+endif (WIN32 OR MSVC)
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)
     add_definitions(-D_SQ64)
