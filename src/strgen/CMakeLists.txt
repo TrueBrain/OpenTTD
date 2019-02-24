@@ -29,12 +29,13 @@ foreach(LANG_SOURCE_FILE IN LISTS LANG_SOURCE_FILES)
 
     add_custom_command(OUTPUT ${LANG_BINARY_FILE}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${LANG_BINARY_DIR}
-            COMMAND ${CMAKE_CURRENT_BINARY_DIR}/strgen
+            COMMAND strgen
                     -s ${LANG_SOURCE_DIR}
                     -d ${LANG_BINARY_DIR}
                     ${LANG_SOURCE_FILE}
             DEPENDS strgen
             MAIN_DEPENDENCY ${LANG_SOURCE_FILE}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
             COMMENT "Compiling language ${LANG_SOURCE_FILE_NAME_WE}"
     )
 
@@ -54,10 +55,11 @@ set(TABLE_BINARY_DIR ${GENERATED_BINARY_DIR}/table)
 # Generate a command and target to create the strings table
 add_custom_command(OUTPUT ${TABLE_BINARY_DIR}/strings.h
         COMMAND ${CMAKE_COMMAND} -E make_directory ${TABLE_BINARY_DIR}
-        COMMAND ${CMAKE_CURRENT_BINARY_DIR}/strgen
+        COMMAND strgen
                 -s ${LANG_SOURCE_DIR}
                 -d ${TABLE_BINARY_DIR}
         DEPENDS strgen ${LANG_SOURCE_FILES}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Generating table/strings.h"
 )
 add_custom_target(table_strings
