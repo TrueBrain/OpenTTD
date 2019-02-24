@@ -56,6 +56,9 @@ autodetect_library("FontConfig" FONTCONFIG FONTCONFIG fontconfig fontconfig/font
 include(AutodetectSSE REQUIRED)
 autodetect_sse()
 
+include(AutodetectXaudio2 REQUIRED)
+autodetect_xaudio2()
+
 set(OPTION_DEDICATED NO CACHE BOOL "Build dedicated server only (no GUI)")
 message(STATUS "Option Dedicated - ${OPTION_DEDICATED}")
 set(OPTION_NETWORK YES CACHE BOOL "Build with network support")
