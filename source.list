@@ -29,7 +29,7 @@ fileio.cpp
 fios.cpp
 fontcache.cpp
 fontdetection.cpp
-base_consist.cpp
+base_consist.cpp6
 gamelog.cpp
 genworld.cpp
 gfx.cpp
