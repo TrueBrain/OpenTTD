@@ -10,8 +10,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 set(OPTION_OS "")
 set(OPTION_COCOA NO)
-set(OPTION_DIRECTMUSIC NO)
-set(OPTION_UNISCRIBE NO)
 set(OPTION_GLOBAL_DIR "")
 set(OPTION_PERSONAL_DIR "")
 set(OPTION_SHARED_DIR "")
@@ -23,8 +21,6 @@ if (APPLE)
     set(OPTION_SHARED_DIR "/Library/Application Support/OpenTTD")
 elseif (WIN32 OR MSVC)
     set(OPTION_OS "WIN32")
-    set(OPTION_DIRECTMUSIC YES)
-    set(OPTION_UNISCRIBE YES)
     set(OPTION_PERSONAL_DIR "OpenTTD")
 elseif (UNIX)
     set(OPTION_OS "UNIX")
@@ -34,8 +30,6 @@ endif ()
 
 message(STATUS "Detecting OS - ${OPTION_OS}")
 message(STATUS "Detecting Cocoa - ${OPTION_COCOA}")
-message(STATUS "Detecting DirectMusic - ${OPTION_DIRECTMUSIC}")
-message(STATUS "Detecting Uniscribe - ${OPTION_UNISCRIBE}")
 message(STATUS "Detecting Global Data directory - ${OPTION_GLOBAL_DIR}")
 message(STATUS "Detecting Personal Data directory - ${OPTION_PERSONAL_DIR}")
 message(STATUS "Detecting Shared Data directory - ${OPTION_SHARED_DIR}")
@@ -168,10 +162,6 @@ if (OPTION_SHARED_DIR)
     add_definitions(-DSHARED_DIR="${OPTION_SHARED_DIR}")
 endif (OPTION_SHARED_DIR)
 
-if (OPTION_UNISCRIBE)
-    add_definitions(-DWITH_UNISCRIBE)
-endif (OPTION_UNISCRIBE)
-
 if (OPTION_USE_SSE)
     add_definitions(-DWITH_SSE)
 
@@ -204,6 +194,7 @@ endif (OPTION_USE_ASSERTS)
 
 if (OPTION_WIN32)
     add_definitions(-DUNICODE -D_UNICODE)
+    add_definitions(-DWITH_UNISCRIBE)
 
     target_link_libraries(openttd
         ws2_32
