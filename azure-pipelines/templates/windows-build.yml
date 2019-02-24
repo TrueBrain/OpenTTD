@@ -1,11 +1,12 @@
 parameters:
   OptionalBuildArch: ''
+  VcpkgTargetTriplet: ''
 
 steps:
 - task: CMake@1
   displayName: 'Configure'
   inputs:
-    cmakeArgs: '.. -G"Visual Studio 15 2017${{ parameters.OptionalBuildArch }}"'
+    cmakeArgs: '.. -G"Visual Studio 15 2017${{ parameters.OptionalBuildArch }}" -DCMAKE_TOOLCHAIN_FILE="$(Build.ArtifactStagingDirectory)\windows-dependencies\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET="${{ parameters.VcpkgTargetTriplet }}"'
 
 - bash: |
     ls -lh build

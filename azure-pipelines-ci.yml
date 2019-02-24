@@ -13,8 +13,10 @@ jobs:
     matrix:
       Win32:
         OptionalBuildArch: ''
+        VcpkgTargetTriplet: 'x86-windows-static'
       Win64:
         OptionalBuildArch: ' Win64'
+        VcpkgTargetTriplet: 'x64-windows-static'
 
   steps:
   - template: azure-pipelines/templates/ci-git-rebase.yml
