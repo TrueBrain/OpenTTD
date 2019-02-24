@@ -24,9 +24,10 @@ elseif (WIN32 OR MSVC)
     set(OPTION_PERSONAL_DIR "OpenTTD")
 elseif (UNIX)
     set(OPTION_OS "UNIX")
-    set(OPTION_GLOBAL_DIR "/share/games/openttd")
     set(OPTION_PERSONAL_DIR ".openttd")
 endif ()
+
+set(OPTION_GLOBAL_DIR "${CMAKE_INSTALL_PREFIX}/share/games/openttd")
 
 message(STATUS "Detecting OS - ${OPTION_OS}")
 message(STATUS "Detecting Cocoa - ${OPTION_COCOA}")
