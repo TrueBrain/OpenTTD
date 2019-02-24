@@ -1126,7 +1126,7 @@ music/midifile.cpp
 #if BEOS
 	music/bemidi.cpp
 #end
-#if LIBTIMIDITY
+#if TIMIDITY
 	music/libtimidity.cpp
 #end
 #if FLUIDSYNTH
