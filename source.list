@@ -109,7 +109,7 @@ townname.cpp
 vehicle.cpp
 vehiclelist.cpp
 viewport.cpp
-#if SSE
+#if USE_SSE
 viewport_sprite_sorter_sse4.cpp
 #end
 waypoint.cpp
@@ -918,7 +918,7 @@ script/api/script_window.cpp
 #else
 blitter/32bpp_anim.cpp
 blitter/32bpp_anim.hpp
-#if SSE
+#if USE_SSE
 blitter/32bpp_anim_sse2.cpp
 blitter/32bpp_anim_sse2.hpp
 blitter/32bpp_anim_sse4.cpp
@@ -930,7 +930,7 @@ blitter/32bpp_optimized.cpp
 blitter/32bpp_optimized.hpp
 blitter/32bpp_simple.cpp
 blitter/32bpp_simple.hpp
-#if SSE
+#if USE_SSE
 blitter/32bpp_sse_func.hpp
 blitter/32bpp_sse_type.h
 blitter/32bpp_sse2.cpp
@@ -1175,7 +1175,7 @@ sound/null_s.cpp
 
 # Threading
 thread/thread.h
-#if HAVE_THREAD
+#if USE_THREADS
 	#if WIN32
 		thread/thread_win32.cpp
 	#else
