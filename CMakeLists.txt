@@ -116,6 +116,9 @@ message(STATUS "Global dir: ${OPTION_GLOBAL_DIR}")
 set(OPTION_PERSONAL_DIR ${AUTODETECT_PERSONAL_DIR} CACHE STRING "Personal data directory to use")
 message(STATUS "Personal dir: ${OPTION_PERSONAL_DIR}")
 
+set(OPTION_USE_ASSERTS YES CACHE STRING "Use assertions; leave enabled for nightlies, betas, and RCs")
+message(STATUS "Assert: ${OPTION_USE_ASSERTS}")
+
 if (OPTION_OS STREQUAL "UNIX")
     if (NOT OPTION_SDL)
         message(FATAL_ERROR "SDL is required for this platform")
@@ -379,8 +382,13 @@ if (NOT OPTION_USE_THREADS)
     add_definitions(-DNO_THREADS)
 endif (NOT OPTION_USE_THREADS)
 
+if (OPTION_USE_ASSERTS)
+    add_definitions(-DWITH_ASSERT)
+else (OPTION_USE_ASSERTS)
+    add_definitions(-DNDEBUG)
+endif (OPTION_USE_ASSERTS)
+
 if (OPTION_WIN32)
-    add_definitions(-DWITH_ASSERT)  # TODO -- Should this be on in all situations?
     add_definitions(-DUNICODE -D_UNICODE)
 
     target_link_libraries(openttd
