@@ -5,6 +5,12 @@ macro(source_list)
         set(OPTION_SDL NO)
     endif (SDL_FOUND)
 
+    if (ALLEGRO_FOUND)
+        set(OPTION_ALLEGRO YES)
+    else (ALLEGRO_FOUND)
+        set(OPTION_ALLEGRO NO)
+    endif (ALLEGRO_FOUND)
+
     if (SSE_FOUND)
         set(OPTION_USE_SSE YES)
     else (SSE_FOUND)
