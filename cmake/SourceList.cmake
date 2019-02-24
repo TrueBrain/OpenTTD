@@ -23,14 +23,22 @@ macro(source_list)
         set(OPTION_FLUIDSYNTH NO)
     endif (FLUIDSYNTH_FOUND)
 
-    # source.list uses per OS a variable; translate the OS variable into a per variable.
-    set(OPTION_WIN32 NO)
+    set(OPTION_COCOA NO)
     set(OPTION_OSX NO)
+    set(OPTION_WIN32 NO)
+
+    if (APPLE)
+        set(OPTION_OSX YES)
+        set(OPTION_COCOA YES)
+    elseif (WIN32 OR MSVC)
+        set(OPTION_WIN32 YES)
+    endif ()
+
+    # These OSes used to be supported by OpenTTD, but have no CMake code yet
     set(OPTION_BEOS NO)
     set(OPTION_DOS NO)
     set(OPTION_MORPHOS NO)
     set(OPTION_OS2 NO)
-    set(OPTION_${OPTION_OS} YES)
 
     file(READ ${CMAKE_SOURCE_DIR}/source.list SOURCE_LIST)
     string(REPLACE "\n" ";" SOURCE_LIST "${SOURCE_LIST}")
