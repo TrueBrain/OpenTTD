@@ -8,25 +8,39 @@ endif (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
-set(OPTION_OS "")
-set(GLOBAL_DIR "")
-set(PERSONAL_DIR "")
-set(SHARED_DIR "")
-
 if (APPLE)
     set(PERSONAL_DIR "Documents/OpenTTD")
     set(SHARED_DIR "/Library/Application Support/OpenTTD")
-elseif (WIN32 OR MSVC)
+    set(GLOBAL_DIR "")
+elseif (WIN32)
     set(PERSONAL_DIR "OpenTTD")
+    set(SHARED_DIR "")
+    set(GLOBAL_DIR "")
 elseif (UNIX)
     set(PERSONAL_DIR ".openttd")
+    set(SHARED_DIR "")
+    set(GLOBAL_DIR "${CMAKE_INSTALL_PREFIX}/share/games/openttd")
+else ()
+    message(FATAL_ERROR "Unknown OS found; please consider creating a Pull Request to add support for this OS.")
 endif ()
 
-set(GLOBAL_DIR "${CMAKE_INSTALL_PREFIX}/share/games/openttd")
+if (GLOBAL_DIR)
+    message(STATUS "Detecting Global Data directory - ${GLOBAL_DIR}")
+else (GLOBAL_DIR)
+    message(STATUS "Detecting Global Data directory - (not set)")
+endif (GLOBAL_DIR)
 
-message(STATUS "Detecting Global Data directory - ${GLOBAL_DIR}")
-message(STATUS "Detecting Personal Data directory - ${PERSONAL_DIR}")
-message(STATUS "Detecting Shared Data directory - ${SHARED_DIR}")
+if (PERSONAL_DIR)
+    message(STATUS "Detecting Personal Data directory - ${PERSONAL_DIR}")
+else (PERSONAL_DIR)
+    message(STATUS "Detecting Personal Data directory - (not set)")
+endif (PERSONAL_DIR)
+
+if (SHARED_DIR)
+    message(STATUS "Detecting Shared Data directory - ${SHARED_DIR}")
+else (SHARED_DIR)
+    message(STATUS "Detecting Shared Data directory - (not set)")
+endif (SHARED_DIR)
 
 include(AutodetectLibrary REQUIRED)
 autodetect_library("zlib" ZLIB ZLIB zlib zlib.h libz)
@@ -88,13 +102,13 @@ configure_file("${CMAKE_SOURCE_DIR}/src/rev.cpp.in"
 set_source_files_properties("${CMAKE_BINARY_DIR}/generated/rev.cpp" GENERATED)
 list(APPEND SOURCE_FILES "${CMAKE_BINARY_DIR}/generated/rev.cpp")
 
-if (WIN32 OR MSVC)
+if (WIN32)
     message(STATUS "Generating src/os/windows/ottdres.rc")
     configure_file("${CMAKE_SOURCE_DIR}/src/os/windows/ottdres.rc.in"
             "${CMAKE_BINARY_DIR}/generated/ottdres.rc")
     set_source_files_properties("${CMAKE_BINARY_DIR}/generated/ottdres.rc" GENERATED)
     list(APPEND SOURCE_FILES "${CMAKE_BINARY_DIR}/generated/ottdres.rc")
-endif (WIN32 OR MSVC)
+endif (WIN32)
 
 include(Endian REQUIRED)
 add_endian_definition()
@@ -181,7 +195,7 @@ else (OPTION_USE_ASSERTS)
     add_definitions(-DNDEBUG)
 endif (OPTION_USE_ASSERTS)
 
-if (WIN32 OR MSVC)
+if (WIN32)
     add_definitions(-DUNICODE -D_UNICODE)
     add_definitions(-DWITH_UNISCRIBE)
 
@@ -190,7 +204,7 @@ if (WIN32 OR MSVC)
         winmm
         imm32
     )
-endif (WIN32 OR MSVC)
+endif (WIN32)
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)
     add_definitions(-D_SQ64)
