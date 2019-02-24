@@ -14,7 +14,7 @@ jobs:
       Win32:
         BuildPlatform: 'Win32'
       Win64:
-        BuildPlatform: 'x64'
+        BuildPlatform: 'Win64'
 
   steps:
   - template: azure-pipelines/templates/ci-git-rebase.yml
