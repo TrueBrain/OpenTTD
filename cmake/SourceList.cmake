@@ -17,7 +17,7 @@ macro(source_list)
         set(OPTION_USE_SSE NO)
     endif (SSE_FOUND)
 
-	if (XAUDIO_FOUND)
+    if (XAUDIO_FOUND)
         set(OPTION_USE_XAUDIO YES)
     else (XAUDIO_FOUND)
         set(OPTION_USE_XAUDIO NO)
