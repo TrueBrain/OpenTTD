@@ -30,7 +30,7 @@ macro(source_list)
     if (APPLE)
         set(OPTION_OSX YES)
         set(OPTION_COCOA YES)
-    elseif (WIN32 OR MSVC)
+    elseif (WIN32)
         set(OPTION_WIN32 YES)
     endif ()
 
