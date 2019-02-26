@@ -1,24 +1,102 @@
 macro(find_version)
-    execute_process(COMMAND ./findversion.sh
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-            OUTPUT_VARIABLE FIND_VERSION_RESULT
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if (FIND_VERSION_RESULT)
-        string(REPLACE "\t" ";" FIND_VERSION ${FIND_VERSION_RESULT})
-        list(GET FIND_VERSION 0 REV_VERSION)
-        list(GET FIND_VERSION 1 REV_ISODATE)
-        list(GET FIND_VERSION 2 REV_MODIFIED)
-        list(GET FIND_VERSION 3 REV_HASH)
-        list(GET FIND_VERSION 4 REV_ISTAG)
+    # Make sure LC_ALL is set to something desirable
+    set(SAVED_LC_ALL "$ENV{LC_ALL}")
+    set(ENV{LC_ALL} C)
 
-        message(STATUS "Version string: ${REV_VERSION}")
-    else (FIND_VERSION_RESULT)
+    find_package(Git)
+    if (GIT_FOUND AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/.git")
+        # Assume the dir is not modified
+        set(REV_MODIFIED 0)
+
+        # Refresh the index to make sure file stat info is in sync, then look for modifications
+        execute_process(COMMAND ${GIT_EXECUTABLE} update-index --refresh
+                        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                        OUTPUT_QUIET
+        )
+
+        # See if git tree is modified
+        execute_process(COMMAND ${GIT_EXECUTABLE} diff-index HEAD
+                        OUTPUT_VARIABLE IS_MODIFIED
+                        OUTPUT_STRIP_TRAILING_WHITESPACE
+                        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        )
+        if (NOT IS_MODIFIED STREQUAL "")
+            set(REV_MODIFIED 2)
+        endif()
+
+        # Get last commit hash
+        execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --verify HEAD
+                        OUTPUT_VARIABLE FULLHASH
+                        OUTPUT_STRIP_TRAILING_WHITESPACE
+                        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                        ERROR_QUIET
+        )
+        set(REV_HASH "${FULLHASH}")
+
+        string(SUBSTRING "${FULLHASH}" 0 10 SHORTHASH)
+
+        # Get the last commit date
+        execute_process(COMMAND ${GIT_EXECUTABLE} show -s --pretty=format:%ci HEAD
+                        OUTPUT_VARIABLE COMMITDATE
+                        OUTPUT_STRIP_TRAILING_WHITESPACE
+                        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        )
+        string(REGEX REPLACE "([0-9]+)-([0-9]+)-([0-9]+).*" "\\1\\2\\3" COMMITDATE "${COMMITDATE}")
+        set(REV_ISODATE "${COMMITDATE}")
+
+        # Get the branch
+        execute_process(COMMAND ${GIT_EXECUTABLE} symbolic-ref -q HEAD
+                        OUTPUT_VARIABLE BRANCH
+                        OUTPUT_STRIP_TRAILING_WHITESPACE
+                        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                        ERROR_QUIET
+        )
+        string(REGEX REPLACE ".*/" "" BRANCH "${BRANCH}")
+
+        # Get the tag
+        execute_process(COMMAND ${GIT_EXECUTABLE} name-rev --name-only --tags --no-undefined HEAD
+                        OUTPUT_VARIABLE TAG
+                        OUTPUT_STRIP_TRAILING_WHITESPACE
+                        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                        ERROR_QUIET
+        )
+        string(REGEX REPLACE "\^0$" "" TAG "${TAG}")
+
+        if (REV_MODIFIED EQUAL 0)
+            set(HASHPREFIX "-g")
+        elseif (REV_MODIFIED EQUAL 2)
+            set(HASHPREFIX "-m")
+        else ()
+            set(HASHPREFIX "-u")
+        endif()
+
+        # Set the version string
+        if (NOT TAG STREQUAL "")
+            set(REV_VERSION "${TAG}")
+            set(REV_ISTAG 1)
+        else ()
+            set(REV_VERSION "${REV_ISODATE}-${BRANCH}${HASHPREFIX}${SHORTHASH}")
+            set(REV_ISTAG 0)
+        endif ()
+    elseif (EXISTS "${CMAKE_SOURCE_DIR}/.ottdrev")
+        file(READ "${CMAKE_SOURCE_DIR}/.ottdrev" OTTDREV)
+        string(REPLACE "\t" ";" OTTDREV "${OTTDREV}")
+        list(GET OTTDREV 0 REV_VERSION)
+        list(GET OTTDREV 1 REV_ISODATE)
+        list(GET OTTDREV 2 REV_MODIFIED)
+        list(GET OTTDREV 3 REV_HASH)
+        list(GET OTTDREV 4 REV_ISTAG)
+    else ()
         message(WARNING "No version detected; this build will NOT be network compatible")
         set(REV_VERSION "norev0000")
         set(REV_ISODATE "19700101")
         set(REV_MODIFIED 1)
         set(REV_HASH "unknown")
         set(REV_ISTAG 0)
-    endif (FIND_VERSION_RESULT)
+    endif ()
+
+    message(STATUS "Version string: ${REV_VERSION}")
+
+    # Restore LC_ALL
+    set(ENV{LC_ALL} "${SAVED_LC_ALL}")
 endmacro()
