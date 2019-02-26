@@ -120,6 +120,7 @@ if (MSVC)
     # Build OpenTTD in a static form via MSVC
     set(CMAKE_CXX_FLAGS_RELEASE "/MT")
     set(CMAKE_CXX_FLAGS_DEBUG "/MTd")
+    list(APPEND SOURCE_FILES "${CMAKE_SOURCE_DIR}/projects/openttd.manifest")
 else (MSVC)
     add_compile_options(-Wno-multichar)
 endif (MSVC)
