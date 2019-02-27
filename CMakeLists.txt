@@ -100,7 +100,7 @@ set(GENERATED_BINARY_DIR ${CMAKE_BINARY_DIR}/generated)
 list(APPEND VERSION_OUTPUT "${GENERATED_BINARY_DIR}/rev.cpp")
 
 if (WIN32)
-    set(OPENTTD_MANIFEST "${CMAKE_SOURCE_DIR}/projects/openttd.manifest")
+    set(OPENTTD_MANIFEST "${CMAKE_SOURCE_DIR}/os/windows/openttd.manifest")
     list(APPEND VERSION_OUTPUT "${GENERATED_BINARY_DIR}/ottdres.rc")
 endif (WIN32)
 
