@@ -155,8 +155,18 @@ add_endian_definition()
 
 if (MSVC)
     # Switch to MT (static) instead of MD (dynamic) binary
-    foreach(flag "CMAKE_CXX_FLAGS_RELEASE" "CMAKE_CXX_FLAGS_DEBUG")
-        string(REPLACE "/MD" "/MT" ${flag} "${${flag}}")
+
+    # For MSVC two generators are available
+    # - a command line generator (Ninja) using CMAKE_BUILD_TYPE to specify the
+    #   configuration of the build tree
+    # - an IDE generator (Visual Studio) using CMAKE_CONFIGURATION_TYPES to
+    #   specify all configurations that will be available in the generated solution
+    list(APPEND MSVC_CONFIGS "${CMAKE_BUILD_TYPE}" "${CMAKE_CONFIGURATION_TYPES}")
+
+    # Set usage of static runtime for all configurations
+    foreach(MSVC_CONFIG ${MSVC_CONFIGS})
+        string(TOUPPER "CMAKE_CXX_FLAGS_${MSVC_CONFIG}" MSVC_FLAGS)
+        string(REPLACE "/MD" "/MT" ${MSVC_FLAGS} "${${MSVC_FLAGS}}")
     endforeach()
 
     # Add DPI manifest to project; other WIN32 targets get this via ottdres.rc
