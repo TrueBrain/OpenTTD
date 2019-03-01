@@ -41,15 +41,15 @@ macro(autodetect_library FRIENDLY NAME PACKAGE PKGCONFIG HEADER LIBRARY)
         _autodetect_library_via_find(${NAME} ${HEADER} ${LIBRARY})
     endif (NOT ${NAME}_FOUND)
 
-    # Patch up libraries that still announce under the deprecated name only
-    if (NOT ${NAME}_LIBRARIES)
-        set(${NAME}_LIBRARIES "${${NAME}_LIBRARY}")
-    endif (NOT ${NAME}_LIBRARIES)
-    if (NOT ${NAME}_INCLUDE_DIRS)
-        set(${NAME}_INCLUDE_DIRS "${${NAME}_INCLUDE_DIR}")
-    endif (NOT ${NAME}_INCLUDE_DIRS)
-
     if (${NAME}_FOUND)
+        # Patch up libraries that still announce under the deprecated name only
+        if (NOT ${NAME}_LIBRARIES)
+            set(${NAME}_LIBRARIES "${${NAME}_LIBRARY}")
+        endif (NOT ${NAME}_LIBRARIES)
+        if (NOT ${NAME}_INCLUDE_DIRS)
+            set(${NAME}_INCLUDE_DIRS "${${NAME}_INCLUDE_DIR}")
+        endif (NOT ${NAME}_INCLUDE_DIRS)
+
         message(STATUS "Detecting ${FRIENDLY} - found")
     else (${NAME}_FOUND)
         message(STATUS "Detecting ${FRIENDLY} - not found")
