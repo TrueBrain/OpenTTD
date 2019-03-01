@@ -8,6 +8,9 @@ endif (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
+include(ConfigOptions REQUIRED)
+set_options()
+
 if (APPLE)
     set(PERSONAL_DIR "Documents/OpenTTD")
     set(SHARED_DIR "/Library/Application Support/OpenTTD")
@@ -59,17 +62,7 @@ autodetect_sse()
 include(AutodetectXaudio2 REQUIRED)
 autodetect_xaudio2()
 
-set(OPTION_DEDICATED NO CACHE BOOL "Build dedicated server only (no GUI)")
-message(STATUS "Option Dedicated - ${OPTION_DEDICATED}")
-set(OPTION_NETWORK YES CACHE BOOL "Build with network support")
-message(STATUS "Option Network - ${OPTION_NETWORK}")
-set(OPTION_USE_THREADS YES CACHE BOOL "Use threads")
-message(STATUS "Option Threads - ${OPTION_USE_THREADS}")
-set(OPTION_USE_ASSERTS YES CACHE STRING "Use assertions; leave enabled for nightlies, betas, and RCs")
-message(STATUS "Option Assert - ${OPTION_USE_ASSERTS}")
-
-# TODO -- Support timidity
-set(OPTION_TIMIDITY NO)
+show_options()
 
 if (UNIX AND NOT APPLE)
     if (NOT SDL_FOUND)
@@ -187,23 +180,7 @@ if (SSE_FOUND)
     endif (NOT MSVC)
 endif (SSE_FOUND)
 
-if (OPTION_NETWORK)
-    add_definitions(-DENABLE_NETWORK)
-endif (OPTION_NETWORK)
-
-if (OPTION_DEDICATED)
-    add_definitions(-DDEDICATED)
-endif (OPTION_DEDICATED)
-
-if (NOT OPTION_USE_THREADS)
-    add_definitions(-DNO_THREADS)
-endif (NOT OPTION_USE_THREADS)
-
-if (OPTION_USE_ASSERTS)
-    add_definitions(-DWITH_ASSERT)
-else (OPTION_USE_ASSERTS)
-    add_definitions(-DNDEBUG)
-endif (OPTION_USE_ASSERTS)
+add_optional_definitions()
 
 if (WIN32)
     add_definitions(-DUNICODE -D_UNICODE)
