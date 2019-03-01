@@ -71,11 +71,11 @@ message(STATUS "Option Assert - ${OPTION_USE_ASSERTS}")
 # TODO -- Support timidity
 set(OPTION_TIMIDITY NO)
 
-if (UNIX)
+if (UNIX AND NOT APPLE)
     if (NOT SDL_FOUND)
         message(FATAL_ERROR "SDL is required for this platform")
     endif (NOT SDL_FOUND)
-endif (UNIX)
+endif (UNIX AND NOT APPLE)
 
 if (MSVC)
     # C++17 for MSVC
