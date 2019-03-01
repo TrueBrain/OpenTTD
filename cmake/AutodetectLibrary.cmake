@@ -50,6 +50,9 @@ macro(autodetect_library FRIENDLY NAME PACKAGE PKGCONFIG HEADER LIBRARY)
             set(${NAME}_INCLUDE_DIRS "${${NAME}_INCLUDE_DIR}")
         endif (NOT ${NAME}_INCLUDE_DIRS)
 
+        message(STATUS "${NAME}_INCLUDE_DIRS: ${${NAME}_INCLUDE_DIRS}")
+        message(STATUS "${NAME}_LIBRARIES: ${${NAME}_LIBRARIES}")
+
         message(STATUS "Detecting ${FRIENDLY} - found")
     else (${NAME}_FOUND)
         message(STATUS "Detecting ${FRIENDLY} - not found")
