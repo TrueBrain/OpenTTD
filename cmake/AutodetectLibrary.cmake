@@ -15,6 +15,14 @@ macro(_autodetect_library_via_pkgconfig NAME PKGCONFIG)
 
     if (PKG_CONFIG_FOUND)
         pkg_search_module("${NAME}" "${PKGCONFIG}" QUIET)
+
+        # PkgConfig always returns the "common" case; if we want to build
+        # static, we have to use the _STATIC prefixed variable. So map those
+        # here now, meaning we don't have to worry about it after this.
+        if (${NAME}_FOUND AND OPTION_STATIC)
+            set(${NAME}_LIBRARIES "${${NAME}_STATIC_LIBRARIES}")
+            set(${NAME}_INCLUDE_DIRS "${${NAME}_STATIC_INCLUDE_DIRS}")
+        endif (${NAME}_FOUND AND OPTION_STATIC)
     endif (PKG_CONFIG_FOUND)
 endmacro()
 
