@@ -73,11 +73,11 @@ jobs:
   strategy:
     matrix:
       Win32:
-        BuildPlatform: 'Win32'
-        BundlePlatform: 'win32'
+        OptionalBuildArch: ''
+        VcpkgTargetTriplet: 'x86-windows-static'
       Win64:
-        BuildPlatform: 'x64'
-        BundlePlatform: 'win64'
+        OptionalBuildArch: ' Win64'
+        VcpkgTargetTriplet: 'x64-windows-static'
 
   steps:
   - template: release-fetch-source.yml
@@ -87,7 +87,8 @@ jobs:
     - template: windows-dependency-nsis.yml
   - template: windows-build.yml
     parameters:
-      BuildPlatform: $(BuildPlatform)
+      OptionalBuildArch: $(OptionalBuildArch)
+      VcpkgTargetTriplet: $(VcpkgTargetTriplet)
   - bash: |
       set -ex
       make -f Makefile.msvc bundle_pdb bundle_zip PLATFORM=$(BundlePlatform) BUNDLE_NAME=openttd-$(Build.BuildNumber)-windows-$(BundlePlatform)

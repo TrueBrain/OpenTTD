@@ -12,3 +12,4 @@ steps:
   inputs:
     solution: build/openttd.sln
     maximumCpuCount: true
+    configuration: 'Release'
