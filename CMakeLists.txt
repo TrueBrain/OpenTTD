@@ -11,12 +11,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 include(ConfigOptions REQUIRED)
 set_options()
 
-if (OPTION_STATIC)
-    # We only switch detection to static; this is sufficient for our concept of
-    # 'static' where we only want to embed all the libraries we autodetect.
-    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-endif (OPTION_STATIC)
-
 if (APPLE)
     set(PERSONAL_DIR "Documents/OpenTTD")
     set(SHARED_DIR "/Library/Application Support/OpenTTD")
