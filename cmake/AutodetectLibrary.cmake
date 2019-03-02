@@ -15,25 +15,6 @@ macro(_autodetect_library_via_pkgconfig NAME PKGCONFIG)
 
     if (PKG_CONFIG_FOUND)
         pkg_search_module("${NAME}" "${PKGCONFIG}" QUIET)
-
-        # PkgConfig always returns the "common" case; if we want to build
-        # static, we have to use the _STATIC prefixed variable. So map those
-        # here now, meaning we don't have to worry about it after this.
-        if (${NAME}_FOUND AND OPTION_STATIC)
-            unset(${NAME}_LIBRARIES CACHE)
-
-            foreach(STATIC_LIBRARY ${${NAME}_STATIC_LIBRARIES})
-                unset(FIND_STATIC_LIBRARY CACHE)
-                find_library(FIND_STATIC_LIBRARY NAMES "${STATIC_LIBRARY}")
-                if ("${FIND_STATIC_LIBRARY}" STREQUAL "FIND_STATIC_LIBRARY-NOTFOUND")
-                    message(FATAL_ERROR "'${PKGCONFIG}' depends on '${STATIC_LIBRARY}', of which no static variant was found")
-                endif ("${FIND_STATIC_LIBRARY}" STREQUAL "FIND_STATIC_LIBRARY-NOTFOUND")
-                list(APPEND ${NAME}_LIBRARIES "${FIND_STATIC_LIBRARY}")
-            endforeach()
-            unset(FIND_STATIC_LIBRARY CACHE)
-
-            set(${NAME}_INCLUDE_DIRS "${${NAME}_STATIC_INCLUDE_DIRS}")
-        endif (${NAME}_FOUND AND OPTION_STATIC)
     endif (PKG_CONFIG_FOUND)
 endmacro()
 
