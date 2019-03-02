@@ -12,9 +12,9 @@ include(ConfigOptions REQUIRED)
 set_options()
 
 if (OPTION_STATIC)
+    # We only switch detection to static; this is sufficient for our concept of
+    # 'static' where we only want to embed all the libraries we autodetect.
     set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-    set(BUILD_SHARED_LIBRARIES OFF)
-    set(CMAKE_EXE_LINKER_FLAGS "-static")
 endif (OPTION_STATIC)
 
 if (APPLE)
