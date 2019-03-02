@@ -1135,7 +1135,7 @@ void DetermineBasePaths(const char *exe)
 		}
 	}
 
-#if defined(__MORPHOS__) || defined(__AMIGA__) || defined(DOS) || defined(OS2)
+#if !defined(GLOBAL_DATA_DIR)
 	_searchpaths[SP_INSTALLATION_DIR] = NULL;
 #else
 	seprintf(tmp, lastof(tmp), "%s", GLOBAL_DATA_DIR);
