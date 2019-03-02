@@ -26,11 +26,12 @@ jobs:
     parameters:
       OptionalBuildArch: $(OptionalBuildArch)
       VcpkgTargetTriplet: $(VcpkgTargetTriplet)
-  - script: |
-      call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x86
-      cd projects
-      call regression.bat
+  - task: VSBuild@1
     displayName: 'Test'
+    inputs:
+      solution: build/openttd.sln
+      msbuildArgs: "/target RUN_TESTS"
+
 
 - job: linux
   displayName: 'Linux'
@@ -66,5 +67,5 @@ jobs:
   - template: azure-pipelines/templates/osx-dependencies.yml
   - template: azure-pipelines/templates/ci-opengfx.yml
   - template: azure-pipelines/templates/osx-build.yml
-  - script: 'make regression'
+  - script: 'make test'
     displayName: 'Test'
