@@ -198,7 +198,6 @@ if (APPLE)
 
     add_definitions(-DWITH_COCOA)
     add_definitions(-DENABLE_COCOA_QUARTZ)
-    add_definitions(-DENABLE_COCOA_QUICKDRAW)
     add_definitions(-DNO_QUICKTIME)
 endif (APPLE)
 
