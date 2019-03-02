@@ -118,7 +118,7 @@ END
 #endif    // !_MAC
 
 #ifdef __MINGW32__
-1 24 "${OPENTTD_MANIFEST}"
+1 24 "${CMAKE_SOURCE_DIR}/os/windows/openttd.manifest"
 #endif
 
 #endif    // Neutral (Default) resources

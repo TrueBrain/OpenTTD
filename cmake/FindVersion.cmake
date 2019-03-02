@@ -111,12 +111,12 @@ endif ()
 
 message(STATUS "Version string: ${REV_VERSION}")
 
-message(STATUS "Generating generated/rev.cpp")
+message(STATUS "Generating rev.cpp")
 configure_file("${CMAKE_SOURCE_DIR}/src/rev.cpp.in"
-        "${GENERATED_BINARY_DIR}/rev.cpp")
+        "${FIND_VERSION_BINARY_DIR}/rev.cpp")
 
-if (NOT "${OPENTTD_MANIFEST}" STREQUAL "")
-    message(STATUS "Generating generated/ottdres.rc")
+if (WIN32)
+    message(STATUS "Generating ottdres.rc")
     configure_file("${CMAKE_SOURCE_DIR}/src/os/windows/ottdres.rc.in"
-            "${GENERATED_BINARY_DIR}/ottdres.rc")
-endif ()
+            "${FIND_VERSION_BINARY_DIR}/ottdres.rc")
+endif (WIN32)
