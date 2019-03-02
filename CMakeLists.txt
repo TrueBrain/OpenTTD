@@ -56,6 +56,23 @@ autodetect_library("fluidsynth" FLUIDSYNTH FLUIDSYNTH fluidsynth "" fluidsynth.h
 autodetect_library("FreeType" FREETYPE Freetype freetype2 freetype2 ft2build.h freetype)
 autodetect_library("FontConfig" FONTCONFIG FONTCONFIG fontconfig fontconfig fontconfig.h fontconfig)
 
+# LZO is an utter mess, and works on most platforms by accident.
+# The pkg-config that ships with LZO, sets the includepath to the folder
+# "lzo", so something like "/usr/include/lzo".
+# Now the file "lzo/lzo1x.h" includes "lzo/lzoconf.h". This obvious is wrong,
+# as there is no way to include that based on the includepath. Now this, by
+# accident, goes unnoticed for most platforms, as it is very likely
+# "/usr/include" is also on your searchpath. Other platforms have fixed this
+# issue by patching "lzo/lzo1x.h" to include "lzoconf.h" (which is honestly
+# the only correct way to do this). With brew on OSX however, they don't
+# modify the source, use an unpatched pkg-config, and don't put the root
+# folder in the search path for includes. So there this breaks.
+# As such, we 'fix' things here by also making sure the root folder is
+# included in the search path.
+if (LZO_FOUND)
+    get_filename_component(LZO_INCLUDE_DIRS "${LZO_INCLUDE_DIRS}/.." ABSOLUTE)
+endif (LZO_FOUND)
+
 include(AutodetectSSE REQUIRED)
 autodetect_sse()
 
