@@ -15,6 +15,31 @@ macro(_autodetect_library_via_pkgconfig NAME PKGCONFIG)
 
     if (PKG_CONFIG_FOUND)
         pkg_search_module("${NAME}" "${PKGCONFIG}" QUIET)
+
+        # pkg-config returns the libraries without really resolving them.
+        # This has as huge drawback that sometimes you only notice on linking
+        # a library is missing. To do better detecting during configuration,
+        # run all the libraries pkg-config returns through detection again, to
+        # see if they really exist.
+        # This is also how most CMake files work, and fixes issues on OSX where
+        # libraries are otherwise not always detected (because CMake usees more
+        # library paths than the compiler normally does).
+        if (${NAME}_FOUND)
+            unset(PKGCONFIG_LIBRARIES)
+            foreach(PKGCONFIG_LIBRARY ${${NAME}_LIBRARIES})
+                unset(FIND_PKGCONFIG_LIBRARY CACHE)
+                find_library(FIND_PKGCONFIG_LIBRARY NAMES "${PKGCONFIG_LIBRARY}")
+
+                if (FIND_PKGCONFIG_LIBRARY STREQUAL "FIND_PKGCONFIG_LIBRARY-NOTFOUND")
+                    message(FATAL_ERROR "pkg-config indicates '${PKGCONFIG}' depends on library '${PKGCONFIG_LIBRARY}' but this library was not found on the system")
+                endif (FIND_PKGCONFIG_LIBRARY STREQUAL "FIND_PKGCONFIG_LIBRARY-NOTFOUND")
+
+                list(APPEND PKGCONFIG_LIBRARIES ${FIND_PKGCONFIG_LIBRARY})
+            endforeach()
+            unset(FIND_PKGCONFIG_LIBRARY CACHE)
+
+            set(${NAME}_LIBRARIES "${PKGCONFIG_LIBRARIES}")
+        endif (${NAME}_FOUND)
     endif (PKG_CONFIG_FOUND)
 endmacro()
 
