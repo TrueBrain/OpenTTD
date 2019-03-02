@@ -11,6 +11,12 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 include(ConfigOptions REQUIRED)
 set_options()
 
+if (OPTION_STATIC)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+    set(BUILD_SHARED_LIBRARIES OFF)
+    set(CMAKE_EXE_LINKER_FLAGS "-static")
+endif (OPTION_STATIC)
+
 if (APPLE)
     set(PERSONAL_DIR "Documents/OpenTTD")
     set(SHARED_DIR "/Library/Application Support/OpenTTD")
@@ -63,6 +69,9 @@ if (APPLE)
     find_library(CARBON_LIBRARY Carbon)
     find_library(COCOA_LIBRARY Cocoa)
 endif (APPLE)
+
+# TODO -- Support timidity
+set(OPTION_TIMIDITY NO)
 
 # LZO is an utter mess, and works on most platforms by accident.
 # The pkg-config that ships with LZO, sets the includepath to the folder
