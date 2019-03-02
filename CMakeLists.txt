@@ -8,7 +8,7 @@ endif (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
-include(ConfigOptions REQUIRED)
+include(Options REQUIRED)
 set_options()
 
 if (APPLE)
@@ -144,7 +144,7 @@ endif (WIN32)
 
 # Generate a target to determine version, which is execute every 'make' run
 add_custom_target(find_version
-        ${CMAKE_COMMAND} -DFIND_VERSION_BINARY_DIR=${CMAKE_BINARY_DIR}/generated -P "${CMAKE_SOURCE_DIR}/cmake/FindVersion.cmake"
+        ${CMAKE_COMMAND} -DFIND_VERSION_BINARY_DIR=${CMAKE_BINARY_DIR}/generated -P "${CMAKE_SOURCE_DIR}/cmake/scripts/FindVersion.cmake"
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         BYPRODUCTS ${FIND_VERSION_FILES}
 )
@@ -242,7 +242,7 @@ if (SSE_FOUND)
     endif (NOT MSVC)
 endif (SSE_FOUND)
 
-add_optional_definitions()
+add_definitions_based_on_options()
 
 if (WIN32)
     add_definitions(-DUNICODE -D_UNICODE)
@@ -260,11 +260,11 @@ if (CMAKE_SIZEOF_VOID_P EQUAL 8)
 endif (CMAKE_SIZEOF_VOID_P EQUAL 8)
 
 add_custom_target(regression
-        COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/Regression.cmake"
+        COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/scripts/Regression.cmake"
         DEPENDS openttd)
 
 # Also make sure that 'make test' runs the regression
 enable_testing()
 add_test(NAME regression
-        COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/Regression.cmake"
+        COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/scripts/Regression.cmake"
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
