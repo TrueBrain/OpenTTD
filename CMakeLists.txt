@@ -60,6 +60,8 @@ autodetect_library("Allegro" ALLEGRO ALLEGRO allegro "" allegro.h alleg)
 autodetect_library("fluidsynth" FLUIDSYNTH FLUIDSYNTH fluidsynth "" fluidsynth.h fluidsynth)
 autodetect_library("FreeType" FREETYPE Freetype freetype2 freetype2 ft2build.h freetype)
 autodetect_library("FontConfig" FONTCONFIG FONTCONFIG fontconfig fontconfig fontconfig.h fontconfig)
+autodetect_library("icu-lx" ICU_lx ICU icu-lx "" NOTFOUND NOTFOUND) # Manual lookup is not supported
+autodetect_library("icu-i18n" ICU_i18n ICU icu-i18n "" NOTFOUND NOTFOUND) # Manual lookup is not supported
 if (APPLE)
     autodetect_library("iconv" Iconv Iconv iconv "" iconv.h iconv)
 
@@ -197,6 +199,8 @@ add_library(SDL)
 add_library(ALLEGRO)
 add_library(FREETYPE)
 add_library(FONTCONFIG)
+add_library(ICU_lx)
+add_library(ICU_i18n)
 if (APPLE)
     add_library(Iconv)
 
