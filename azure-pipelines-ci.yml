@@ -30,7 +30,7 @@ jobs:
     displayName: 'Test'
     inputs:
       solution: build/openttd.sln
-      msbuildArgs: "/target RUN_TESTS"
+      msbuildArgs: "/target:RUN_TESTS"
 
 
 - job: linux
