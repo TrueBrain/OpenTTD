@@ -59,7 +59,7 @@
 #	include <lzma.h>
 #endif
 #ifdef WITH_LZO
-#include <lzo1x.h>
+#include <lzo/lzo1x.h>
 #endif
 #ifdef WITH_SDL
 #	include <SDL.h>
