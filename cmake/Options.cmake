@@ -3,6 +3,10 @@ macro (set_options)
     option(OPTION_NETWORK "Build with network support" YES)
     option(OPTION_USE_ASSERTS "Use assertions; leave enabled for nightlies, betas, and RCs" YES)
     option(OPTION_USE_THREADS "Use threads" YES)
+
+    if (OPTION_DEDICATED AND NOT OPTION_NETWORK)
+        message(FATAL_ERROR "Please enable OPTION_NETWORK when compiling with OPTION_DEDICATED enabled")
+    endif (OPTION_DEDICATED AND NOT OPTION_NETWORK)
 endmacro (set_options)
 
 macro (show_options)
