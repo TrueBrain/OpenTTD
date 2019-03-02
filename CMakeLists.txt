@@ -211,3 +211,13 @@ endif (WIN32)
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)
     add_definitions(-D_SQ64)
 endif (CMAKE_SIZEOF_VOID_P EQUAL 8)
+
+add_custom_target(regression
+        COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/Regression.cmake"
+        DEPENDS openttd)
+
+# Also make sure that 'make test' runs the regression
+enable_testing()
+add_test(NAME regression
+        COMMAND ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/cmake/Regression.cmake"
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
