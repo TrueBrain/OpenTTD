@@ -31,8 +31,7 @@ jobs:
   - task: VSBuild@1
     displayName: 'Test'
     inputs:
-      solution: build/openttd.sln
-      msbuildArgs: "/target:RUN_TESTS"
+      solution: build/RUN_TESTS.vcxproj
 
 
 - job: linux
