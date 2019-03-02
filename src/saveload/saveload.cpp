@@ -1902,7 +1902,7 @@ struct FileWriter : SaveFilter {
  *******************************************/
 
 #ifdef WITH_LZO
-#include <lzo/lzo1x.h>
+#include <lzo1x.h>
 
 /** Buffer size for the LZO compressor */
 static const uint LZO_BUFFER_SIZE = 8192;
