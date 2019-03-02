@@ -30,6 +30,7 @@ jobs:
     displayName: 'Test'
     inputs:
       solution: build/RUN_TESTS.vcxproj
+      configuration: 'Release'
 
 
 - job: linux
