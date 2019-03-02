@@ -45,6 +45,11 @@ else (SHARED_DIR)
     message(STATUS "Detecting Shared Data directory - (not set)")
 endif (SHARED_DIR)
 
+# Make sure we have Threads available. We don't use autodetect_library here,
+# as the CMake 'FindThreads' is a lot more clever, always available, and
+# gives us a Threads::Threads dependency to link to our application.
+find_package(Threads REQUIRED)
+
 include(AutodetectLibrary REQUIRED)
 autodetect_library("zlib" ZLIB ZLIB zlib "" zlib.h z)
 autodetect_library("LZMA" LIBLZMA LibLZMA liblzma "" lzma.h lzma)
@@ -172,6 +177,7 @@ add_dependencies(openttd
 target_link_libraries(openttd
     openttd::languages
     openttd::settings
+    Threads::Threads
 )
 
 set_target_properties(openttd PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
