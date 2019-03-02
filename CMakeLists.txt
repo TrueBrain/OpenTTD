@@ -100,11 +100,11 @@ autodetect_xaudio2()
 
 show_options()
 
-if (UNIX AND NOT APPLE)
+if (UNIX AND NOT APPLE AND NOT OPTION_DEDICATED)
     if (NOT SDL_FOUND)
         message(FATAL_ERROR "SDL is required for this platform")
     endif (NOT SDL_FOUND)
-endif (UNIX AND NOT APPLE)
+endif (UNIX AND NOT APPLE AND NOT OPTION_DEDICATED)
 if (APPLE)
     if (NOT AUDIOTOOLBOX_LIBRARY)
         message(FATAL_ERROR "AudioToolbox is required for this platform")
