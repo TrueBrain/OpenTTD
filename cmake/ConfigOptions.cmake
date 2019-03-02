@@ -21,6 +21,9 @@ macro (add_optional_definitions)
 
     if (OPTION_DEDICATED)
         add_definitions(-DDEDICATED)
+        if (APPLE)
+            add_definitions(-DNOQUICKTIME)
+        endif (APPLE)
     endif (OPTION_DEDICATED)
 
     if (NOT OPTION_USE_THREADS)
