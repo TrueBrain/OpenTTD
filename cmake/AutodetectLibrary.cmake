@@ -78,7 +78,7 @@ macro(_patch_vcpkg_debug_optimized NAME)
     if (VCPKG_TOOLCHAIN AND ${NAME}_LIBRARIES)
         # Is this entry already of the correct format?
         string(FIND "${${NAME}_LIBRARIES}" "optimized;" HAS_OPTIMIZED)
-        set(PATCH_LIBRARIES "")
+        unset(PATCH_LIBRARIES)
 
         if (HAS_OPTIMIZED LESS 0)
             foreach(PATCH_LIBRARY ${${NAME}_LIBRARIES})
