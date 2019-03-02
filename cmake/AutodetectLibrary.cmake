@@ -14,13 +14,13 @@ macro(_autodetect_library_via_pkgconfig NAME PKGCONFIG)
     include(FindPkgConfig QUIET)
 
     if (PKG_CONFIG_FOUND)
-        pkg_search_module(${NAME} ${PKGCONFIG} QUIET)
+        pkg_search_module("${NAME}" "${PKGCONFIG}" QUIET)
     endif (PKG_CONFIG_FOUND)
 endmacro()
 
-macro(_autodetect_library_via_find NAME HEADER LIBRARY)
-    find_path(${NAME}_INCLUDE_DIR NAMES ${HEADER})
-    find_library(${NAME}_LIBRARY NAMES ${LIBRARY})
+macro(_autodetect_library_via_find NAME HEADER_PATH HEADER LIBRARY)
+    find_path(${NAME}_INCLUDE_DIR NAMES "${HEADER}" PATH_SUFFIXES "${HEADER_PATH}")
+    find_library(${NAME}_LIBRARY NAMES "${LIBRARY}")
 
     if (${NAME}_INCLUDE_DIR AND ${NAME}_LIBRARY)
         set(${NAME}_FOUND YES)
@@ -29,18 +29,18 @@ macro(_autodetect_library_via_find NAME HEADER LIBRARY)
     endif (${NAME}_INCLUDE_DIR AND ${NAME}_LIBRARY)
 endmacro()
 
-macro(autodetect_library FRIENDLY NAME PACKAGE PKGCONFIG HEADER LIBRARY)
+macro(autodetect_library FRIENDLY NAME PACKAGE PKGCONFIG HEADER_PATH HEADER LIBRARY)
     message(STATUS "Detecting ${FRIENDLY}")
 
-    find_package(${PACKAGE} QUIET)
+    find_package("${PACKAGE}" QUIET)
 
     if (NOT ${NAME}_FOUND)
         message(STATUS "Trying with pkgconfig") # TODO: temporary debug
-        _autodetect_library_via_pkgconfig(${NAME} ${PKGCONFIG})
+        _autodetect_library_via_pkgconfig("${NAME}" "${PKGCONFIG}")
     endif (NOT ${NAME}_FOUND)
     if (NOT ${NAME}_FOUND)
         message(STATUS "Trying with find") # TODO: temporary debug
-        _autodetect_library_via_find(${NAME} ${HEADER} ${LIBRARY})
+        _autodetect_library_via_find("${NAME}" "${HEADER_PATH}" "${HEADER}" "${LIBRARY}")
     endif (NOT ${NAME}_FOUND)
 
     if (${NAME}_FOUND)
