@@ -135,6 +135,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/src/settingsgen)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/table)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/strgen)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/lang)
+add_subdirectory(${CMAKE_SOURCE_DIR}/media/baseset)
 
 include(SourceList REQUIRED)
 source_list()
@@ -192,6 +193,7 @@ add_dependencies(openttd
 target_link_libraries(openttd
     openttd::languages
     openttd::settings
+    openttd::basesets
     Threads::Threads
 )
 

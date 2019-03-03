@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.5)
+
+# Retrieve the arguments (0 to 2 are for "cmake -P Baseset.cmake")
+set(INPUTFILE ${CMAKE_ARGV3})
+set(OUTPUTFILE ${CMAKE_ARGV4})
+set(LANGPATH ${CMAKE_ARGV5})
+set(EXTRA_GRF ${CMAKE_ARGV6})
+message(STATUS "INPUTFILE: ${INPUTFILE}")
+message(STATUS "OUTPUTFILE: ${OUTPUTFILE}")
+message(STATUS "LANGPATH: ${LANGPATH}")
+message(STATUS "EXTRA_GRF: ${EXTRA_GRF}")
