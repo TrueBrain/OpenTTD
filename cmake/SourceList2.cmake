@@ -42,52 +42,6 @@ set(OPTION_OS2 NO)
 
 # Source Files
 add_files(
-    airport.cpp
-    animated_tile.cpp
-    articulated_vehicles.cpp
-    autoreplace.cpp
-    bmp.cpp
-    cargoaction.cpp
-    cargomonitor.cpp
-    cargopacket.cpp
-    cargotype.cpp
-    cheat.cpp
-    command.cpp
-    console.cpp
-    console_cmds.cpp
-    cpu.cpp
-    crashlog.cpp
-    currency.cpp
-    date.cpp
-    debug.cpp
-    dedicated.cpp
-    depot.cpp
-    disaster_vehicle.cpp
-    driver.cpp
-    economy.cpp
-    effectvehicle.cpp
-    elrail.cpp
-    engine.cpp
-    fileio.cpp
-    fios.cpp
-    fontcache.cpp
-    fontdetection.cpp
-    base_consist.cpp
-    gamelog.cpp
-    genworld.cpp
-    gfx.cpp
-    gfxinit.cpp
-    gfx_layout.cpp
-    goal.cpp
-    ground_vehicle.cpp
-    heightmap.cpp
-    highscore.cpp
-    hotkeys.cpp
-    ini.cpp
-    ini_load.cpp
-    landscape.cpp
-)
-add_files(
     linkgraph/demands.cpp
     linkgraph/flowmapper.cpp
     linkgraph/linkgraph.cpp
@@ -95,12 +49,6 @@ add_files(
     linkgraph/linkgraphschedule.cpp
     linkgraph/mcf.cpp
     linkgraph/refresh.cpp
-)
-add_files(
-    map.cpp
-    misc.cpp
-    mixer.cpp
-    music.cpp
 )
 add_files(
     network/network.cpp
@@ -112,37 +60,7 @@ add_files(
     network/network_server.cpp
     network/network_udp.cpp
 )
-add_files(
-    openttd.cpp
-    order_backup.cpp
-    pbs.cpp
-    progress.cpp
-    rail.cpp
-    road.cpp
-    roadstop.cpp
-    screenshot.cpp
-    settings.cpp
-    signal.cpp
-    signs.cpp
-    sound.cpp
-    sprite.cpp
-    spritecache.cpp
-    station.cpp
-)
 add_files(strgen/strgen_base.cpp)
-add_files(
-    string.cpp
-    stringfilter.cpp
-    strings.cpp
-    story.cpp
-    subsidy.cpp
-    textbuf.cpp
-    texteff.cpp
-    tgp.cpp
-    tile_map.cpp
-    tilearea.cpp
-    townname.cpp
-)
 if (NOT WIN32)
     if (OPTION_OS2)
         add_files(os/os2/os2.cpp)
@@ -161,19 +79,6 @@ if (NOT WIN32)
         add_files(os/unix/unix.cpp)
     endif (OPTION_OS2)
 endif (NOT WIN32)
-add_files(
-    vehicle.cpp
-    vehiclelist.cpp
-    viewport.cpp
-)
-if (SSE_FOUND)
-    add_files(viewport_sprite_sorter_sse4.cpp)
-endif (SSE_FOUND)
-add_files(
-    waypoint.cpp
-    widget.cpp
-    window.cpp
-)
 
 # Header Files
 if (ALLEGRO_FOUND)
@@ -181,110 +86,8 @@ if (ALLEGRO_FOUND)
     add_files(sound/allegro_s.h)
     add_files(video/allegro_v.h)
 endif (ALLEGRO_FOUND)
-add_files(
-    aircraft.h
-    airport.h
-    animated_tile_func.h
-    articulated_vehicles.h
-    autoreplace_base.h
-    autoreplace_func.h
-    autoreplace_gui.h
-    autoreplace_type.h
-    autoslope.h
-    base_media_base.h
-    base_media_func.h
-    base_station_base.h
-    bitmap_type.h
-    bmp.h
-    bridge.h
-    cargo_type.h
-    cargoaction.h
-    cargomonitor.h
-    cargopacket.h
-    cargotype.h
-    cheat_func.h
-    cheat_type.h
-    clear_func.h
-    cmd_helper.h
-    command_func.h
-    command_type.h
-    company_base.h
-    company_func.h
-    company_gui.h
-    company_manager_face.h
-    company_type.h
-    console_func.h
-    console_gui.h
-    console_internal.h
-    console_type.h
-    cpu.h
-    crashlog.h
-    currency.h
-    date_func.h
-    date_gui.h
-    date_type.h
-    debug.h
-)
 add_files(video/dedicated_v.h)
-add_files(
-    depot_base.h
-    depot_func.h
-    depot_map.h
-    depot_type.h
-    direction_func.h
-    direction_type.h
-    disaster_vehicle.h
-)
 add_files(music/dmusic.h)
-add_files(
-    driver.h
-    economy_base.h
-    economy_func.h
-    economy_type.h
-    effectvehicle_base.h
-    effectvehicle_func.h
-    elrail_func.h
-    engine_base.h
-    engine_func.h
-    engine_gui.h
-    engine_type.h
-    error.h
-    fileio_func.h
-    fileio_type.h
-    fios.h
-    fontcache.h
-    fontdetection.h
-    framerate_type.h
-    base_consist.h
-    gamelog.h
-    gamelog_internal.h
-    genworld.h
-    gfx_func.h
-    gfx_layout.h
-    gfx_type.h
-    gfxinit.h
-    goal_base.h
-    goal_type.h
-    graph_gui.h
-    ground_vehicle.hpp
-    group.h
-    group_gui.h
-    group_type.h
-    gui.h
-    guitimer_func.h
-    heightmap.h
-    highscore.h
-    hotkeys.h
-    house.h
-    house_type.h
-    industry.h
-    industry_type.h
-    industrytype.h
-    ini_type.h
-    landscape.h
-    landscape_type.h
-    language.h
-)
 add_files(
     linkgraph/demands.h
     linkgraph/flowmapper.h
@@ -298,12 +101,6 @@ add_files(
     linkgraph/linkgraphschedule.h
     linkgraph/mcf.h
     linkgraph/refresh.h
-)
-add_files(
-    livery.h
-    map_func.h
-    map_type.h
-    mixer.h
 )
 add_files(
     network/network.h
@@ -321,173 +118,21 @@ add_files(
     network/network_udp.h
 )
 add_files(
-    newgrf.h
-    newgrf_airport.h
-    newgrf_airporttiles.h
-    newgrf_animation_base.h
-    newgrf_animation_type.h
-    newgrf_callbacks.h
-    newgrf_canal.h
-    newgrf_cargo.h
-    newgrf_class.h
-    newgrf_class_func.h
-    newgrf_commons.h
-    newgrf_config.h
-    newgrf_debug.h
-    newgrf_engine.h
-    newgrf_generic.h
-    newgrf_house.h
-    newgrf_industries.h
-    newgrf_industrytiles.h
-    newgrf_object.h
-    newgrf_properties.h
-    newgrf_railtype.h
-    newgrf_sound.h
-    newgrf_spritegroup.h
-    newgrf_station.h
-    newgrf_storage.h
-    newgrf_text.h
-    newgrf_town.h
-    newgrf_townname.h
-    news_func.h
-    news_gui.h
-    news_type.h
-)
-add_files(
     music/midi.h
     music/midifile.hpp
     music/null_m.h
 )
 add_files(sound/null_s.h)
 add_files(video/null_v.h)
-add_files(
-    object.h
-    object_base.h
-    object_type.h
-    openttd.h
-    order_backup.h
-    order_base.h
-    order_func.h
-    order_type.h
-    pbs.h
-    progress.h
-    querystring_gui.h
-    rail.h
-    rail_gui.h
-    rail_type.h
-    rev.h
-    road_cmd.h
-    road_func.h
-    road_gui.h
-    road_internal.h
-    road_type.h
-    roadstop_base.h
-    roadveh.h
-    safeguards.h
-    screenshot.h
-)
 add_files(sound/sdl_s.h)
 add_files(video/sdl_v.h)
-add_files(
-    settings_func.h
-    settings_gui.h
-    settings_internal.h
-    settings_type.h
-    ship.h
-    signal_func.h
-    signal_type.h
-    signs_base.h
-    signs_func.h
-    signs_type.h
-    slope_func.h
-    slope_type.h
-    smallmap_gui.h
-    sortlist_type.h
-    sound_func.h
-    sound_type.h
-    sprite.h
-    spritecache.h
-    station_base.h
-    station_func.h
-    station_gui.h
-    station_kdtree.h
-    station_type.h
-    statusbar_gui.h
-    stdafx.h
-    story_base.h
-    story_type.h
-)
 add_files(strgen/strgen.h)
-add_files(
-    string_base.h
-    string_func.h
-    string_type.h
-)
 add_files(os/windows/string_uniscribe.h)
-add_files(
-    stringfilter_type.h
-    strings_func.h
-    strings_type.h
-    subsidy_base.h
-    subsidy_func.h
-    subsidy_type.h
-    tar_type.h
-    terraform_gui.h
-    textbuf_gui.h
-    textbuf_type.h
-    texteff.hpp
-    textfile_gui.h
-    textfile_type.h
-    tgp.h
-    tile_cmd.h
-    tile_type.h
-    tilearea_type.h
-    tilehighlight_func.h
-    tilehighlight_type.h
-    tilematrix_type.hpp
-    timetable.h
-    toolbar_gui.h
-    town.h
-    town_type.h
-    town_kdtree.h
-    townname_func.h
-    townname_type.h
-    track_func.h
-    track_type.h
-    train.h
-    transparency.h
-    transparency_gui.h
-    transport_type.h
-    tunnelbridge.h
-    vehicle_base.h
-    vehicle_func.h
-    vehicle_gui.h
-    vehicle_gui_base.h
-    vehicle_type.h
-    vehiclelist.h
-    viewport_func.h
-    viewport_kdtree.h
-    viewport_sprite_sorter.h
-    viewport_type.h
-    water.h
-    waypoint_base.h
-    waypoint_func.h
-    widget_type.h
-)
 add_files(os/windows/win32.h)
 add_files(music/win32_m.h)
 add_files(sound/win32_s.h)
 add_files(video/win32_v.h)
-add_files(
-    window_func.h
-    window_gui.h
-    window_type.h
-)
 add_files(sound/xaudio2_s.h)
-add_files(
-    zoom_func.h
-    zoom_type.h
-)
 if (NOT WIN32)
     add_files(
         music/bemidi.h
@@ -545,71 +190,11 @@ add_files(
 )
 
 # GUI Source Code
-add_files(
-    aircraft_gui.cpp
-    airport_gui.cpp
-    autoreplace_gui.cpp
-    bootstrap_gui.cpp
-    bridge_gui.cpp
-    build_vehicle_gui.cpp
-    cheat_gui.cpp
-    company_gui.cpp
-    console_gui.cpp
-    date_gui.cpp
-    depot_gui.cpp
-    dock_gui.cpp
-    engine_gui.cpp
-    error_gui.cpp
-    fios_gui.cpp
-    framerate_gui.cpp
-    genworld_gui.cpp
-    goal_gui.cpp
-    graph_gui.cpp
-    group_gui.cpp
-    highscore_gui.cpp
-    industry_gui.cpp
-    intro_gui.cpp
-)
 add_files(linkgraph/linkgraph_gui.cpp)
-add_files(
-    main_gui.cpp
-    misc_gui.cpp
-    music_gui.cpp
-)
 add_files(
     network/network_chat_gui.cpp
     network/network_content_gui.cpp
     network/network_gui.cpp
-)
-add_files(
-    newgrf_debug_gui.cpp
-    newgrf_gui.cpp
-    news_gui.cpp
-    object_gui.cpp
-    order_gui.cpp
-    osk_gui.cpp
-    rail_gui.cpp
-    road_gui.cpp
-    roadveh_gui.cpp
-    settings_gui.cpp
-    ship_gui.cpp
-    signs_gui.cpp
-    smallmap_gui.cpp
-    station_gui.cpp
-    statusbar_gui.cpp
-    story_gui.cpp
-    subsidy_gui.cpp
-    terraform_gui.cpp
-    textfile_gui.cpp
-    timetable_gui.cpp
-    toolbar_gui.cpp
-    town_gui.cpp
-    train_gui.cpp
-    transparency_gui.cpp
-    tree_gui.cpp
-    vehicle_gui.cpp
-    viewport_gui.cpp
-    waypoint_gui.cpp
 )
 
 # Widgets
@@ -672,36 +257,6 @@ add_files(
     widgets/vehicle_widget.h
     widgets/viewport_widget.h
     widgets/waypoint_widget.h
-)
-
-# Command handlers
-add_files(
-    aircraft_cmd.cpp
-    autoreplace_cmd.cpp
-    clear_cmd.cpp
-    company_cmd.cpp
-    depot_cmd.cpp
-    group_cmd.cpp
-    industry_cmd.cpp
-    misc_cmd.cpp
-    object_cmd.cpp
-    order_cmd.cpp
-    rail_cmd.cpp
-    road_cmd.cpp
-    roadveh_cmd.cpp
-    ship_cmd.cpp
-    signs_cmd.cpp
-    station_cmd.cpp
-    terraform_cmd.cpp
-    timetable_cmd.cpp
-    town_cmd.cpp
-    train_cmd.cpp
-    tree_cmd.cpp
-    tunnelbridge_cmd.cpp
-    vehicle_cmd.cpp
-    void_cmd.cpp
-    water_cmd.cpp
-    waypoint_cmd.cpp
 )
 
 # Save/Load handlers
@@ -1105,52 +660,6 @@ add_files(
     spriteloader/grf.cpp
     spriteloader/grf.hpp
     spriteloader/spriteloader.hpp
-)
-
-# NewGRF
-add_files(
-    newgrf.cpp
-    newgrf_airport.cpp
-    newgrf_airporttiles.cpp
-    newgrf_canal.cpp
-    newgrf_cargo.cpp
-    newgrf_commons.cpp
-    newgrf_config.cpp
-    newgrf_engine.cpp
-    newgrf_generic.cpp
-    newgrf_house.cpp
-    newgrf_industries.cpp
-    newgrf_industrytiles.cpp
-    newgrf_object.cpp
-    newgrf_railtype.cpp
-    newgrf_sound.cpp
-    newgrf_spritegroup.cpp
-    newgrf_station.cpp
-    newgrf_storage.cpp
-    newgrf_text.cpp
-    newgrf_town.cpp
-    newgrf_townname.cpp
-)
-
-# Map Accessors
-add_files(
-    bridge_map.cpp
-    bridge_map.h
-    clear_map.h
-    industry_map.h
-    object_map.h
-    rail_map.h
-    road_map.cpp
-    road_map.h
-    station_map.h
-    tile_map.h
-    town_map.h
-    tree_map.h
-    tunnel_map.cpp
-    tunnel_map.h
-    tunnelbridge_map.h
-    void_map.h
-    water_map.h
 )
 
 # Misc

@@ -140,6 +140,7 @@ include(SourceList REQUIRED)
 source_list()
 
 include(SourceList2 REQUIRED)
+add_subdirectory(${CMAKE_SOURCE_DIR}/src)
 CheckSourceEquality()
 
 list(APPEND FIND_VERSION_FILES "${CMAKE_BINARY_DIR}/generated/rev.cpp")
