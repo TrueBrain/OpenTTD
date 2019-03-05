@@ -139,6 +139,9 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/src/lang)
 include(SourceList REQUIRED)
 source_list()
 
+include(SourceList2 REQUIRED)
+CheckSourceEquality()
+
 list(APPEND FIND_VERSION_FILES "${CMAKE_BINARY_DIR}/generated/rev.cpp")
 if (WIN32)
     list(APPEND FIND_VERSION_FILES "${CMAKE_BINARY_DIR}/generated/ottdres.rc")
