@@ -132,6 +132,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/settingsgen)
+add_subdirectory(${CMAKE_SOURCE_DIR}/src/table)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/strgen)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/lang)
 
