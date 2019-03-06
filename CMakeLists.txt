@@ -133,6 +133,7 @@ set(CMAKE_CXX_EXTENSIONS NO)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/settingsgen)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/strgen)
+add_subdirectory(${CMAKE_SOURCE_DIR}/src/lang)
 
 include(SourceList REQUIRED)
 source_list()
