@@ -87,6 +87,9 @@ add_custom_target(language_files
         DEPENDS
         ${LANG_BINARY_FILES}
 )
+set_target_properties(language_files
+        PROPERTIES LANG_SOURCE_FILES "${LANG_SOURCE_FILES}"
+)
 
 
 set(GENERATED_BINARY_DIR ${CMAKE_BINARY_DIR}/generated)
