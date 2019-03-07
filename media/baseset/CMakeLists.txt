@@ -1,10 +1,20 @@
 cmake_minimum_required(VERSION 3.5)
 
-set(BASESET_SOURCE_DIR ${CMAKE_SOURCE_DIR}/media/baseset)
+set(BASESET_SOURCE_FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/orig_dos.obg
+        ${CMAKE_CURRENT_SOURCE_DIR}/orig_dos_de.obg
+        ${CMAKE_CURRENT_SOURCE_DIR}/orig_win.obg
+        ${CMAKE_CURRENT_SOURCE_DIR}/no_music.obm
+        ${CMAKE_CURRENT_SOURCE_DIR}/orig_dos.obm
+        ${CMAKE_CURRENT_SOURCE_DIR}/orig_tto.obm
+        ${CMAKE_CURRENT_SOURCE_DIR}/orig_win.obm
+        ${CMAKE_CURRENT_SOURCE_DIR}/no_sound.obs
+        ${CMAKE_CURRENT_SOURCE_DIR}/orig_dos.obs
+        ${CMAKE_CURRENT_SOURCE_DIR}/orig_win.obs
+)
 set(BASESET_EXTRAGRF_FILE ${CMAKE_SOURCE_DIR}/bin/baseset/orig_extra.grf)
 
 # Walk over all the baseset files, and generate a command to configure them
-file(GLOB BASESET_SOURCE_FILES ${BASESET_SOURCE_DIR}/*.ob[smg])
 foreach(BASESET_SOURCE_FILE IN LISTS BASESET_SOURCE_FILES)
     get_filename_component(BASESET_SOURCE_FILE_NAME ${BASESET_SOURCE_FILE} NAME)
 
