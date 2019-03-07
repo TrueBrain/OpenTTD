@@ -31,7 +31,7 @@ foreach(LANGFILE IN LISTS LANGFILES)
     list(APPEND ${PLACE_HOLDER} ${LANGLINES})
 endforeach(LANGFILE)
 list(SORT ${PLACE_HOLDER})
-list(JOIN ${PLACE_HOLDER} "\n" ${PLACE_HOLDER})
+string(REPLACE ";" "\n" ${PLACE_HOLDER} "${${PLACE_HOLDER}}")
 
 # Get the grf md5
 file(MD5 ${ORIG_EXTRA_GRF} ORIG_EXTRA_GRF_MD5)
