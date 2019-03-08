@@ -197,22 +197,6 @@ add_files(
     script/squirrel_std.hpp
 )
 
-# AI Core
-add_files(
-    ai/ai.hpp
-    ai/ai_config.cpp
-    ai/ai_config.hpp
-    ai/ai_core.cpp
-    ai/ai_gui.cpp
-    ai/ai_gui.hpp
-    ai/ai_info.cpp
-    ai/ai_info.hpp
-    ai/ai_instance.cpp
-    ai/ai_instance.hpp
-    ai/ai_scanner.cpp
-    ai/ai_scanner.hpp
-)
-
 # AI API
 add_files(script/api/ai_changelog.hpp)
 
