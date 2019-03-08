@@ -203,22 +203,6 @@ add_files(script/api/ai_changelog.hpp)
 # Game API
 add_files(script/api/game_changelog.hpp)
 
-# Game Core
-add_files(
-    game/game.hpp
-    game/game_config.cpp
-    game/game_config.hpp
-    game/game_core.cpp
-    game/game_info.cpp
-    game/game_info.hpp
-    game/game_instance.cpp
-    game/game_instance.hpp
-    game/game_scanner.cpp
-    game/game_scanner.hpp
-    game/game_text.cpp
-    game/game_text.hpp
-)
-
 # Script API
 add_files(
     script/api/script_accounting.hpp
