@@ -6,6 +6,7 @@ add_subdirectory(blitter)
 add_subdirectory(core)
 add_subdirectory(game)
 add_subdirectory(linkgraph)
+add_subdirectory(misc)
 add_subdirectory(saveload)
 add_subdirectory(widgets)
 

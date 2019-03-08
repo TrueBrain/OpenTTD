@@ -355,22 +355,6 @@ add_files(
     spriteloader/spriteloader.hpp
 )
 
-# Misc
-add_files(
-    misc/array.hpp
-    misc/binaryheap.hpp
-    misc/blob.hpp
-    misc/countedobj.cpp
-    misc/countedptr.hpp
-    misc/dbg_helpers.cpp
-    misc/dbg_helpers.h
-    misc/fixedsizearray.hpp
-    misc/getoptdata.cpp
-    misc/getoptdata.h
-    misc/hashtable.hpp
-    misc/str.hpp
-)
-
 # Network Core
 add_files(
     network/core/address.cpp

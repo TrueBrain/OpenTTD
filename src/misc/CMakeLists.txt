@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.5)
+
+# Misc
+add_files(
+    array.hpp
+    binaryheap.hpp
+    blob.hpp
+    countedobj.cpp
+    countedptr.hpp
+    dbg_helpers.cpp
+    dbg_helpers.h
+    fixedsizearray.hpp
+    getoptdata.cpp
+    getoptdata.h
+    hashtable.hpp
+    str.hpp
+)
