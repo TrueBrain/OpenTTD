@@ -42,15 +42,6 @@ set(OPTION_OS2 NO)
 
 # Source Files
 add_files(
-    linkgraph/demands.cpp
-    linkgraph/flowmapper.cpp
-    linkgraph/linkgraph.cpp
-    linkgraph/linkgraphjob.cpp
-    linkgraph/linkgraphschedule.cpp
-    linkgraph/mcf.cpp
-    linkgraph/refresh.cpp
-)
-add_files(
     network/network.cpp
     network/network_admin.cpp
     network/network_client.cpp
@@ -88,20 +79,6 @@ if (ALLEGRO_FOUND)
 endif (ALLEGRO_FOUND)
 add_files(video/dedicated_v.h)
 add_files(music/dmusic.h)
-add_files(
-    linkgraph/demands.h
-    linkgraph/flowmapper.h
-    linkgraph/init.h
-    linkgraph/linkgraph.h
-    linkgraph/linkgraph_base.h
-    linkgraph/linkgraph_gui.h
-    linkgraph/linkgraph_type.h
-    linkgraph/linkgraphjob.h
-    linkgraph/linkgraphjob_base.h
-    linkgraph/linkgraphschedule.h
-    linkgraph/mcf.h
-    linkgraph/refresh.h
-)
 add_files(
     network/network.h
     network/network_admin.h
@@ -157,7 +134,6 @@ if (NOT WIN32)
 endif (NOT WIN32)
 
 # GUI Source Code
-add_files(linkgraph/linkgraph_gui.cpp)
 add_files(
     network/network_chat_gui.cpp
     network/network_content_gui.cpp
