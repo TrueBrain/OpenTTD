@@ -55,12 +55,6 @@ add_files(strgen/strgen_base.cpp)
 if (NOT WIN32)
     if (OPTION_OS2)
         add_files(os/os2/os2.cpp)
-        add_files(
-            3rdparty/os2/getaddrinfo.c
-            3rdparty/os2/getaddrinfo.h
-            3rdparty/os2/getnameinfo.c
-            3rdparty/os2/getnameinfo.h
-        )
     else (OPTION_OS2)
         if (APPLE)
             add_files(os/macosx/crashlog_osx.cpp)
@@ -180,12 +174,6 @@ add_files(
     table/water_land.h
 )
 
-# MD5
-add_files(
-    3rdparty/md5/md5.cpp
-    3rdparty/md5/md5.h
-)
-
 # Script
 add_files(
     script/script_config.cpp
@@ -207,54 +195,6 @@ add_files(
     script/squirrel_helper_type.hpp
     script/squirrel_std.cpp
     script/squirrel_std.hpp
-)
-
-# Squirrel
-add_files(
-    3rdparty/squirrel/squirrel/sqapi.cpp
-    3rdparty/squirrel/squirrel/sqbaselib.cpp
-    3rdparty/squirrel/squirrel/sqclass.cpp
-    3rdparty/squirrel/squirrel/sqcompiler.cpp
-    3rdparty/squirrel/squirrel/sqdebug.cpp
-    3rdparty/squirrel/squirrel/sqfuncstate.cpp
-    3rdparty/squirrel/squirrel/sqlexer.cpp
-    3rdparty/squirrel/squirrel/sqmem.cpp
-    3rdparty/squirrel/squirrel/sqobject.cpp
-    3rdparty/squirrel/squirrel/sqstate.cpp
-    3rdparty/squirrel/sqstdlib/sqstdaux.cpp
-    3rdparty/squirrel/sqstdlib/sqstdmath.cpp
-    3rdparty/squirrel/squirrel/sqtable.cpp
-    3rdparty/squirrel/squirrel/sqvm.cpp
-)
-
-# Squirrel headers
-add_files(
-    3rdparty/squirrel/squirrel/sqarray.h
-    3rdparty/squirrel/squirrel/sqclass.h
-    3rdparty/squirrel/squirrel/sqclosure.h
-    3rdparty/squirrel/squirrel/sqcompiler.h
-    3rdparty/squirrel/squirrel/sqfuncproto.h
-    3rdparty/squirrel/squirrel/sqfuncstate.h
-    3rdparty/squirrel/squirrel/sqlexer.h
-    3rdparty/squirrel/squirrel/sqobject.h
-    3rdparty/squirrel/squirrel/sqopcodes.h
-    3rdparty/squirrel/squirrel/sqpcheader.h
-    3rdparty/squirrel/squirrel/sqstate.h
-)
-add_files(
-    3rdparty/squirrel/include/sqstdaux.h
-    3rdparty/squirrel/include/sqstdmath.h
-    3rdparty/squirrel/include/sqstdstring.h
-)
-add_files(
-    3rdparty/squirrel/squirrel/sqstring.h
-    3rdparty/squirrel/squirrel/sqtable.h
-)
-add_files(3rdparty/squirrel/include/squirrel.h)
-add_files(
-    3rdparty/squirrel/squirrel/squserdata.h
-    3rdparty/squirrel/squirrel/squtils.h
-    3rdparty/squirrel/squirrel/sqvm.h
 )
 
 # AI Core
