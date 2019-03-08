@@ -359,57 +359,6 @@ add_files(
     script/api/script_window.cpp
 )
 
-# Blitters
-if (NOT OPTION_DEDICATED)
-    add_files(
-        blitter/32bpp_anim.cpp
-        blitter/32bpp_anim.hpp
-    )
-    if (SSE_FOUND)
-        add_files(
-            blitter/32bpp_anim_sse2.cpp
-            blitter/32bpp_anim_sse2.hpp
-            blitter/32bpp_anim_sse4.cpp
-            blitter/32bpp_anim_sse4.hpp
-        )
-    endif(SSE_FOUND)
-    add_files(
-        blitter/32bpp_base.cpp
-        blitter/32bpp_base.hpp
-        blitter/32bpp_optimized.cpp
-        blitter/32bpp_optimized.hpp
-        blitter/32bpp_simple.cpp
-        blitter/32bpp_simple.hpp
-    )
-    if (SSE_FOUND)
-        add_files(
-            blitter/32bpp_sse_func.hpp
-            blitter/32bpp_sse_type.h
-            blitter/32bpp_sse2.cpp
-            blitter/32bpp_sse2.hpp
-            blitter/32bpp_sse4.cpp
-            blitter/32bpp_sse4.hpp
-            blitter/32bpp_ssse3.cpp
-            blitter/32bpp_ssse3.hpp
-        )
-    endif (SSE_FOUND)
-    add_files(
-        blitter/8bpp_base.cpp
-        blitter/8bpp_base.hpp
-        blitter/8bpp_optimized.cpp
-        blitter/8bpp_optimized.hpp
-        blitter/8bpp_simple.cpp
-        blitter/8bpp_simple.hpp
-    )
-endif (NOT OPTION_DEDICATED)
-add_files(
-    blitter/base.hpp
-    blitter/common.hpp
-    blitter/factory.hpp
-    blitter/null.cpp
-    blitter/null.hpp
-)
-
 # Drivers
 add_files(music/music_driver.hpp)
 add_files(sound/sound_driver.hpp)

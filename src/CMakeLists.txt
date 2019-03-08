@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 
 add_subdirectory(3rdparty)
 add_subdirectory(ai)
+add_subdirectory(blitter)
 add_subdirectory(core)
 add_subdirectory(linkgraph)
 add_subdirectory(saveload)
