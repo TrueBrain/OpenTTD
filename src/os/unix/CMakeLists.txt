@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.5)
+
+if (NOT WIN32)
+    if (NOT OPTION_OS2)
+        if (NOT APPLE)
+            add_files(crashlog_unix.cpp)
+        endif (NOT APPLE)
+        add_files(unix.cpp)
+    endif (NOT OPTION_OS2)
+endif (NOT WIN32)

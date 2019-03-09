@@ -42,18 +42,6 @@ set(OPTION_OS2 NO)
 
 # Source Files
 add_files(strgen/strgen_base.cpp)
-if (NOT WIN32)
-    if (OPTION_OS2)
-        add_files(os/os2/os2.cpp)
-    else (OPTION_OS2)
-        if (APPLE)
-            add_files(os/macosx/crashlog_osx.cpp)
-        else (APPLE)
-            add_files(os/unix/crashlog_unix.cpp)
-        endif (APPLE)
-        add_files(os/unix/unix.cpp)
-    endif (OPTION_OS2)
-endif (NOT WIN32)
 
 # Header Files
 add_files(video/dedicated_v.h)
@@ -62,18 +50,10 @@ add_files(video/null_v.h)
 add_files(sound/sdl_s.h)
 add_files(video/sdl_v.h)
 add_files(strgen/strgen.h)
-add_files(os/windows/string_uniscribe.h)
-add_files(os/windows/win32.h)
 add_files(sound/win32_s.h)
 add_files(video/win32_v.h)
 add_files(sound/xaudio2_s.h)
 if (NOT WIN32)
-    add_files(
-        os/macosx/macos.h
-        os/macosx/osx_stdafx.h
-        os/macosx/splash.h
-        os/macosx/string_osx.h
-    )
     add_files(sound/cocoa_s.h)
     add_files(
         video/cocoa/cocoa_keys.h
@@ -381,8 +361,6 @@ endif (NOT OPTION_DEDICATED)
 
 if (APPLE)
 # OSX Files
-    add_files(os/macosx/macos.mm)
-
     if (OPTION_COCOA)
         add_files(
             video/cocoa/cocoa_v.mm
@@ -392,21 +370,8 @@ if (APPLE)
             video/cocoa/wnd_quickdraw.mm
         )
         add_files(sound/cocoa_s.cpp)
-        add_files(
-            os/macosx/splash.cpp
-            os/macosx/string_osx.cpp
-        )
     endif (OPTION_COCOA)
 endif (APPLE)
-
-# Windows files
-if (WIN32)
-    add_files(
-        os/windows/crashlog_win.cpp
-        os/windows/string_uniscribe.cpp
-        os/windows/win32.cpp
-    )
-endif (WIN32)
 
 # Threading
 add_files(thread/thread.h)

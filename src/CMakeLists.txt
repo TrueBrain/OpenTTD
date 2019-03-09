@@ -9,6 +9,7 @@ add_subdirectory(linkgraph)
 add_subdirectory(misc)
 add_subdirectory(music)
 add_subdirectory(network)
+add_subdirectory(os)
 add_subdirectory(saveload)
 add_subdirectory(widgets)
 
