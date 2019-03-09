@@ -66,13 +66,7 @@ if (NOT WIN32)
 endif (NOT WIN32)
 
 # Header Files
-if (ALLEGRO_FOUND)
-    add_files(music/allegro_m.h)
-    add_files(sound/allegro_s.h)
-    add_files(video/allegro_v.h)
-endif (ALLEGRO_FOUND)
 add_files(video/dedicated_v.h)
-add_files(music/dmusic.h)
 add_files(
     network/network.h
     network/network_admin.h
@@ -88,11 +82,6 @@ add_files(
     network/network_type.h
     network/network_udp.h
 )
-add_files(
-    music/midi.h
-    music/midifile.hpp
-    music/null_m.h
-)
 add_files(sound/null_s.h)
 add_files(video/null_v.h)
 add_files(sound/sdl_s.h)
@@ -100,20 +89,10 @@ add_files(video/sdl_v.h)
 add_files(strgen/strgen.h)
 add_files(os/windows/string_uniscribe.h)
 add_files(os/windows/win32.h)
-add_files(music/win32_m.h)
 add_files(sound/win32_s.h)
 add_files(video/win32_v.h)
 add_files(sound/xaudio2_s.h)
 if (NOT WIN32)
-    add_files(
-        music/bemidi.h
-        music/cocoa_m.h
-        music/extmidi.h
-        music/libtimidity.h
-        music/fluidsynth.h
-        music/os2_m.h
-        music/qtmidi.h
-    )
     add_files(
         os/macosx/macos.h
         os/macosx/osx_stdafx.h
@@ -344,7 +323,6 @@ add_files(
 )
 
 # Drivers
-add_files(music/music_driver.hpp)
 add_files(sound/sound_driver.hpp)
 add_files(video/video_driver.hpp)
 
@@ -445,38 +423,6 @@ if (NOT OPTION_DEDICATED)
     endif (WIN32)
 endif (NOT OPTION_DEDICATED)
 
-# Music
-if (NOT OPTION_DEDICATED)
-    if (ALLEGRO_FOUND)
-        add_files(music/allegro_m.cpp)
-    endif (ALLEGRO_FOUND)
-    if (WIN32)
-        add_files(music/dmusic.cpp)
-    endif (WIN32)
-endif (NOT OPTION_DEDICATED)
-add_files(
-    music/null_m.cpp
-    music/midifile.cpp
-)
-if (NOT OPTION_DEDICATED)
-    if (WIN32)
-        add_files(music/win32_m.cpp)
-    else (WIN32)
-        if (NOT OPTION_DOS AND NOT OPTION_MORPHOS)
-            add_files(music/extmidi.cpp)
-        endif (NOT OPTION_DOS AND NOT OPTION_MORPHOS)
-    endif (WIN32)
-    if (OPTION_BEOS)
-        add_files(music/bemidi.cpp)
-    endif (OPTION_BEOS)
-    if (OPTION_TIMIDITY)
-        add_files(music/libtimidity.cpp)
-    endif (OPTION_TIMIDITY)
-    if (FLUIDSYNTH_FOUND)
-        add_files(music/fluidsynth.cpp)
-    endif (FLUIDSYNTH_FOUND)
-endif (NOT OPTION_DEDICATED)
-
 # Sound
 add_files(sound/null_s.cpp)
 if (NOT OPTION_DEDICATED)
@@ -498,10 +444,6 @@ if (APPLE)
 # OSX Files
     add_files(os/macosx/macos.mm)
 
-    if (NOT OPTION_DEDICATED)
-        add_files(music/qtmidi.cpp)
-    endif (NOT OPTION_DEDICATED)
-
     if (OPTION_COCOA)
         add_files(
             video/cocoa/cocoa_v.mm
@@ -510,7 +452,6 @@ if (APPLE)
             video/cocoa/wnd_quartz.mm
             video/cocoa/wnd_quickdraw.mm
         )
-        add_files(music/cocoa_m.cpp)
         add_files(sound/cocoa_s.cpp)
         add_files(
             os/macosx/splash.cpp
