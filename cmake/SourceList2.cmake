@@ -39,9 +39,3 @@ set(OPTION_BEOS NO)
 set(OPTION_DOS NO)
 set(OPTION_MORPHOS NO)
 set(OPTION_OS2 NO)
-
-# Source Files
-add_files(strgen/strgen_base.cpp)
-
-# Header Files
-add_files(strgen/strgen.h)

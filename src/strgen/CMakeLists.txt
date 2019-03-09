@@ -16,3 +16,10 @@ add_executable(strgen ${sourcefiles})
 
 include(Endian REQUIRED)
 add_endian_definition()
+
+
+# Source Files
+add_files(strgen_base.cpp)
+
+# Header Files
+add_files(strgen.h)
