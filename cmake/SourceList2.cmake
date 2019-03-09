@@ -56,55 +56,8 @@ if (NOT WIN32)
     )
 endif (NOT WIN32)
 
-# Tables
-add_files(
-    table/airport_defaults.h
-    table/airport_movement.h
-    table/airporttile_ids.h
-    table/airporttiles.h
-    table/animcursors.h
-    table/autorail.h
-    table/bridge_land.h
-    table/build_industry.h
-    table/cargo_const.h
-    table/clear_land.h
-    table/control_codes.h
-    table/elrail_data.h
-    table/engines.h
-    table/genland.h
-    table/heightmap_colours.h
-    table/industry_land.h
-    table/landscape_sprite.h
-    table/newgrf_debug_data.h
-    table/object_land.h
-    table/palette_convert.h
-    table/palettes.h
-    table/pricebase.h
-    table/railtypes.h
-    table/road_land.h
-    table/roadveh_movement.h
-    table/sprites.h
-    table/station_land.h
-    table/strgen_tables.h
-    table/string_colours.h
-    table/town_land.h
-    table/townname.h
-    table/track_land.h
-    table/train_cmd.h
-    table/tree_land.h
-    table/unicode.h
-    table/water_land.h
-)
-
 # Drivers
 add_files(video/video_driver.hpp)
-
-# Sprite loaders
-add_files(
-    spriteloader/grf.cpp
-    spriteloader/grf.hpp
-    spriteloader/spriteloader.hpp
-)
 
 # Pathfinder
 add_files(pathfinder/follow_track.hpp)
