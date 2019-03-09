@@ -12,6 +12,7 @@ add_subdirectory(network)
 add_subdirectory(os)
 add_subdirectory(saveload)
 add_subdirectory(script)
+add_subdirectory(sound)
 add_subdirectory(widgets)
 
 # Source Files

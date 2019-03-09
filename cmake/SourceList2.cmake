@@ -45,16 +45,11 @@ add_files(strgen/strgen_base.cpp)
 
 # Header Files
 add_files(video/dedicated_v.h)
-add_files(sound/null_s.h)
 add_files(video/null_v.h)
-add_files(sound/sdl_s.h)
 add_files(video/sdl_v.h)
 add_files(strgen/strgen.h)
-add_files(sound/win32_s.h)
 add_files(video/win32_v.h)
-add_files(sound/xaudio2_s.h)
 if (NOT WIN32)
-    add_files(sound/cocoa_s.h)
     add_files(
         video/cocoa/cocoa_keys.h
         video/cocoa/cocoa_v.h
@@ -102,7 +97,6 @@ add_files(
 )
 
 # Drivers
-add_files(sound/sound_driver.hpp)
 add_files(video/video_driver.hpp)
 
 # Sprite loaders
@@ -173,23 +167,6 @@ if (NOT OPTION_DEDICATED)
     endif (WIN32)
 endif (NOT OPTION_DEDICATED)
 
-# Sound
-add_files(sound/null_s.cpp)
-if (NOT OPTION_DEDICATED)
-    if (ALLEGRO_FOUND)
-        add_files(sound/allegro_s.cpp)
-    endif (ALLEGRO_FOUND)
-    if (SDL_FOUND)
-        add_files(sound/sdl_s.cpp)
-    endif (SDL_FOUND)
-    if (WIN32)
-        add_files(sound/win32_s.cpp)
-        if (XAUDIO_FOUND)
-            add_files(sound/xaudio2_s.cpp)
-        endif (XAUDIO_FOUND)
-    endif (WIN32)
-endif (NOT OPTION_DEDICATED)
-
 if (APPLE)
 # OSX Files
     if (OPTION_COCOA)
@@ -200,7 +177,6 @@ if (APPLE)
             video/cocoa/wnd_quartz.mm
             video/cocoa/wnd_quickdraw.mm
         )
-        add_files(sound/cocoa_s.cpp)
     endif (OPTION_COCOA)
 endif (APPLE)
 
