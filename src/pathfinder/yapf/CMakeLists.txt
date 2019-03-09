@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.5)
+
+# YAPF
+add_files(
+    nodelist.hpp
+    yapf.h
+    yapf.hpp
+    yapf_base.hpp
+    yapf_cache.h
+    yapf_common.hpp
+    yapf_costbase.hpp
+    yapf_costcache.hpp
+    yapf_costrail.hpp
+    yapf_destrail.hpp
+    yapf_node.hpp
+    yapf_node_rail.hpp
+    yapf_node_road.hpp
+    yapf_node_ship.hpp
+    yapf_rail.cpp
+    yapf_road.cpp
+    yapf_ship.cpp
+    yapf_type.hpp
+)
