@@ -1,0 +1,30 @@
+cmake_minimum_required(VERSION 3.5)
+
+# Network Core
+add_files(
+    address.cpp
+    address.h
+    config.h
+    core.cpp
+    core.h
+    game.h
+    host.cpp
+    host.h
+    os_abstraction.h
+    packet.cpp
+    packet.h
+    tcp.cpp
+    tcp.h
+    tcp_admin.cpp
+    tcp_admin.h
+    tcp_connect.cpp
+    tcp_content.cpp
+    tcp_content.h
+    tcp_game.cpp
+    tcp_game.h
+    tcp_http.cpp
+    tcp_http.h
+    tcp_listen.h
+    udp.cpp
+    udp.h
+)

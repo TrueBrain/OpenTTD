@@ -8,6 +8,7 @@ add_subdirectory(game)
 add_subdirectory(linkgraph)
 add_subdirectory(misc)
 add_subdirectory(music)
+add_subdirectory(network)
 add_subdirectory(saveload)
 add_subdirectory(widgets)
 

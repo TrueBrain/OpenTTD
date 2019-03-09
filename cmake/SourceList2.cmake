@@ -41,16 +41,6 @@ set(OPTION_MORPHOS NO)
 set(OPTION_OS2 NO)
 
 # Source Files
-add_files(
-    network/network.cpp
-    network/network_admin.cpp
-    network/network_client.cpp
-    network/network_command.cpp
-    network/network_content.cpp
-    network/network_gamelist.cpp
-    network/network_server.cpp
-    network/network_udp.cpp
-)
 add_files(strgen/strgen_base.cpp)
 if (NOT WIN32)
     if (OPTION_OS2)
@@ -67,21 +57,6 @@ endif (NOT WIN32)
 
 # Header Files
 add_files(video/dedicated_v.h)
-add_files(
-    network/network.h
-    network/network_admin.h
-    network/network_base.h
-    network/network_client.h
-    network/network_content.h
-    network/network_content_gui.h
-    network/network_func.h
-    network/network_gamelist.h
-    network/network_gui.h
-    network/network_internal.h
-    network/network_server.h
-    network/network_type.h
-    network/network_udp.h
-)
 add_files(sound/null_s.h)
 add_files(video/null_v.h)
 add_files(sound/sdl_s.h)
@@ -105,13 +80,6 @@ if (NOT WIN32)
         video/cocoa/cocoa_v.h
     )
 endif (NOT WIN32)
-
-# GUI Source Code
-add_files(
-    network/network_chat_gui.cpp
-    network/network_content_gui.cpp
-    network/network_gui.cpp
-)
 
 # Tables
 add_files(
@@ -331,35 +299,6 @@ add_files(
     spriteloader/grf.cpp
     spriteloader/grf.hpp
     spriteloader/spriteloader.hpp
-)
-
-# Network Core
-add_files(
-    network/core/address.cpp
-    network/core/address.h
-    network/core/config.h
-    network/core/core.cpp
-    network/core/core.h
-    network/core/game.h
-    network/core/host.cpp
-    network/core/host.h
-    network/core/os_abstraction.h
-    network/core/packet.cpp
-    network/core/packet.h
-    network/core/tcp.cpp
-    network/core/tcp.h
-    network/core/tcp_admin.cpp
-    network/core/tcp_admin.h
-    network/core/tcp_connect.cpp
-    network/core/tcp_content.cpp
-    network/core/tcp_content.h
-    network/core/tcp_game.cpp
-    network/core/tcp_game.h
-    network/core/tcp_http.cpp
-    network/core/tcp_http.h
-    network/core/tcp_listen.h
-    network/core/udp.cpp
-    network/core/udp.h
 )
 
 # Pathfinder
