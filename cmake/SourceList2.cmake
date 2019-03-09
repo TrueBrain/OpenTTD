@@ -44,20 +44,7 @@ set(OPTION_OS2 NO)
 add_files(strgen/strgen_base.cpp)
 
 # Header Files
-add_files(video/dedicated_v.h)
-add_files(video/null_v.h)
-add_files(video/sdl_v.h)
 add_files(strgen/strgen.h)
-add_files(video/win32_v.h)
-if (NOT WIN32)
-    add_files(
-        video/cocoa/cocoa_keys.h
-        video/cocoa/cocoa_v.h
-    )
-endif (NOT WIN32)
-
-# Drivers
-add_files(video/video_driver.hpp)
 
 # Pathfinder
 add_files(pathfinder/follow_track.hpp)
@@ -102,53 +89,3 @@ add_files(
     pathfinder/yapf/yapf_ship.cpp
     pathfinder/yapf/yapf_type.hpp
 )
-
-# Video
-add_files(
-    video/dedicated_v.cpp
-    video/null_v.cpp
-)
-if (NOT OPTION_DEDICATED)
-    if (ALLEGRO_FOUND)
-        add_files(video/allegro_v.cpp)
-    endif (ALLEGRO_FOUND)
-    if (SDL_FOUND)
-        add_files(video/sdl_v.cpp)
-    endif (SDL_FOUND)
-    if (WIN32)
-        add_files(video/win32_v.cpp)
-    endif (WIN32)
-endif (NOT OPTION_DEDICATED)
-
-if (APPLE)
-# OSX Files
-    if (OPTION_COCOA)
-        add_files(
-            video/cocoa/cocoa_v.mm
-            video/cocoa/event.mm
-            video/cocoa/fullscreen.mm
-            video/cocoa/wnd_quartz.mm
-            video/cocoa/wnd_quickdraw.mm
-        )
-    endif (OPTION_COCOA)
-endif (APPLE)
-
-# Threading
-add_files(thread/thread.h)
-if (OPTION_USE_THREADS)
-    if (WIN32)
-        add_files(thread/thread_win32.cpp)
-    else (WIN32)
-        if (OPTION_OS2)
-            add_files(thread/thread_os2.cpp)
-        else (OPTION_OS2)
-            if (OPTION_MORPHOS)
-                add_files(thread/thread_morphos.cpp)
-            else (OPTION_MORPHOS)
-                add_files(thread/thread_pthread.cpp)
-            endif (OPTION_MORPHOS)
-        endif (OPTION_OS2)
-    endif (WIN32)
-else (OPTION_USE_THREADS)
-    add_files(thread/thread_none.cpp)
-endif (OPTION_USE_THREADS)

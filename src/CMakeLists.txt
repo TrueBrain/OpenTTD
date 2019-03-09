@@ -15,6 +15,8 @@ add_subdirectory(script)
 add_subdirectory(sound)
 add_subdirectory(spriteloader)
 add_subdirectory(table)
+add_subdirectory(thread)
+add_subdirectory(video)
 add_subdirectory(widgets)
 
 # Source Files
