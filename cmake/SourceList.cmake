@@ -41,9 +41,8 @@ macro(source_list)
     endif ()
 
     # These OSes used to be supported by OpenTTD, but have no CMake code yet
-    set(OPTION_BEOS NO)
+    set(OPTION_HAIKU NO)
     set(OPTION_DOS NO)
-    set(OPTION_MORPHOS NO)
     set(OPTION_OS2 NO)
 
     file(READ ${CMAKE_SOURCE_DIR}/source.list SOURCE_LIST)
