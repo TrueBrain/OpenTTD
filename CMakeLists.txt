@@ -134,7 +134,6 @@ set(CMAKE_CXX_EXTENSIONS NO)
 include(SourceList REQUIRED)
 source_list()
 
-include(SourceList2 REQUIRED)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)
 CheckSourceEquality()
 
