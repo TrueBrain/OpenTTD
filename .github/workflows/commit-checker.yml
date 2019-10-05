@@ -1,0 +1,42 @@
+name: Commit checker
+
+on:
+  pull_request:
+
+jobs:
+  commit-checker:
+    name: Commit checker
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout ${{ github.base_ref }} branch
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.base_ref }}
+
+    - name: Switch to ${{ github.ref }} branch
+      run: |
+        git -c protocol.version=2 fetch --no-tags --prune --negotiation-tip=origin/${GITHUB_BASE_REF} origin +${GITHUB_SHA}:${GITHUB_REF}
+        git checkout --progress --force ${GITHUB_REF}
+        git log origin/${GITHUB_BASE_REF}..HEAD^2
+
+    - name: Checkout commit-checker
+      uses: actions/checkout@v2
+      with:
+        repository: OpenTTD/OpenTTD-git-hooks
+        path: git-hooks
+        ref: master
+
+    - name: Check commits
+      run: |
+        is_on_top_of_master=$(git branch $(git rev-parse --abbrev-ref HEAD) --contains origin/${GITHUB_BASE_REF} | wc -l)
+
+        if [ "${is_on_top_of_master}" -ne 1 ]; then
+            echo "ERROR: This commit is not on top of ${GITHUB_BASE_REF}"
+            echo "(no further validation is done due to this error)"
+            exit 1
+        fi
+        echo "Branch is on top of ${GITHUB_BASE_REF}"
+
+        HOOKS_DIR=./git-hooks/hooks GIT_DIR=.git ./git-hooks/hooks/check-commits.sh origin/${GITHUB_BASE_REF}..HEAD^2
+        echo "Commit checks passed"
