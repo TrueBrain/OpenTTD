@@ -9,16 +9,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout ${{ github.base_ref }} branch
-      uses: actions/checkout@v2
-      with:
-        ref: ${{ github.base_ref }}
-
-    - name: Switch to ${{ github.ref }} branch
+    - name: Checkout pull-request
       run: |
-        git -c protocol.version=2 fetch --no-tags --prune --negotiation-tip=origin/${GITHUB_BASE_REF} origin +${GITHUB_SHA}:${GITHUB_REF}
-        git checkout --progress --force ${GITHUB_REF}
-        git log origin/${GITHUB_BASE_REF}..HEAD^2
+        set -x
+
+        env
+
+        PR_NUMBER=$(jq --raw-output .pull_request.number "${GITHUB_EVENT_PATH}")
+
+        git version
+        git init /home/runner/work/OpenTTD/OpenTTD
+        git remote add origin https://github.com/OpenTTD/OpenTTD
+        git config --local gc.auto 0
+
+        # Query GitHub API to find out what the first commit of this pull-request is
+        FIRST_REF=$(curl -X POST -v -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Content-Type: application/json" https://api.github.com/graphql \
+          -d '{"query": "query { repository(owner: \"OpenTTD\", name:\"OpenTTD\") { pullRequest(number: '${PR_NUMBER}') { commits(first: 1) { nodes { commit { oid } } } } } }"}' \
+          | jq .data.repository.pullRequest.commits.nodes[0].commit.oid | cut -d\" -f2)
+
+        git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin ${FIRST_REF}
+        git -c protocol.version=2 fetch --no-tags --prune --negotiation-tip=${FIRST_REF} origin +refs/pull/${PR_NUMBER}/head:pr/${PR_NUMBER}
 
     - name: Checkout commit-checker
       uses: actions/checkout@v2
@@ -29,14 +39,5 @@ jobs:
 
     - name: Check commits
       run: |
-        is_on_top_of_master=$(git branch $(git rev-parse --abbrev-ref HEAD) --contains origin/${GITHUB_BASE_REF} | wc -l)
-
-        if [ "${is_on_top_of_master}" -ne 1 ]; then
-            echo "ERROR: This commit is not on top of ${GITHUB_BASE_REF}"
-            echo "(no further validation is done due to this error)"
-            exit 1
-        fi
-        echo "Branch is on top of ${GITHUB_BASE_REF}"
-
-        HOOKS_DIR=./git-hooks/hooks GIT_DIR=.git ./git-hooks/hooks/check-commits.sh origin/${GITHUB_BASE_REF}..HEAD^2
+        HOOKS_DIR=./git-hooks/hooks GIT_DIR=.git ./git-hooks/hooks/check-commits.sh
         echo "Commit checks passed"
