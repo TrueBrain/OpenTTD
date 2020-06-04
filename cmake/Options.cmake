@@ -50,6 +50,8 @@ function(set_options)
     option(OPTION_INSTALL_FHS "Install with Filesstem Hierarchy Standard folders" ${DEFAULT_OPTION_INSTALL_FHS})
     option(OPTION_USE_ASSERTS "Use assertions; leave enabled for nightlies, betas, and RCs" YES)
     option(OPTION_USE_THREADS "Use threads" YES)
+
+    option (OPTION_FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
 endfunction()
 
 # Show the values of the generic options.

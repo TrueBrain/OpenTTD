@@ -77,6 +77,14 @@ macro(compile_flags)
             "$<${IS_STABLE_RELEASE}:-Wno-unused-but-set-variable>"
         )
 
+        if (${OPTION_FORCE_COLORED_OUTPUT})
+            if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+                add_compile_options (-fdiagnostics-color=always)
+            elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+                add_compile_options (-fcolor-diagnostics)
+            endif ()
+        endif ()
+
         if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             include(CheckCXXCompilerFlag)
             check_cxx_compiler_flag("-flifetime-dse=1" LIFETIME_DSE_FOUND)
