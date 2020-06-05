@@ -3,7 +3,7 @@ string(TIMESTAMP CURRENT_YEAR "%Y")
 set(CPACK_BUNDLE_NAME "OpenTTD")
 set(CPACK_BUNDLE_ICON "${CMAKE_SOURCE_DIR}/os/macosx/openttd.icns")
 set(CPACK_BUNDLE_PLIST "${CMAKE_CURRENT_BINARY_DIR}/Info.plist")
-set(CPACK_BUNDLE_STARTUP_COMMAND "${CMAKE_SOURCE_DIR}/os/macosx/launch.sh")
+set(CPACK_BUNDLE_STARTUP_COMMAND "${CMAKE_BINARY_DIR}/openttd")
 set(CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_SOURCE_DIR}/os/macosx/splash.png")
 
 # Create a temporary Info.plist.in, where we will fill in the version via

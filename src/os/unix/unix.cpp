@@ -19,6 +19,7 @@
 
 
 #include <dirent.h>
+#include <libgen.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -250,6 +251,9 @@ int CDECL main(int argc, char *argv[])
 	if (argc >= 2 && strncmp(argv[1], "-psn", 4) == 0) {
 		argv[1] = nullptr;
 		argc = 1;
+
+		/* change the directory to the application bundle */
+		chdir(dirname(argv[0]));
 	}
 #endif
 	CrashLog::InitialiseCrashLog();
