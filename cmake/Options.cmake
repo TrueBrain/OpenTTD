@@ -52,6 +52,10 @@ function(set_options)
     option(OPTION_USE_THREADS "Use threads" YES)
 
     option (OPTION_FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
+
+    if (APPLE)
+        option(OPTION_EMBED_LIBRARIES "Embed dependent libraries into bundle" YES)
+    endif (APPLE)
 endfunction()
 
 # Show the values of the generic options.
@@ -63,6 +67,10 @@ function(show_options)
     message(STATUS "Option Install FHS - ${OPTION_INSTALL_FHS}")
     message(STATUS "Option Use assert - ${OPTION_USE_ASSERTS}")
     message(STATUS "Option Use threads - ${OPTION_USE_THREADS}")
+
+    if (APPLE)
+        message(STATUS "Option Embedded dependencies - ${OPTION_EMBED_LIBRARIES}")
+    endif (APPLE)
 endfunction()
 
 # Add the definitions for the options that are selected.
