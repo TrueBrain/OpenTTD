@@ -83,6 +83,15 @@ typedef unsigned long in_addr_t;
 #	include <errno.h>
 #	include <sys/time.h>
 #	include <netdb.h>
+
+#   if defined(__EMSCRIPTEN__)
+/* Emscripten doesn't support AI_ADDRCONFIG and errors out on it. */
+#		undef AI_ADDRCONFIG
+#		define AI_ADDRCONFIG 0
+/* Emscripten says it supports FD_SETSIZE fds, but it really only supports 64. */
+#		undef FD_SETSIZE
+#		define FD_SETSIZE 64
+#   endif
 #endif /* UNIX */
 
 /* OS/2 stuff */
@@ -148,12 +157,16 @@ typedef unsigned long in_addr_t;
  */
 static inline bool SetNonBlocking(SOCKET d)
 {
-#ifdef _WIN32
-	u_long nonblocking = 1;
+#ifdef __EMSCRIPTEN__
+	return true;
 #else
+# ifdef _WIN32
+	u_long nonblocking = 1;
+# else
 	int nonblocking = 1;
-#endif
+# endif
 	return ioctlsocket(d, FIONBIO, &nonblocking) == 0;
+#endif
 }
 
 /**
@@ -163,10 +176,14 @@ static inline bool SetNonBlocking(SOCKET d)
  */
 static inline bool SetNoDelay(SOCKET d)
 {
+#ifdef __EMSCRIPTEN__
+	return true;
+#else
 	/* XXX should this be done at all? */
 	int b = 1;
 	/* The (const char*) cast is needed for windows */
 	return setsockopt(d, IPPROTO_TCP, TCP_NODELAY, (const char*)&b, sizeof(b)) == 0;
+#endif
 }
 
 /* Make sure these structures have the size we expect them to be */

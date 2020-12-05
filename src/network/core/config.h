@@ -24,7 +24,11 @@ static const char * const NETWORK_CONTENT_MIRROR_URL            = "/bananas";
 static const char * const NETWORK_MASTER_SERVER_WELCOME_MESSAGE = "OpenTTDRegister";
 
 static const uint16 NETWORK_MASTER_SERVER_PORT    = 3978;         ///< The default port of the master server (UDP)
+#ifdef __EMSCRIPTEN__
+static const uint16 NETWORK_CONTENT_SERVER_PORT   =  443;         ///< The default port of the WebSocket server.
+#else
 static const uint16 NETWORK_CONTENT_SERVER_PORT   = 3978;         ///< The default port of the content server (TCP)
+#endif
 static const uint16 NETWORK_CONTENT_MIRROR_PORT   =   80;         ///< The default port of the content mirror (TCP)
 static const uint16 NETWORK_DEFAULT_PORT          = 3979;         ///< The default port of the game server (TCP & UDP)
 static const uint16 NETWORK_ADMIN_PORT            = 3977;         ///< The default port for admin network
