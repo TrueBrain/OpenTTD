@@ -27,6 +27,10 @@
 #include <mutex>
 #include <condition_variable>
 #include <algorithm>
+#ifdef __EMSCRIPTEN__
+# include <emscripten.h>
+# include <emscripten/html5.h>
+#endif
 
 #include "../safeguards.h"
 
@@ -711,7 +715,19 @@ void VideoDriver_SDL::LoopOnce()
 	InteractiveRandom(); // randomness
 
 	while (PollEvent() == -1) {}
-	if (_exit_game) return;
+	if (_exit_game) {
+#ifdef __EMSCRIPTEN__
+		emscripten_cancel_main_loop();
+		emscripten_exit_pointerlock();
+		/* In effect, the game ends here. As emscripten_set_main_loop() caused
+		 * the stack to be unwound, the code after MainLoop() in
+		 * openttd_main() is never executed.
+		 * Config files are stored when they are changed for Emscripten, so
+		 * there should be no functional difference. */
+		EM_ASM(if (window["openttd_exit"]) openttd_exit());
+#endif
+		return;
+	}
 
 	mod = SDL_GetModState();
 	keys = SDL_GetKeyboardState(&numkeys);
@@ -816,6 +832,10 @@ void VideoDriver_SDL::MainLoop()
 
 	DEBUG(driver, 1, "SDL2: using %sthreads", _draw_threaded ? "" : "no ");
 
+#ifdef __EMSCRIPTEN__
+	/* Run the main loop event-driven, based on RequestAnimationFrame. */
+	emscripten_set_main_loop_arg(&this->EmscriptenLoop, this, 0, 1);
+#else
 	while (!_exit_game) {
 		LoopOnce();
 	}
@@ -835,6 +855,7 @@ void VideoDriver_SDL::MainLoop()
 		_draw_mutex = nullptr;
 		_draw_signal = nullptr;
 	}
+#endif
 }
 
 bool VideoDriver_SDL::ChangeResolution(int w, int h)
