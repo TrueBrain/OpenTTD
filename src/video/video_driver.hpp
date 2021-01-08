@@ -13,6 +13,7 @@
 #include "../driver.h"
 #include "../core/geometry_type.hpp"
 #include "../core/math_func.hpp"
+#include "../zoom_type.h"
 #include <vector>
 
 extern std::string _ini_videodriver;
@@ -104,6 +105,14 @@ public:
 	 * An edit box gained the input focus
 	 */
 	virtual void EditBoxGainedFocus() {}
+
+	/**
+	 * Get a suggested default GUI zoom taking screen DPI into account.
+	 */
+	virtual ZoomLevel GetSuggestedUIZoom()
+	{
+		return ZOOM_LVL_OUT_4X;
+	}
 
 	/**
 	 * Get the currently active instance of the video driver.
