@@ -1316,3 +1316,45 @@ Dimension VideoDriver_Win32::GetScreenSize() const
 {
 	return { static_cast<uint>(GetSystemMetrics(SM_CXSCREEN)), static_cast<uint>(GetSystemMetrics(SM_CYSCREEN)) };
 }
+
+ZoomLevel VideoDriver_Win32::GetSuggestedUIZoom()
+{
+	typedef UINT (WINAPI *PFNGETDPIFORWINDOW)(HWND hwnd);
+	typedef UINT (WINAPI *PFNGETDPIFORSYSTEM)(VOID);
+	typedef HRESULT (WINAPI *PFNGETDPIFORMONITOR)(HMONITOR hMonitor, int dpiType, UINT *dpiX, UINT *dpiY);
+
+	static PFNGETDPIFORWINDOW _GetDpiForWindow = nullptr;
+	static PFNGETDPIFORSYSTEM _GetDpiForSystem = nullptr;
+	static PFNGETDPIFORMONITOR _GetDpiForMonitor = nullptr;
+
+	static bool init_done = false;
+	if (!init_done) {
+		init_done = true;
+
+		_GetDpiForWindow = (PFNGETDPIFORWINDOW)GetProcAddress(GetModuleHandle(_T("User32")), "GetDpiForWindow");
+		_GetDpiForSystem = (PFNGETDPIFORSYSTEM)GetProcAddress(GetModuleHandle(_T("User32")), "GetDpiForSystem");
+		_GetDpiForMonitor = (PFNGETDPIFORMONITOR)GetProcAddress(LoadLibrary(_T("Shcore.dll")), "GetDpiForMonitor");
+	}
+
+	const UINT BASE_DPI = 96; // Default Windows DPI value.
+
+	UINT cur_dpi = 0;
+
+	if (cur_dpi == 0 && _GetDpiForWindow != nullptr && _wnd.main_wnd != nullptr) {
+		/* Per window DPI is supported since Windows 10 Ver 1607. */
+		cur_dpi = _GetDpiForWindow(_wnd.main_wnd);
+	}
+	if (cur_dpi == 0 && _GetDpiForMonitor != nullptr && _wnd.main_wnd != nullptr) {
+		/* Per monitor is supported since Windows 8.1.*/
+		UINT dpiX, dpiY;
+		if (SUCCEEDED(_GetDpiForMonitor(MonitorFromWindow(_wnd.main_wnd, MONITOR_DEFAULTTOPRIMARY), 0 /* MDT_EFFECTIVE_DPI */, &dpiX, &dpiY))) cur_dpi = dpiX; // X and Y are always identical.
+	}
+	if (cur_dpi == 0 && _GetDpiForSystem != nullptr) {
+		/* Fall back to system DPI. */
+		UINT dpi = _GetDpiForSystem();
+	}
+
+	if (cur_dpi >= BASE_DPI * 3) return ZOOM_LVL_NORMAL;
+	if (cur_dpi >= BASE_DPI * 3 / 2) return ZOOM_LVL_OUT_2X;
+	return ZOOM_LVL_OUT_4X;
+}

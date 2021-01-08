@@ -37,6 +37,8 @@ public:
 
 	void EditBoxLostFocus() override;
 
+	ZoomLevel GetSuggestedUIZoom() override;
+
 	const char *GetName() const override { return "win32"; }
 
 	bool MakeWindow(bool full_screen);
