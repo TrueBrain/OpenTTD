@@ -100,4 +100,45 @@ public:
 	Driver *CreateInstance() const override { return new VideoDriver_Win32GDI(); }
 };
 
+#ifdef WITH_OPENGL
+
+/** The OpenGL video driver for windows. */
+class VideoDriver_Win32OpenGL : public VideoDriver_Win32Base {
+public:
+	VideoDriver_Win32OpenGL() : dc(NULL), gl_rc(NULL) {}
+
+	const char *Start(const StringList &param) override;
+
+	void Stop() override;
+
+	bool ToggleFullscreen(bool fullscreen) override;
+
+	bool AfterBlitterChange() override;
+
+	const char *GetName() const override { return "win32-opengl"; }
+
+protected:
+	HDC   dc;          ///< Window device context.
+	HGLRC gl_rc;       ///< OpenGL context.
+
+	uint8 GetFullscreenBpp() override { return 32; } // OpenGL is always 32 bpp.
+
+	bool AllocateBackingStore(int w, int h, bool force = false) override;
+	void PaletteChanged(HWND hWnd) override {}
+	void Paint(HWND hWnd, bool in_sizemove) override;
+	void PaintThread() override {}
+
+	const char *AllocateContext();
+	void DestroyContext();
+};
+
+/** The factory for Windows' OpenGL video driver. */
+class FVideoDriver_Win32OpenGL : public DriverFactoryBase {
+public:
+	FVideoDriver_Win32OpenGL() : DriverFactoryBase(Driver::DT_VIDEO, 9, "win32-opengl", "Win32 OpenGL Video Driver") {}
+	/* virtual */ Driver *CreateInstance() const override { return new VideoDriver_Win32OpenGL(); }
+};
+
+#endif /* WITH_OPENGL */
+
 #endif /* VIDEO_WIN32_H */
