@@ -1576,14 +1576,19 @@ bool VideoDriver_Win32OpenGL::AllocateBackingStore(int w, int h, bool force)
 
 void *VideoDriver_Win32OpenGL::GetVideoPointer()
 {
+	if (BlitterFactory::GetCurrentBlitter()->NeedsAnimationBuffer()) {
+		this->anim_buffer = OpenGLBackend::Get()->GetAnimBuffer();
+	}
 	return OpenGLBackend::Get()->GetVideoBuffer();
 }
 
 void VideoDriver_Win32OpenGL::ReleaseVideoPointer()
 {
+	if (this->anim_buffer != nullptr) OpenGLBackend::Get()->ReleaseAnimBuffer(this->dirty_rect);
 	OpenGLBackend::Get()->ReleaseVideoBuffer(this->dirty_rect);
 	MemSetT(&this->dirty_rect, 0);
 	_screen.dst_ptr = nullptr;
+	this->anim_buffer = nullptr;
 }
 
 void VideoDriver_Win32OpenGL::Paint(HWND hWnd, bool in_sizemove)
