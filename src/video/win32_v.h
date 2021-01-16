@@ -79,6 +79,8 @@ protected:
 	virtual void Paint(HWND hWnd, bool in_sizemove) = 0;
 	/** Thread function for threaded drawing. */
 	virtual void PaintThread() = 0;
+	/** Draw the mouse cursor. */
+	virtual void DrawMouseCursor();
 
 	static void PaintThreadThunk(VideoDriver_Win32Base *drv);
 	friend LRESULT CALLBACK WndProcGdi(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -145,6 +147,10 @@ public:
 
 	bool HasEfficient8Bpp() const override { return true; }
 
+	bool UseSystemCursor() override { return true; }
+
+	void ClearSystemSprites() override;
+
 	const char *GetName() const override { return "win32-opengl"; }
 
 protected:
@@ -161,6 +167,7 @@ protected:
 	void PaletteChanged(HWND hWnd) override {}
 	void Paint(HWND hWnd, bool in_sizemove) override;
 	void PaintThread() override {}
+	void DrawMouseCursor() override;
 
 	const char *AllocateContext();
 	void DestroyContext();
