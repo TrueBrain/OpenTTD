@@ -691,7 +691,7 @@ int VideoDriver_SDL::PollEvent()
 	return -1;
 }
 
-const char *VideoDriver_SDL::Start(const StringList &parm)
+static const char *RegisterSDL()
 {
 	if (BlitterFactory::GetCurrentBlitter()->GetScreenDepth() == 0) return "Only real blitters supported";
 
@@ -701,18 +701,30 @@ const char *VideoDriver_SDL::Start(const StringList &parm)
 	SDL_SetHint(SDL_HINT_FRAMEBUFFER_ACCELERATION, "0");
 	SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "1");
 
-	/* Just on the offchance the audio subsystem started before the video system,
-	 * check whether any part of SDL has been initialised before getting here.
-	 * Slightly duplicated with sound/sdl_s.cpp */
-	int ret_code = 0;
-	if (SDL_WasInit(SDL_INIT_VIDEO) == 0) {
-		ret_code = SDL_InitSubSystem(SDL_INIT_VIDEO);
-	}
-	if (ret_code < 0) return SDL_GetError();
+	/* Check if the video-driver is already initialized. */
+	if (SDL_WasInit(SDL_INIT_VIDEO) != 0) return nullptr;
 
+	if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) return SDL_GetError();
+	return nullptr;
+}
+
+const char *VideoDriver_SDL::Initialize()
+{
 	this->UpdateAutoResolution();
 
+	const char *error = RegisterSDL();
+	if (error != nullptr) return error;
+
 	FindResolutions();
+
+	DEBUG(driver, 2, "Resolution for display: %ux%u", _cur_resolution.width, _cur_resolution.height);
+	return nullptr;
+}
+
+const char *VideoDriver_SDL::Start(const StringList &parm)
+{
+	const char *error = this->Initialize();
+	if (error != nullptr) return error;
 
 	this->startup_display = FindStartupDisplay(GetDriverParamInt(parm, "display", -1));
 
