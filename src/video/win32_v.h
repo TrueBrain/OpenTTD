@@ -149,6 +149,7 @@ protected:
 	HDC   dc;          ///< Window device context.
 	HGLRC gl_rc;       ///< OpenGL context.
 	Rect  dirty_rect;  ///< Rectangle encompassing the dirty area of the video buffer.
+	bool  vsync;       ///< Enable VSync?
 
 	uint8 GetFullscreenBpp() override { return 32; } // OpenGL is always 32 bpp.
 
