@@ -720,6 +720,8 @@ const char *VideoDriver_SDL::Initialize()
 
 const char *VideoDriver_SDL::Start(const StringList &parm)
 {
+	if (BlitterFactory::GetCurrentBlitter()->GetScreenDepth() == 0) return "Only real blitters supported";
+
 	const char *error = this->Initialize();
 	if (error != nullptr) return error;
 
