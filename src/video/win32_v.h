@@ -11,11 +11,13 @@
 #define VIDEO_WIN32_H
 
 #include "video_driver.hpp"
+#include <mutex>
+#include <condition_variable>
 
 /** Base class for Windows video drivers. */
 class VideoDriver_Win32Base : public VideoDriver {
 public:
-	VideoDriver_Win32Base() : main_wnd(nullptr) {}
+	VideoDriver_Win32Base() : main_wnd(nullptr), draw_mutex(nullptr), draw_signal(nullptr) {}
 
 	void Stop() override;
 
@@ -38,6 +40,14 @@ public:
 protected:
 	HWND    main_wnd;      ///< Handle to system window.
 
+	bool draw_threaded;          ///< Whether the drawing is/may be done in a separate thread.
+	bool buffer_locked;          ///< Video buffer was locked by the main thread.
+	volatile bool draw_continue; ///< Should we keep continue drawing?
+
+	std::recursive_mutex *draw_mutex;                 ///< Mutex to keep the access to the shared memory controlled.
+	std::condition_variable_any *draw_signal;         ///< Signal to draw the next frame.
+	std::unique_lock<std::recursive_mutex> draw_lock; ///< Main thread mutex locker.
+
 	Dimension GetScreenSize() const override;
 
 	void Initialize();
@@ -57,6 +67,10 @@ protected:
 	virtual void Paint(HWND hWnd, bool in_sizemove) = 0;
 	/** Thread function for threaded drawing. */
 	virtual void PaintThread() = 0;
+	/** Lock video buffer for drawing if it isn't already mapped. */
+	virtual bool LockVideoBuffer();
+	/** Unlock video buffer. */
+	virtual void UnlockVideoBuffer();
 
 	static void PaintWindowThreadThunk(VideoDriver_Win32Base *drv);
 	friend LRESULT CALLBACK WndProcGdi(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
