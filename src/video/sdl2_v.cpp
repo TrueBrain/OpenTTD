@@ -35,6 +35,7 @@ static FVideoDriver_SDL iFVideoDriver_SDL;
 
 static SDL_Window *_sdl_window;
 static SDL_Surface *_sdl_surface;
+static SDL_Surface *_sdl_rgb_surface;
 static SDL_Surface *_sdl_realscreen;
 
 /** Whether the drawing is/may be done in a separate thread. */
@@ -329,7 +330,7 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 
 	if (resize) SDL_SetWindowSize(_sdl_window, w, h);
 
-	if (!this->AllocateBackingStore(w, h)) return false;
+	this->AllocateBackingStore(w, h, true);
 
 	/* Delay drawing for this cycle; the next cycle will redraw the whole screen */
 	_num_dirty_rects = 0;
@@ -346,44 +347,41 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 	return true;
 }
 
-bool VideoDriver_SDL::AllocateBackingStore(uint w, uint h)
+bool VideoDriver_SDL::AllocateBackingStore(uint w, uint h, bool force)
 {
 	uint bpp = BlitterFactory::GetCurrentBlitter()->GetScreenDepth();
 
-	/* Free any previously allocated shadow surface */
-	if (_sdl_surface != nullptr && _sdl_surface != _sdl_realscreen) SDL_FreeSurface(_sdl_surface);
+	w = std::max(w, 64U);
+	h = std::max(h, 64U);
 
-	SDL_Surface *newscreen = SDL_GetWindowSurface(_sdl_window);
-	if (newscreen == NULL) {
-		DEBUG(driver, 0, "SDL2: Couldn't get window surface: %s", SDL_GetError());
-		return false;
+	_sdl_realscreen = SDL_GetWindowSurface(_sdl_window);
+	if (_sdl_realscreen == nullptr) usererror("SDL2: Couldn't get window surface: %s", SDL_GetError());
+
+	if (!force && w == _sdl_realscreen->w && h == _sdl_realscreen->h) return false;
+
+	if (_sdl_rgb_surface != nullptr) {
+		SDL_FreeSurface(_sdl_rgb_surface);
+		_sdl_rgb_surface = nullptr;
 	}
 
-	_sdl_realscreen = newscreen;
-
 	if (bpp == 8) {
-		newscreen = SDL_CreateRGBSurface(0, w, h, 8, 0, 0, 0, 0);
+		_sdl_rgb_surface = SDL_CreateRGBSurface(0, w, h, 8, 0, 0, 0, 0);
+		if (_sdl_rgb_surface == nullptr) usererror("SDL2: Couldn't allocate shadow surface: %s", SDL_GetError());
 
-		if (newscreen == nullptr) {
-			DEBUG(driver, 0, "SDL2: Couldn't allocate shadow surface: %s", SDL_GetError());
-			return false;
-		}
+		_sdl_surface = _sdl_rgb_surface;
+	} else {
+		_sdl_surface = _sdl_realscreen;
 	}
 
 	if (_sdl_palette == nullptr) {
 		_sdl_palette = SDL_AllocPalette(256);
-	}
-	if (_sdl_palette == nullptr) {
-		DEBUG(driver, 0, "SDL_AllocPalette() failed: %s", SDL_GetError());
-		return false;
+		if (_sdl_palette == nullptr) usererror("SDL2: Couldn't allocate palette: %s", SDL_GetError());
 	}
 
-	_screen.width = newscreen->w;
-	_screen.pitch = newscreen->pitch / (bpp / 8);
-	_screen.height = newscreen->h;
-	_screen.dst_ptr = newscreen->pixels;
-
-	_sdl_surface = newscreen;
+	_screen.width = _sdl_surface->w;
+	_screen.pitch = _sdl_surface->pitch / (bpp / 8);
+	_screen.height = _sdl_surface->h;
+	_screen.dst_ptr = _sdl_surface->pixels;
 
 	return true;
 }
