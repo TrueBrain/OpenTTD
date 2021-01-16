@@ -39,16 +39,6 @@
 #define PM_QS_INPUT 0x20000
 #endif
 
-static struct {
-	int width;            ///< Width in pixels of our display surface.
-	int height;           ///< Height in pixels of our display surface.
-	int width_org;        ///< Original monitor resolution width, before we changed it.
-	int height_org;       ///< Original monitor resolution height, before we changed it.
-	bool fullscreen;      ///< Whether to use (true) fullscreen mode.
-	bool has_focus;       ///< Does our window have system focus?
-	bool running;         ///< Is the main loop running?
-} _wnd;
-
 bool _force_full_redraw;
 bool _window_maximize;
 uint _display_hz;
@@ -151,7 +141,7 @@ bool VideoDriver_Win32Base::MakeWindow(bool full_screen)
 	_fullscreen = full_screen;
 
 	/* recreate window? */
-	if ((full_screen || _wnd.fullscreen) && this->main_wnd) {
+	if ((full_screen || this->fullscreen) && this->main_wnd) {
 		DestroyWindow(this->main_wnd);
 		this->main_wnd = 0;
 	}
@@ -167,8 +157,8 @@ bool VideoDriver_Win32Base::MakeWindow(bool full_screen)
 			DM_PELSHEIGHT |
 			(_display_hz != 0 ? DM_DISPLAYFREQUENCY : 0);
 		settings.dmBitsPerPel = this->GetFullscreenBpp();
-		settings.dmPelsWidth  = _wnd.width_org;
-		settings.dmPelsHeight = _wnd.height_org;
+		settings.dmPelsWidth  = this->width_org;
+		settings.dmPelsHeight = this->height_org;
 		settings.dmDisplayFrequency = _display_hz;
 
 		/* Check for 8 bpp support. */
@@ -191,12 +181,12 @@ bool VideoDriver_Win32Base::MakeWindow(bool full_screen)
 			this->MakeWindow(false);  // don't care about the result
 			return false;  // the request failed
 		}
-	} else if (_wnd.fullscreen) {
+	} else if (this->fullscreen) {
 		/* restore display? */
 		ChangeDisplaySettings(nullptr, 0);
 		/* restore the resolution */
-		_wnd.width = _bck_resolution.width;
-		_wnd.height = _bck_resolution.height;
+		this->width = _bck_resolution.width;
+		this->height = _bck_resolution.height;
 	}
 
 	{
@@ -205,15 +195,15 @@ bool VideoDriver_Win32Base::MakeWindow(bool full_screen)
 		int w, h;
 
 		showstyle = SW_SHOWNORMAL;
-		_wnd.fullscreen = full_screen;
-		if (_wnd.fullscreen) {
+		this->fullscreen = full_screen;
+		if (this->fullscreen) {
 			style = WS_POPUP;
-			SetRect(&r, 0, 0, _wnd.width_org, _wnd.height_org);
+			SetRect(&r, 0, 0, this->width_org, this->height_org);
 		} else {
 			style = WS_OVERLAPPEDWINDOW;
 			/* On window creation, check if we were in maximize mode before */
 			if (_window_maximize) showstyle = SW_SHOWMAXIMIZED;
-			SetRect(&r, 0, 0, _wnd.width, _wnd.height);
+			SetRect(&r, 0, 0, this->width, this->height);
 		}
 
 		AdjustWindowRect(&r, style, FALSE);
@@ -658,7 +648,7 @@ static LRESULT CALLBACK WndProcGdi(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 			switch (wParam) {
 				case VK_RETURN:
 				case 'F': // Full Screen on ALT + ENTER/F
-					ToggleFullScreen(!_wnd.fullscreen);
+					ToggleFullScreen(!video_driver->fullscreen);
 					return 0;
 
 				case VK_MENU: // Just ALT
@@ -763,12 +753,12 @@ static LRESULT CALLBACK WndProcGdi(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 		}
 
 		case WM_SETFOCUS:
-			_wnd.has_focus = true;
+			video_driver->has_focus = true;
 			SetCompositionPos(hwnd);
 			break;
 
 		case WM_KILLFOCUS:
-			_wnd.has_focus = false;
+			video_driver->has_focus = false;
 			break;
 
 		case WM_ACTIVATE: {
@@ -777,7 +767,7 @@ static LRESULT CALLBACK WndProcGdi(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 
 			bool active = (LOWORD(wParam) != WA_INACTIVE);
 			bool minimized = (HIWORD(wParam) != 0);
-			if (_wnd.fullscreen) {
+			if (video_driver->fullscreen) {
 				if (active && minimized) {
 					/* Restore the game window */
 					ShowWindow(hwnd, SW_RESTORE);
@@ -856,14 +846,12 @@ void VideoDriver_Win32Base::Initialize()
 {
 	this->UpdateAutoResolution();
 
-	memset(&_wnd, 0, sizeof(_wnd));
-
 	RegisterWndClass();
 	FindResolutions(this->GetFullscreenBpp());
 
 	/* fullscreen uses those */
-	_wnd.width  = _wnd.width_org  = _cur_resolution.width;
-	_wnd.height = _wnd.height_org = _cur_resolution.height;
+	this->width  = this->width_org  = _cur_resolution.width;
+	this->height = this->height_org = _cur_resolution.height;
 
 	DEBUG(driver, 2, "Resolution for display: %ux%u", _cur_resolution.width, _cur_resolution.height);
 }
@@ -872,7 +860,7 @@ void VideoDriver_Win32Base::Stop()
 {
 	DestroyWindow(this->main_wnd);
 
-	if (_wnd.fullscreen) ChangeDisplaySettings(nullptr, 0);
+	if (this->fullscreen) ChangeDisplaySettings(nullptr, 0);
 	MyShowCursor(true);
 }
 void VideoDriver_Win32Base::MakeDirty(int left, int top, int width, int height)
@@ -937,7 +925,7 @@ void VideoDriver_Win32Base::MainLoop()
 		}
 	}
 
-	_wnd.running = true;
+	//_wnd.running = true;
 
 	this->CheckPaletteAnim();
 	for (;;) {
@@ -952,10 +940,10 @@ void VideoDriver_Win32Base::MainLoop()
 		if (_exit_game) break;
 
 #if defined(_DEBUG)
-		if (_wnd.has_focus && GetAsyncKeyState(VK_SHIFT) < 0 &&
+		if (this->has_focus && GetAsyncKeyState(VK_SHIFT) < 0 &&
 #else
 		/* Speed up using TAB, but disable for ALT+TAB of course */
-		if (_wnd.has_focus && GetAsyncKeyState(VK_TAB) < 0 && GetAsyncKeyState(VK_MENU) >= 0 &&
+		if (this->has_focus && GetAsyncKeyState(VK_TAB) < 0 && GetAsyncKeyState(VK_MENU) >= 0 &&
 #endif
 			  !_networking && _game_mode != GM_MENU) {
 			_fast_forward |= 2;
@@ -971,11 +959,11 @@ void VideoDriver_Win32Base::MainLoop()
 
 			bool old_ctrl_pressed = _ctrl_pressed;
 
-			_ctrl_pressed = _wnd.has_focus && GetAsyncKeyState(VK_CONTROL)<0;
-			_shift_pressed = _wnd.has_focus && GetAsyncKeyState(VK_SHIFT)<0;
+			_ctrl_pressed = this->has_focus && GetAsyncKeyState(VK_CONTROL)<0;
+			_shift_pressed = this->has_focus && GetAsyncKeyState(VK_SHIFT)<0;
 
 			/* determine which directional keys are down */
-			if (_wnd.has_focus) {
+			if (this->has_focus) {
 				_dirkeys =
 					(GetAsyncKeyState(VK_LEFT) < 0 ? 1 : 0) +
 					(GetAsyncKeyState(VK_UP) < 0 ? 2 : 0) +
@@ -1069,8 +1057,8 @@ bool VideoDriver_Win32Base::ChangeResolution(int w, int h)
 
 	if (_window_maximize) ShowWindow(this->main_wnd, SW_SHOWNORMAL);
 
-	_wnd.width = _wnd.width_org = w;
-	_wnd.height = _wnd.height_org = h;
+	this->width = this->width_org = w;
+	this->height = this->height_org = h;
 
 	return this->MakeWindow(_fullscreen); // _wnd.fullscreen screws up ingame resolution switching
 }
@@ -1149,8 +1137,8 @@ bool VideoDriver_Win32GDI::AllocateBackingStore(int w, int h, bool force)
 	memset(bi, 0, sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256);
 	bi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 
-	bi->bmiHeader.biWidth = _wnd.width = w;
-	bi->bmiHeader.biHeight = -(_wnd.height = h);
+	bi->bmiHeader.biWidth = this->width = w;
+	bi->bmiHeader.biHeight = -(this->height = h);
 
 	bi->bmiHeader.biPlanes = 1;
 	bi->bmiHeader.biBitCount = bpp;
@@ -1253,7 +1241,7 @@ void VideoDriver_Win32GDI::PaintWindow(HDC dc)
 		_cur_palette.count_dirty = 0;
 	}
 
-	BitBlt(dc, 0, 0, _wnd.width, _wnd.height, dc2, 0, 0, SRCCOPY);
+	BitBlt(dc, 0, 0, this->width, this->height, dc2, 0, 0, SRCCOPY);
 	SelectPalette(dc, old_palette, TRUE);
 	SelectObject(dc2, old_bmp);
 	DeleteDC(dc2);
@@ -1367,7 +1355,7 @@ const char *VideoDriver_Win32OpenGL::Start(const StringList &param)
 		return err;
 	}
 
-	this->ClientSizeChanged(_wnd.width, _wnd.height);
+	this->ClientSizeChanged(this->width, this->height);
 
 	this->draw_threaded = false;
 	MarkWholeScreenDirty();
@@ -1445,14 +1433,14 @@ bool VideoDriver_Win32OpenGL::ToggleFullscreen(bool full_screen)
 	this->DestroyContext();
 	bool res = this->VideoDriver_Win32Base::ToggleFullscreen(full_screen);
 	res &= this->AllocateContext() == nullptr;
-	this->ClientSizeChanged(_wnd.width, _wnd.height);
+	this->ClientSizeChanged(this->width, this->height);
 	return res;
 }
 
 bool VideoDriver_Win32OpenGL::AfterBlitterChange()
 {
 	assert(BlitterFactory::GetCurrentBlitter()->GetScreenDepth() != 0);
-	this->ClientSizeChanged(_wnd.width, _wnd.height);
+	this->ClientSizeChanged(this->width, this->height);
 	return true;
 }
 
