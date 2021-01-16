@@ -1025,20 +1025,27 @@ bool VideoDriver_Win32Base::LockVideoBuffer()
 	if (this->draw_threaded) this->draw_lock.lock();
 
 	_screen.dst_ptr = this->GetVideoPointer();
+	assert(_screen.dst_ptr != nullptr);
 
 	return true;
 }
 
 void VideoDriver_Win32Base::UnlockVideoBuffer()
 {
+	if (_screen.dst_ptr != nullptr) {
+		/* Hand video buffer back to the drawing backend. */
+		this->ReleaseVideoPointer();
+		_screen.dst_ptr = nullptr;
+	}
+
 	if (this->draw_threaded) this->draw_lock.unlock();
 	this->buffer_locked = false;
 }
 
-void VideoDriver_Win32Base::ClientSizeChanged(int w, int h)
+void VideoDriver_Win32Base::ClientSizeChanged(int w, int h, bool force)
 {
 	/* Allocate backing store of the new size. */
-	if (this->AllocateBackingStore(w, h)) {
+	if (this->AllocateBackingStore(w, h, force)) {
 		/* Mark all palette colours dirty. */
 		_cur_palette.first_dirty = 0;
 		_cur_palette.count_dirty = 256;
@@ -1228,9 +1235,16 @@ void VideoDriver_Win32GDI::PaintWindow(HDC dc)
 				this->UpdatePalette(dc2, _local_palette.first_dirty, _local_palette.count_dirty);
 				break;
 
-			case Blitter::PALETTE_ANIMATION_BLITTER:
+			case Blitter::PALETTE_ANIMATION_BLITTER: {
+				bool need_buf = _screen.dst_ptr == nullptr;
+				if (need_buf) _screen.dst_ptr = this->GetVideoPointer();
 				blitter->PaletteAnimate(_local_palette);
+				if (need_buf) {
+					this->ReleaseVideoPointer();
+					_screen.dst_ptr = nullptr;
+				}
 				break;
+			}
 
 			case Blitter::PALETTE_ANIMATION_NONE:
 				break;
@@ -1355,7 +1369,7 @@ const char *VideoDriver_Win32OpenGL::Start(const StringList &param)
 		return err;
 	}
 
-	this->ClientSizeChanged(this->width, this->height);
+	this->ClientSizeChanged(this->width, this->height, true);
 
 	this->draw_threaded = false;
 	MarkWholeScreenDirty();
@@ -1430,17 +1444,18 @@ void VideoDriver_Win32OpenGL::MakeDirty(int left, int top, int width, int height
 
 bool VideoDriver_Win32OpenGL::ToggleFullscreen(bool full_screen)
 {
+	if (_screen.dst_ptr != nullptr) this->ReleaseVideoPointer();
 	this->DestroyContext();
 	bool res = this->VideoDriver_Win32Base::ToggleFullscreen(full_screen);
 	res &= this->AllocateContext() == nullptr;
-	this->ClientSizeChanged(this->width, this->height);
+	this->ClientSizeChanged(this->width, this->height, true);
 	return res;
 }
 
 bool VideoDriver_Win32OpenGL::AfterBlitterChange()
 {
 	assert(BlitterFactory::GetCurrentBlitter()->GetScreenDepth() != 0);
-	this->ClientSizeChanged(this->width, this->height);
+	this->ClientSizeChanged(this->width, this->height, true);
 	return true;
 }
 
@@ -1453,13 +1468,25 @@ bool VideoDriver_Win32OpenGL::AllocateBackingStore(int w, int h, bool force)
 
 	if (this->gl_rc == nullptr) return false;
 
+	if (_screen.dst_ptr != nullptr) this->ReleaseVideoPointer();
+
 	MemSetT(&this->dirty_rect, 0);
-	return OpenGLBackend::Get()->Resize(w, h, force);
+	bool res = OpenGLBackend::Get()->Resize(w, h, force);
+	_screen.dst_ptr = this->GetVideoPointer();
+
+	return res;
 }
 
 void *VideoDriver_Win32OpenGL::GetVideoPointer()
 {
 	return OpenGLBackend::Get()->GetVideoBuffer();
+}
+
+void VideoDriver_Win32OpenGL::ReleaseVideoPointer()
+{
+	OpenGLBackend::Get()->ReleaseVideoBuffer(this->dirty_rect);
+	MemSetT(&this->dirty_rect, 0);
+	_screen.dst_ptr = nullptr;
 }
 
 void VideoDriver_Win32OpenGL::Paint(HWND hWnd, bool in_sizemove)
@@ -1489,9 +1516,8 @@ void VideoDriver_Win32OpenGL::Paint(HWND hWnd, bool in_sizemove)
 	GetUpdateRect(hWnd, &r, FALSE);
 	ValidateRect(hWnd, &r);
 
-	OpenGLBackend::Get()->Paint(this->dirty_rect);
+	OpenGLBackend::Get()->Paint();
 	SwapBuffers(this->dc);
-	MemSetT(&this->dirty_rect, 0);
 }
 
 #endif /* WITH_OPENGL */

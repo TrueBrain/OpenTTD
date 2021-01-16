@@ -60,7 +60,7 @@ protected:
 	bool MakeWindow(bool full_screen);
 	virtual uint8 GetFullscreenBpp();
 
-	void ClientSizeChanged(int w, int h);
+	void ClientSizeChanged(int w, int h, bool force = false);
 	void CheckPaletteAnim();
 	/** Lock video buffer for drawing if it isn't already mapped. */
 	bool LockVideoBuffer() override;
@@ -71,6 +71,8 @@ protected:
 	virtual bool AllocateBackingStore(int w, int h, bool force = false) = 0;
 	/** Get a pointer to the video buffer. */
 	virtual void *GetVideoPointer() = 0;
+	/** Hand video buffer back to the painting backend. */
+	virtual void ReleaseVideoPointer() {}
 	/** Palette of the window has changed. */
 	virtual void PaletteChanged(HWND hWnd) = 0;
 	/** Window got a paint message. */
@@ -152,6 +154,7 @@ protected:
 
 	bool AllocateBackingStore(int w, int h, bool force = false) override;
 	void *GetVideoPointer() override;
+	void ReleaseVideoPointer() override;
 	void PaletteChanged(HWND hWnd) override {}
 	void Paint(HWND hWnd, bool in_sizemove) override;
 	void PaintThread() override {}
