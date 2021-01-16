@@ -281,16 +281,10 @@ static uint FindStartupDisplay(uint startup_display)
 
 bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 {
-	SDL_Surface *newscreen;
 	char caption[50];
-	int bpp = BlitterFactory::GetCurrentBlitter()->GetScreenDepth();
 
 	GetAvailableVideoMode(&w, &h);
-
-	DEBUG(driver, 1, "SDL2: using mode %ux%ux%d", w, h, bpp);
-
-	/* Free any previously allocated shadow surface */
-	if (_sdl_surface != nullptr && _sdl_surface != _sdl_realscreen) SDL_FreeSurface(_sdl_surface);
+	DEBUG(driver, 1, "SDL2: using mode %ux%u", w, h);
 
 	seprintf(caption, lastof(caption), "OpenTTD %s", _openttd_revision);
 
@@ -314,7 +308,7 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 			flags);
 
 		if (_sdl_window == nullptr) {
-			DEBUG(driver, 0, "SDL2: Couldn't allocate a window to draw on");
+			DEBUG(driver, 0, "SDL2: Couldn't allocate a window to draw on: %s", SDL_GetError());
 			return false;
 		}
 
@@ -335,7 +329,31 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 
 	if (resize) SDL_SetWindowSize(_sdl_window, w, h);
 
-	newscreen = SDL_GetWindowSurface(_sdl_window);
+	if (!this->AllocateBackingStore(w, h)) return false;
+
+	/* Delay drawing for this cycle; the next cycle will redraw the whole screen */
+	_num_dirty_rects = 0;
+
+	/* When in full screen, we will always have the mouse cursor
+	 * within the window, even though SDL does not give us the
+	 * appropriate event to know this. */
+	if (_fullscreen) _cursor.in_window = true;
+
+	BlitterFactory::GetCurrentBlitter()->PostResize();
+
+	InitPalette();
+	GameSizeChanged();
+	return true;
+}
+
+bool VideoDriver_SDL::AllocateBackingStore(uint w, uint h)
+{
+	uint bpp = BlitterFactory::GetCurrentBlitter()->GetScreenDepth();
+
+	/* Free any previously allocated shadow surface */
+	if (_sdl_surface != nullptr && _sdl_surface != _sdl_realscreen) SDL_FreeSurface(_sdl_surface);
+
+	SDL_Surface *newscreen = SDL_GetWindowSurface(_sdl_window);
 	if (newscreen == NULL) {
 		DEBUG(driver, 0, "SDL2: Couldn't get window surface: %s", SDL_GetError());
 		return false;
@@ -355,30 +373,18 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 	if (_sdl_palette == nullptr) {
 		_sdl_palette = SDL_AllocPalette(256);
 	}
-
 	if (_sdl_palette == nullptr) {
 		DEBUG(driver, 0, "SDL_AllocPalette() failed: %s", SDL_GetError());
 		return false;
 	}
 
-	/* Delay drawing for this cycle; the next cycle will redraw the whole screen */
-	_num_dirty_rects = 0;
-
 	_screen.width = newscreen->w;
-	_screen.height = newscreen->h;
 	_screen.pitch = newscreen->pitch / (bpp / 8);
+	_screen.height = newscreen->h;
 	_screen.dst_ptr = newscreen->pixels;
+
 	_sdl_surface = newscreen;
 
-	/* When in full screen, we will always have the mouse cursor
-	 * within the window, even though SDL does not give us the
-	 * appropriate event to know this. */
-	if (_fullscreen) _cursor.in_window = true;
-
-	BlitterFactory::GetCurrentBlitter()->PostResize();
-
-	InitPalette();
-	GameSizeChanged();
 	return true;
 }
 

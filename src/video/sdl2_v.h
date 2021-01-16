@@ -50,6 +50,7 @@ private:
 	void MainLoopCleanup();
 	bool CreateMainSurface(uint w, uint h, bool resize);
 	const char *Initialize();
+	bool AllocateBackingStore(uint w, uint h);
 
 #ifdef __EMSCRIPTEN__
 	/* Convert a constant pointer back to a non-constant pointer to a member function. */
