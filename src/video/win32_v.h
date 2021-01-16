@@ -38,7 +38,13 @@ public:
 	void EditBoxLostFocus() override;
 
 protected:
-	HWND    main_wnd;      ///< Handle to system window.
+	HWND main_wnd;           ///< Handle to system window.
+	int width = 0;           ///< Width in pixels of our display surface.
+	int height = 0;          ///< Height in pixels of our display surface.
+	int width_org = 0;       ///< Original monitor resolution width, before we changed it.
+	int height_org = 0;      ///< Original monitor resolution height, before we changed it.
+	bool fullscreen = false; ///< Whether to use (true) fullscreen mode.
+	bool has_focus = false;  ///< Does our window have system focus?
 
 	bool draw_threaded;          ///< Whether the drawing is/may be done in a separate thread.
 	bool buffer_locked;          ///< Video buffer was locked by the main thread.
