@@ -36,6 +36,18 @@ protected:
 
 	bool MakeWindow(bool full_screen);
 
+	void ClientSizeChanged(int w, int h);
+
+	/** (Re-)create the backing store. */
+	virtual bool AllocateBackingStore(int w, int h, bool force = false) = 0;
+	/** Palette of the window has changed. */
+	virtual void PaletteChanged(HWND hWnd) = 0;
+	/** Window got a paint message. */
+	virtual void Paint(HWND hWnd, bool in_sizemove) = 0;
+	/** Thread function for threaded drawing. */
+	virtual void PaintThread() = 0;
+
+	static void PaintWindowThreadThunk(VideoDriver_Win32Base *drv);
 	friend LRESULT CALLBACK WndProcGdi(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 };
 
@@ -49,6 +61,14 @@ public:
 	bool AfterBlitterChange() override;
 
 	const char *GetName() const override { return "win32"; }
+
+protected:
+	bool AllocateBackingStore(int w, int h, bool force = false) override;
+	void PaletteChanged(HWND hWnd) override;
+	void Paint(HWND hWnd, bool in_sizemove) override;
+	void PaintThread() override;
+
+	void PaintWindow(HDC dc);
 };
 
 /** The factory for Windows' video driver. */
