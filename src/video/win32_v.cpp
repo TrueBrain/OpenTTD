@@ -1336,6 +1336,12 @@ void VideoDriver_Win32GDI::Paint(HWND hWnd, bool in_sizemove)
 #	define PFD_SUPPORT_COMPOSITION 0x00008000
 #endif
 
+/** Platform-specific callback to get an OpenGL funtion pointer. */
+static OGLProc WGLGetProcCallback(const char *proc)
+{
+	return reinterpret_cast<OGLProc>(wglGetProcAddress(proc));
+}
+
 static FVideoDriver_Win32OpenGL iFVideoDriver_Win32OpenGL;
 
 const char *VideoDriver_Win32OpenGL::Start(const StringList &param)
@@ -1417,7 +1423,7 @@ const char *VideoDriver_Win32OpenGL::AllocateContext()
 	if (this->gl_rc == 0) return "Can't create OpenGL context";
 	if (!wglMakeCurrent(this->dc, this->gl_rc)) return "Can't active GL context";
 
-	return OpenGLBackend::Create();
+	return OpenGLBackend::Create(&WGLGetProcCallback);
 }
 
 bool VideoDriver_Win32OpenGL::ToggleFullscreen(bool full_screen)
