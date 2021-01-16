@@ -282,12 +282,8 @@ static uint FindStartupDisplay(uint startup_display)
 
 bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 {
-	char caption[50];
-
 	GetAvailableVideoMode(&w, &h);
 	DEBUG(driver, 1, "SDL2: using mode %ux%u", w, h);
-
-	seprintf(caption, lastof(caption), "OpenTTD %s", _openttd_revision);
 
 	if (_sdl_window == nullptr) {
 		Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
@@ -302,6 +298,9 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 			x = r.x + std::max(0, r.w - static_cast<int>(w)) / 2;
 			y = r.y + std::max(0, r.h - static_cast<int>(h)) / 4; // decent desktops have taskbars at the bottom
 		}
+
+		char caption[50];
+		seprintf(caption, lastof(caption), "OpenTTD %s", _openttd_revision);
 		_sdl_window = SDL_CreateWindow(
 			caption,
 			x, y,
