@@ -14,4 +14,6 @@
 
 Dimension maxdim(const Dimension &d1, const Dimension &d2);
 
+Rect BoundingRect(const Rect &r1, const Rect &r2);
+
 #endif /* GEOMETRY_FUNC_HPP */
