@@ -17,9 +17,11 @@ class VideoDriver_Win32Base : public VideoDriver {
 public:
 	VideoDriver_Win32Base() : main_wnd(nullptr) {}
 
-	void MakeDirty(int left, int top, int width, int height) override;
+	void Stop() override;
 
 	void MainLoop() override;
+
+	void MakeDirty(int left, int top, int width, int height) override;
 
 	bool ChangeResolution(int w, int h) override;
 
@@ -38,7 +40,9 @@ protected:
 
 	Dimension GetScreenSize() const override;
 
+	void Initialize();
 	bool MakeWindow(bool full_screen);
+	virtual uint8 GetFullscreenBpp();
 
 	void ClientSizeChanged(int w, int h);
 	void CheckPaletteAnim();
