@@ -280,55 +280,58 @@ static uint FindStartupDisplay(uint startup_display)
 	return 0;
 }
 
+bool VideoDriver_SDL::CreateMainWindow(uint w, uint h, uint flags)
+{
+	if (_sdl_window != nullptr) return true;
+
+	flags |= SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+
+	if (_fullscreen) {
+		flags |= SDL_WINDOW_FULLSCREEN;
+	}
+
+	int x = SDL_WINDOWPOS_UNDEFINED, y = SDL_WINDOWPOS_UNDEFINED;
+	SDL_Rect r;
+	if (SDL_GetDisplayBounds(this->startup_display, &r) == 0) {
+		x = r.x + std::max(0, r.w - static_cast<int>(w)) / 2;
+		y = r.y + std::max(0, r.h - static_cast<int>(h)) / 4; // decent desktops have taskbars at the bottom
+	}
+
+	char caption[50];
+	seprintf(caption, lastof(caption), "OpenTTD %s", _openttd_revision);
+	_sdl_window = SDL_CreateWindow(
+		caption,
+		x, y,
+		w, h,
+		flags);
+
+	if (_sdl_window == nullptr) {
+		DEBUG(driver, 0, "SDL2: Couldn't allocate a window to draw on: %s", SDL_GetError());
+		return false;
+	}
+
+	std::string icon_path = FioFindFullPath(BASESET_DIR, "openttd.32.bmp");
+	if (!icon_path.empty()) {
+		/* Give the application an icon */
+		SDL_Surface *icon = SDL_LoadBMP(icon_path.c_str());
+		if (icon != nullptr) {
+			/* Get the colourkey, which will be magenta */
+			uint32 rgbmap = SDL_MapRGB(icon->format, 255, 0, 255);
+
+			SDL_SetColorKey(icon, SDL_TRUE, rgbmap);
+			SDL_SetWindowIcon(_sdl_window, icon);
+			SDL_FreeSurface(icon);
+		}
+	}
+}
+
 bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 {
 	GetAvailableVideoMode(&w, &h);
 	DEBUG(driver, 1, "SDL2: using mode %ux%u", w, h);
 
-	if (_sdl_window == nullptr) {
-		Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
-
-		if (_fullscreen) {
-			flags |= SDL_WINDOW_FULLSCREEN;
-		}
-
-		int x = SDL_WINDOWPOS_UNDEFINED, y = SDL_WINDOWPOS_UNDEFINED;
-		SDL_Rect r;
-		if (SDL_GetDisplayBounds(this->startup_display, &r) == 0) {
-			x = r.x + std::max(0, r.w - static_cast<int>(w)) / 2;
-			y = r.y + std::max(0, r.h - static_cast<int>(h)) / 4; // decent desktops have taskbars at the bottom
-		}
-
-		char caption[50];
-		seprintf(caption, lastof(caption), "OpenTTD %s", _openttd_revision);
-		_sdl_window = SDL_CreateWindow(
-			caption,
-			x, y,
-			w, h,
-			flags);
-
-		if (_sdl_window == nullptr) {
-			DEBUG(driver, 0, "SDL2: Couldn't allocate a window to draw on: %s", SDL_GetError());
-			return false;
-		}
-
-		std::string icon_path = FioFindFullPath(BASESET_DIR, "openttd.32.bmp");
-		if (!icon_path.empty()) {
-			/* Give the application an icon */
-			SDL_Surface *icon = SDL_LoadBMP(icon_path.c_str());
-			if (icon != nullptr) {
-				/* Get the colourkey, which will be magenta */
-				uint32 rgbmap = SDL_MapRGB(icon->format, 255, 0, 255);
-
-				SDL_SetColorKey(icon, SDL_TRUE, rgbmap);
-				SDL_SetWindowIcon(_sdl_window, icon);
-				SDL_FreeSurface(icon);
-			}
-		}
-	}
-
+	if (!CreateMainWindow(w, h)) return false;
 	if (resize) SDL_SetWindowSize(_sdl_window, w, h);
-
 	this->AllocateBackingStore(w, h, true);
 
 	/* Delay drawing for this cycle; the next cycle will redraw the whole screen */
