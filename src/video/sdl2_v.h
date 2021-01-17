@@ -11,10 +11,13 @@
 #define VIDEO_SDL_H
 
 #include "video_driver.hpp"
+#include <SDL.h>
 
 /** The SDL video driver. */
 class VideoDriver_SDL : public VideoDriver {
 public:
+	VideoDriver_SDL() : sdl_window(nullptr) {}
+
 	const char *Start(const StringList &param) override;
 
 	void Stop() override;
@@ -42,7 +45,36 @@ public:
 	const char *GetName() const override { return "sdl"; }
 
 protected:
+	SDL_Window *sdl_window; ///< Main SDL window.
+	Palette local_palette; ///< Copy of _cur_palette.
+	bool draw_threaded; ///< Whether the drawing is/may be done in a separate thread.
+	bool buffer_locked; ///< Video buffer was locked by the main thread.
+
 	Dimension GetScreenSize() const override;
+
+	/** Indicate to the driver the client-side might have changed. */
+	void ClientSizeChanged(int w, int h, bool force);
+
+	/** (Re-)create the backing store. */
+	virtual bool AllocateBackingStore(uint w, uint h, bool force = false);
+	/** Get a pointer to the video buffer. */
+	virtual void *GetVideoPointer();
+	/** Hand video buffer back to the painting backend. */
+	virtual void ReleaseVideoPointer() {}
+	/** Window got a paint message. */
+	virtual void Paint();
+	/** Thread function for threaded drawing. */
+	virtual void PaintThread();
+	/** Draw the mouse cursor. */
+	virtual void DrawMouseCursor();
+	/** Lock video buffer for drawing if it isn't already mapped. */
+	virtual bool LockVideoBuffer();
+	/** Unlock video buffer. */
+	virtual void UnlockVideoBuffer();
+	/** Create the main window. */
+	virtual bool CreateMainWindow(uint w, uint h, uint flags = 0);
+
+	static void PaintWindowThreadThunk(VideoDriver_SDL *drv);
 
 private:
 	int PollEvent();
@@ -50,8 +82,10 @@ private:
 	void MainLoopCleanup();
 	bool CreateMainSurface(uint w, uint h, bool resize);
 	const char *Initialize();
-	bool AllocateBackingStore(uint w, uint h, bool force = false);
-	bool CreateMainWindow(uint w, uint h, uint flags = 0);
+	void UpdatePalette();
+	void CheckPaletteAnim();
+	void MakePalette();
+
 
 #ifdef __EMSCRIPTEN__
 	/* Convert a constant pointer back to a non-constant pointer to a member function. */
