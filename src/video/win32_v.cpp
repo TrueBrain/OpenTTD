@@ -1355,7 +1355,7 @@ static PFNWGLSWAPINTERVALEXTPROC _wglSwapIntervalEXT = nullptr;
 static bool _hasWGLARBCreateContextProfile = false; ///< Is WGL_ARB_create_context_profile supported?
 
 /** Platform-specific callback to get an OpenGL funtion pointer. */
-static OGLProc WGLGetProcCallback(const char *proc)
+static OGLProc OGLGetProcAddress(const char *proc)
 {
 	return reinterpret_cast<OGLProc>(wglGetProcAddress(proc));
 }
@@ -1523,7 +1523,7 @@ const char *VideoDriver_Win32OpenGL::AllocateContext()
 	}
 
 	this->gl_rc = rc;
-	return OpenGLBackend::Create(&WGLGetProcCallback);
+	return OpenGLBackend::Create(&OGLGetProcAddress);
 }
 
 void VideoDriver_Win32OpenGL::MakeDirty(int left, int top, int width, int height)
