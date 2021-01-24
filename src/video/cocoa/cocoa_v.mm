@@ -142,7 +142,7 @@ const char *VideoDriver_Cocoa::Start(const StringList &parm)
 		return "The cocoa quartz subdriver only supports 8 and 32 bpp.";
 	}
 
-	if (!this->ChangeResolution(width, height, bpp)) {
+	if (!this->SetVideoMode(width, height, bpp)) {
 		Stop();
 		return "Could not create subdriver";
 	}
@@ -196,9 +196,17 @@ void VideoDriver_Cocoa::MainLoop()
  */
 bool VideoDriver_Cocoa::ChangeResolution(int w, int h)
 {
-	bool ret = this->ChangeResolution(w, h, BlitterFactory::GetCurrentBlitter()->GetScreenDepth());
-	this->GameSizeChanged();
-	return ret;
+	int old_width  = this->window_width;
+	int old_height = this->window_height;
+	int old_bpp    = this->buffer_depth;
+
+	if (this->SetVideoMode(w, h, BlitterFactory::GetCurrentBlitter()->GetScreenDepth())) {
+		this->GameSizeChanged();
+		return true;
+	}
+
+	if (old_width != 0 && old_height != 0) this->SetVideoMode(old_width, old_height, old_bpp);
+	return false;
 }
 
 /**
@@ -258,7 +266,7 @@ void VideoDriver_Cocoa::GameSizeChanged()
 	_screen.width = this->window_width;
 	_screen.height = this->window_height;
 	_screen.pitch = this->window_width;
-	_screen.dst_ptr = this->GetPixelBuffer();
+	_screen.dst_ptr = this->buffer_depth == 8 ? this->pixel_buffer : this->window_buffer;
 
 	/* Store old window size if we entered fullscreen mode. */
 	bool fullscreen = this->IsFullscreen();
@@ -509,7 +517,7 @@ bool VideoDriver_Cocoa::SetVideoMode(int width, int height, int bpp)
 	if (this->color_space == nullptr) this->color_space = CGColorSpaceCreateDeviceRGB();
 	if (this->color_space == nullptr) error("Could not get a valid colour space for drawing.");
 
-	bool ret = WindowResized();
+	bool ret = this->WindowResized();
 	this->UpdatePalette(0, 256);
 
 	this->setup = false;
@@ -588,18 +596,6 @@ void VideoDriver_Cocoa::UpdatePalette(uint first_color, uint num_colors)
 	}
 
 	this->num_dirty_rects = MAX_DIRTY_RECTS;
-}
-
-bool VideoDriver_Cocoa::ChangeResolution(int w, int h, int bpp)
-{
-	int old_width  = this->window_width;
-	int old_height = this->window_height;
-	int old_bpp    = this->buffer_depth;
-
-	if (this->SetVideoMode(w, h, bpp)) return true;
-	if (old_width != 0 && old_height != 0) this->SetVideoMode(old_width, old_height, old_bpp);
-
-	return false;
 }
 
 /* Convert local coordinate to window server (CoreGraphics) coordinate */
