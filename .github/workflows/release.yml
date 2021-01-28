@@ -355,6 +355,103 @@ jobs:
         path: build/bundles
         retention-days: 5
 
+  steamrt:
+    name: Steam Runtime
+    needs: source
+
+    runs-on: ubuntu-20.04
+
+    container:
+      image: registry.gitlab.steamos.cloud/steamrt/scout/sdk
+
+    steps:
+    - name: Download source
+      uses: actions/download-artifact@v2
+      with:
+        name: internal-source
+
+    - name: Unpack source
+      run: |
+        tar -xf source.tar.gz --strip-components=1
+
+    - name: Install dependencies
+      run: |
+        echo "::group::LZO"
+        wget https://www.oberhumer.com/opensource/lzo/download/lzo-2.10.tar.gz
+        tar xvf lzo-2.10.tar.gz
+        (
+          cd lzo-2.10
+          ./configure --prefix=/usr --enable-shared --disable-static
+          make -j$(nproc)
+          make install
+        )
+        echo "::endgroup::"
+
+        echo "::group::LZMA"
+        wget https://tukaani.org/xz/xz-5.2.5.tar.gz
+        tar xvf xz-5.2.5.tar.gz
+        (
+          cd xz-5.2.5
+          ./configure --prefix=/usr
+          make -j$(nproc)
+          make install
+        )
+        echo "::endgroup::"
+
+        echo "::group::ICU"
+        wget https://github.com/unicode-org/icu/releases/download/release-68-2/icu4c-68_2-src.tgz
+        tar xvf icu4c-68_2-src.tgz
+        (
+          cd icu/source
+          ./configure --prefix=/usr --enable-rpath
+          make -j$(nproc)
+          make install
+        )
+        echo "::endgroup::"
+
+        echo "::group::FluidSynth"
+        wget https://github.com/FluidSynth/fluidsynth/archive/v2.1.6.tar.gz
+        tar xvf v2.1.6.tar.gz
+        (
+          cd fluidsynth-2.1.6
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DLIB_SUFFIX=""
+          make -j$(nproc)
+          make install
+        )
+        echo "::endgroup::"
+
+    - name: Install GCC problem matcher
+      uses: ammaraskar/gcc-problem-matcher@master
+
+    - name: Build
+      run: |
+        mkdir -p build
+        cd build
+
+        echo "::group::CMake"
+        CC=gcc-9 CXX=g++-9 cmake ${GITHUB_WORKSPACE} \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+          # EOF
+        echo "::endgroup::"
+
+        echo "::group::Build"
+        echo "Running on $(nproc) cores"
+        make -j$(nproc) package
+        echo "::endgroup::"
+
+        # Remove the sha256 files CPack generates; we will do this ourself at
+        # the end of this workflow.
+        rm -f bundles/*.sha256
+
+    - name: Store bundles
+      uses: actions/upload-artifact@v2
+      with:
+        name: openttd-linux-steamrt
+        path: build/bundles
+        retention-days: 5
+
   macos:
     name: MacOS
     needs: source
@@ -610,6 +707,7 @@ jobs:
     - source
     - docs
     - linux
+    - steamrt
     - macos
     - windows
 
@@ -618,7 +716,7 @@ jobs:
     # "always()" is important here, it is the keyword to use to stop skipping
     # this job if any dependency is skipped. It looks a bit silly, but it is
     # how GitHub Actions work ;)
-    if: always() && needs.source.result == 'success' && needs.docs.result == 'success' && (needs.linux.result == 'success' || needs.linux.result == 'skipped') && needs.macos.result == 'success' && needs.windows.result == 'success'
+    if: always() && needs.source.result == 'success' && needs.docs.result == 'success' && (needs.linux.result == 'success' || needs.linux.result == 'skipped') && needs.steamrt.result == 'success' && needs.macos.result == 'success' && needs.windows.result == 'success'
 
     runs-on: ubuntu-20.04
 
