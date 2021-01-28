@@ -355,6 +355,244 @@ jobs:
         path: build/bundles
         retention-days: 5
 
+  steamrt:
+    name: Linux Steam Runtime
+    needs: source
+
+    runs-on: ubuntu-20.04
+    env:
+      LD_LIBRARY_PATH: "/host/lib/x86_64-linux-gnu"
+
+    container:
+      image: registry.gitlab.steamos.cloud/steamrt/scout/sdk
+      volumes:
+      - /lib:/host/lib:ro
+      - /bin:/host/bin:ro
+      - /home/runner/runners:/runners
+
+    steps:
+    # SteamRT Scout SDK runs Ubuntu 12.04, with glibc 2.15. GitHub Actions
+    # uses 'node' for a lot of actions, which expects at least glibc 2.17.
+    # In result, while in this container, all actions using 'node' fail. To
+    # resolve this problem, we patch the 'node' binary to point to the host
+    # ld-linux, and set the LD_LIBRARY_PATH for those actions. This is very
+    # hacky, but it resolves the issue without waiting for Valve to release
+    # SteamRT Soldier SDK.
+    #
+    # Additionally, the "cache" step requires to run the host 'tar' too,
+    # so we patch that up too. Because the way 'tar' works, it also needs
+    # 'gzip' and 'sh' to be patched.
+    # To make life slightly easier, we also copy 'wget' and 'mv', as that
+    # means we can download and extract in a single step. We postfix them with
+    # "-host" as that is possible here and makes sure later steps don't use
+    # the host binary instead of the native.
+    #
+    # Because we patch 'sh', every step needs LD_LIBRARY_PATH to point to the
+    # host. For the few steps that need to run native commands, we set
+    # LD_LIBRARY_PATH back to nothing inside the shell of that step.
+    - name: Patch system
+      run: |
+        echo "::group::Install patchelf"
+        wget https://github.com/NixOS/patchelf/archive/0.12.tar.gz
+        tar xvf 0.12.tar.gz
+        (
+          cd patchelf-0.12
+          ./bootstrap.sh
+          ./configure
+          make -j$(nproc)
+          make install
+        )
+        echo "::endgroup::"
+
+        echo "::group::Patch 'node'"
+        # On the host, in /home/runner/runners, is the runner installed.
+        # GitHub can change the version of this when-ever, which is what
+        # the "*" is for.
+        patchelf --set-interpreter /host/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /runners/*/externals/node12/bin/node
+        echo "::endgroup::"
+
+        echo "::group::Patch 'tar' and 'gzip'"
+        cp /host/bin/tar /bin/
+        cp /host/bin/gzip /bin/
+
+        patchelf --set-interpreter /host/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /bin/tar
+        patchelf --set-interpreter /host/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /bin/gzip
+        echo "::endgroup::"
+
+        echo "::group::Create 'sh', 'wget', and 'mv' host variants"
+        mkdir /bin/host
+
+        rm /bin/sh
+        cp /host/bin/sh /bin/host/sh
+
+        cp /host/bin/wget /bin/host/wget
+        cp /host/bin/mv /bin/host/mv
+
+        patchelf --set-interpreter /host/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /bin/host/wget
+        patchelf --set-interpreter /host/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /bin/host/mv
+        patchelf --set-interpreter /host/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /bin/host/sh
+
+        ln -sf /bin/host/sh /bin/sh
+        echo "::endgroup::"
+      env:
+        LD_LIBRARY_PATH: ""
+
+    # By default the Scout SDK uses GCC 4.8; we need a more up-to-date compiler.
+    - name: Switch to GCC 9
+      run: |
+        export LD_LIBRARY_PATH=""
+
+        echo "::group::Switch to GCC 9"
+        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 150
+        update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 150
+        update-alternatives --install /usr/bin/cpp cpp-bin /usr/bin/cpp-9 150
+
+        update-alternatives --auto gcc
+        update-alternatives --auto g++
+        update-alternatives --auto cpp-bin
+
+        # GCC-9 doesn't have "cc" symlinked, which breaks /usr/bin/cc.
+        (
+          cd /usr/lib/gcc-9/bin
+          ln -s gcc cc
+        )
+        echo "::endgroup::"
+
+    - name: Download source
+      uses: actions/download-artifact@v2
+      with:
+        name: internal-source
+
+    - name: Unpack source
+      run: |
+        tar -xf source.tar.gz --strip-components=1
+
+    - name: Cache dependencies
+      id: cache
+      uses: actions/cache@v2
+      with:
+        path: /cache
+        # Bump the postfix in case you change any dependency version
+        key: ${{ runner.os }}-4
+
+    - name: Download dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        echo "::group::Download LZO"
+        /bin/host/wget https://www.oberhumer.com/opensource/lzo/download/lzo-2.10.tar.gz
+        tar xvf lzo-2.10.tar.gz
+        /bin/host/mv lzo-2.10 lzo
+        echo "::endgroup::"
+
+        echo "::group::Download LZMA"
+        /bin/host/wget https://tukaani.org/xz/xz-5.2.5.tar.gz
+        tar xvf xz-5.2.5.tar.gz
+        /bin/host/mv xz-5.2.5 xz
+        echo "::endgroup::"
+
+        echo "::group::Download ICU"
+        /bin/host/wget https://github.com/unicode-org/icu/releases/download/release-68-2/icu4c-68_2-src.tgz
+        tar xvf icu4c-68_2-src.tgz
+        echo "::endgroup::"
+
+        echo "::group::Download FluidSynth"
+        /bin/host/wget https://github.com/FluidSynth/fluidsynth/archive/v2.1.6.tar.gz
+        tar xvf v2.1.6.tar.gz
+        /bin/host/mv fluidsynth-2.1.6 fluidsynth
+        echo "::endgroup::"
+
+    - name: Install dependencies to cache
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        export LD_LIBRARY_PATH=""
+        ln -sf /bin/dash /bin/sh
+
+        echo "::group::Install LZO"
+        (
+          cd lzo
+          ./configure --prefix=/cache --enable-shared --disable-static
+          make -j$(nproc)
+          make install
+        )
+        echo "::endgroup::"
+
+        echo "::group::Install LZMA"
+        (
+          cd xz
+          ./configure --prefix=/cache
+          make -j$(nproc)
+          make install
+        )
+        echo "::endgroup::"
+
+        echo "::group::Install ICU"
+        (
+          cd icu/source
+          ./configure --prefix=/cache --enable-rpath
+          make -j$(nproc)
+          make install
+        )
+        echo "::endgroup::"
+
+        echo "::group::Install FluidSynth"
+        (
+          cd fluidsynth
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/cache -DLIB_SUFFIX=""
+          make -j$(nproc)
+          make install
+        )
+        echo "::endgroup::"
+
+        ln -sf /bin/host/sh /bin/sh
+
+    - name: Install dependencies
+      run: |
+        export LD_LIBRARY_PATH=""
+        ln -sf /bin/dash /bin/sh
+
+        cp -R /cache/* /usr/
+
+        ln -sf /bin/host/sh /bin/sh
+
+    - name: Install GCC problem matcher
+      uses: ammaraskar/gcc-problem-matcher@master
+
+    # TODO -- Add CPACK_PRE_BUILD_SCRIPTS to copy LICENSE files of the 4 libraries we embed
+
+    - name: Build
+      run: |
+        export LD_LIBRARY_PATH=""
+        ln -sf /bin/dash /bin/sh
+
+        mkdir -p build
+        cd build
+
+        echo "::group::CMake"
+        cmake ${GITHUB_WORKSPACE} \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+          # EOF
+        echo "::endgroup::"
+
+        echo "::group::Build"
+        echo "Running on $(nproc) cores"
+        make -j$(nproc) package
+        echo "::endgroup::"
+
+        # Remove the sha256 files CPack generates; we will do this ourself at
+        # the end of this workflow.
+        rm -f bundles/*.sha256
+
+        ln -sf /bin/host/sh /bin/sh
+
+    - name: Store bundles
+      uses: actions/upload-artifact@v2
+      with:
+        name: openttd-linux-steamrt
+        path: build/bundles
+        retention-days: 5
+
   macos:
     name: MacOS
     needs: source
@@ -633,6 +871,7 @@ jobs:
     - source
     - docs
     - linux
+    - steamrt
     - macos
     - windows
 
@@ -641,7 +880,7 @@ jobs:
     # "always()" is important here, it is the keyword to use to stop skipping
     # this job if any dependency is skipped. It looks a bit silly, but it is
     # how GitHub Actions work ;)
-    if: always() && needs.source.result == 'success' && needs.docs.result == 'success' && (needs.linux.result == 'success' || needs.linux.result == 'skipped') && needs.macos.result == 'success' && needs.windows.result == 'success'
+    if: always() && needs.source.result == 'success' && needs.docs.result == 'success' && (needs.linux.result == 'success' || needs.linux.result == 'skipped') && needs.steamrt.result == 'success' && needs.macos.result == 'success' && needs.windows.result == 'success'
 
     runs-on: ubuntu-20.04
 

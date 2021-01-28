@@ -120,55 +120,78 @@ elseif(WIN32)
 
     set(CPACK_PACKAGE_FILE_NAME "openttd-#CPACK_PACKAGE_VERSION#-windows-${CPACK_SYSTEM_NAME}")
 elseif(UNIX)
+    find_program(LSB_RELEASE_EXEC lsb_release)
+    execute_process(COMMAND ${LSB_RELEASE_EXEC} -is
+        OUTPUT_VARIABLE LSB_RELEASE_ID
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if(LSB_RELEASE_ID)
+        if(LSB_RELEASE_ID STREQUAL "Ubuntu" OR LSB_RELEASE_ID STREQUAL "Debian")
+            execute_process(COMMAND ${LSB_RELEASE_EXEC} -cs
+                OUTPUT_VARIABLE LSB_RELEASE_CODENAME
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+            )
+            string(TOLOWER "${LSB_RELEASE_ID}-${LSB_RELEASE_CODENAME}" PLATFORM)
+
+            set(CPACK_GENERATOR "DEB")
+            include(PackageDeb)
+        else()
+            set(UNSUPPORTED_PLATFORM_NAME "LSB-based Linux distribution '${LSB_RELEASE_ID}'")
+        endif()
+    elseif(EXISTS "/etc/os-release")
+        file(STRINGS "/etc/os-release" OS_RELEASE_CONTENTS REGEX "^ID=")
+        string(REGEX MATCH "ID=(.*)" _ ${OS_RELEASE_CONTENTS})
+        set(DISTRO_ID ${CMAKE_MATCH_1})
+        if(DISTRO_ID STREQUAL "arch")
+            set(PLATFORM "generic")
+            set(CPACK_GENERATOR "TXZ")
+        elseif(DISTRO_ID STREQUAL "steamrt")
+            set(PLATFORM "steamrt")
+            set(CPACK_GENERATOR "TXZ")
+        else()
+            set(UNSUPPORTED_PLATFORM_NAME "Linux distribution '${DISTRO_ID}' from /etc/os-release")
+        endif()
+    else()
+        set(UNSUPPORTED_PLATFORM_NAME "Linux distribution")
+    endif()
+
+    if(NOT PLATFORM)
+        set(PLATFORM "generic")
+        set(CPACK_GENERATOR "TXZ")
+        message(WARNING "Unknown ${UNSUPPORTED_PLATFORM_NAME} found for packaging; can only pack to a txz. Please consider creating a Pull Request to add support for this distribution.")
+    endif()
+
+    set(CPACK_PACKAGE_FILE_NAME "openttd-#CPACK_PACKAGE_VERSION#-linux-${PLATFORM}-${CPACK_SYSTEM_NAME}")
+
     # With FHS, we can create deb/rpm/... Without it, they would be horribly broken
     # and not work. The other way around is also true; with FHS they are not
     # usable, and only flat formats work.
     if(NOT OPTION_INSTALL_FHS)
         set(CPACK_GENERATOR "TXZ")
-    else()
-        find_program(LSB_RELEASE_EXEC lsb_release)
-        execute_process(COMMAND ${LSB_RELEASE_EXEC} -is
-            OUTPUT_VARIABLE LSB_RELEASE_ID
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-        if(LSB_RELEASE_ID)
-            if(LSB_RELEASE_ID STREQUAL "Ubuntu" OR LSB_RELEASE_ID STREQUAL "Debian")
-                execute_process(COMMAND ${LSB_RELEASE_EXEC} -cs
-                    OUTPUT_VARIABLE LSB_RELEASE_CODENAME
-                    OUTPUT_STRIP_TRAILING_WHITESPACE
-                )
-                string(TOLOWER "${LSB_RELEASE_ID}-${LSB_RELEASE_CODENAME}" PLATFORM)
-
-                set(CPACK_GENERATOR "DEB")
-                include(PackageDeb)
-            else()
-                set(UNSUPPORTED_PLATFORM_NAME "LSB-based Linux distribution '${LSB_RELEASE_ID}'")
-            endif()
-        elseif(EXISTS "/etc/os-release")
-            file(STRINGS "/etc/os-release" OS_RELEASE_CONTENTS REGEX "^ID=")
-            string(REGEX MATCH "ID=(.*)" _ ${OS_RELEASE_CONTENTS})
-            set(DISTRO_ID ${CMAKE_MATCH_1})
-            if(DISTRO_ID STREQUAL "arch")
-                set(PLATFORM "generic")
-                set(CPACK_GENERATOR "TXZ")
-            else()
-                set(UNSUPPORTED_PLATFORM_NAME "Linux distribution '${DISTRO_ID}' from /etc/os-release")
-            endif()
-        else()
-            set(UNSUPPORTED_PLATFORM_NAME "Linux distribution")
-        endif()
-
-        if(NOT PLATFORM)
-            set(PLATFORM "generic")
-            set(CPACK_GENERATOR "TXZ")
-            message(WARNING "Unknown ${UNSUPPORTED_PLATFORM_NAME} found for packaging; can only pack to a txz. Please consider creating a Pull Request to add support for this distribution.")
-        endif()
-
-        set(CPACK_PACKAGE_FILE_NAME "openttd-#CPACK_PACKAGE_VERSION#-linux-${PLATFORM}-${CPACK_SYSTEM_NAME}")
     endif()
 
 else()
     message(FATAL_ERROR "Unknown OS found for packaging; please consider creating a Pull Request to add support for this OS.")
+endif()
+
+if(STEAMRT)
+    # Steam Runtime is missing the following dependencies:
+    # - FluidSynth
+    # - ICU
+    # - LZMA
+    # - LZO
+    # We copy these libries into the lib/ folder, so they can be found when
+    # starting in the Steam Runtime. See comment in root CMakeLists.txt for
+    # how this works.
+    foreach(LIBRARY IN LISTS Fluidsynth_LIBRARIES ICU_i18n_LIBRARIES ICU_lx_LIBRARIES LIBLZMA_LIBRARIES LZO_LIBRARIES)
+        file(GLOB LIBRARY_FULL "${LIBRARY}*")
+        list(APPEND DEPENDENCIES ${LIBRARY_FULL})
+    endforeach()
+
+    install(FILES
+            ${DEPENDENCIES}
+        DESTINATION ${BINARY_DESTINATION_DIR}/lib
+        COMPONENT libs)
 endif()
 
 include(CPack)

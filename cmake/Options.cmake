@@ -44,7 +44,7 @@ endfunction()
 # set_options()
 #
 function(set_options)
-    if(UNIX AND NOT APPLE)
+    if(UNIX AND NOT APPLE AND NOT STEAMRT)
         set(DEFAULT_OPTION_INSTALL_FHS ON)
     else()
         set(DEFAULT_OPTION_INSTALL_FHS OFF)

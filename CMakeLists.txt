@@ -29,6 +29,30 @@ if(NOT CMAKE_INSTALL_DATADIR)
 endif()
 include(GNUInstallDirs)
 
+if(UNIX AND EXISTS "/etc/os-release")
+    file(STRINGS "/etc/os-release" OS_RELEASE_CONTENTS REGEX "^ID=")
+    string(REGEX MATCH "ID=(.*)" _ ${OS_RELEASE_CONTENTS})
+    set(DISTRO_ID ${CMAKE_MATCH_1})
+
+    if(DISTRO_ID STREQUAL "steamrt")
+        # Needs to be done before "include(Options)", as that uses this variable.
+        set(STEAMRT ON)
+
+        # Steam Runtime doesn't have all the dependencies we need. As such, it is
+        # likely the user installed that manually. But these new dependencies
+        # should end up in the "lib" folder so Steam can launch the game. This is
+        # done in two stesp:
+        # 1) set the RPATH to include $ORIGIN/lib; $ORIGIN (that literal string)
+        #    is a Linux indicator for "path where application is". In CMake, we
+        #    have to do this before add_executable() is executed.
+        # 2) copy the libraries that might have been detected to the "lib" folder.
+        #    This is done in InstallAndPackage.cmake.
+
+        set(CMAKE_INSTALL_RPATH "\$ORIGIN/lib")
+        set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+    endif()
+endif()
+
 include(Options)
 set_options()
 set_directory_options()
