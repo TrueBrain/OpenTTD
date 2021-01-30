@@ -16,12 +16,11 @@
 
 extern bool _cocoa_video_started;
 
+@class OTTD_CocoaWindowDelegate;
+
 class VideoDriver_Cocoa : public VideoDriver {
 private:
 	Dimension orig_res;   ///< Saved window size for non-fullscreen mode.
-
-	int device_width;     ///< Width of device in pixel
-	int device_height;    ///< Height of device in pixel
 
 	int window_width;     ///< Current window width in pixel
 	int window_height;    ///< Current window height in pixel
@@ -44,6 +43,8 @@ public:
 	id cocoaview;         ///< Pointer to view object
 	CGColorSpaceRef color_space; ///< Window color space
 	CGContextRef cgcontext;      ///< Context reference for Quartz subdriver
+
+	OTTD_CocoaWindowDelegate* delegate; //!< Window delegate object
 
 public:
 	VideoDriver_Cocoa();
@@ -68,7 +69,7 @@ public:
 	/** Main game loop. */
 	void GameLoop(); // In event.mm.
 
-	bool WindowResized();
+	void AllocateBackingStore();
 
 protected:
 	Dimension GetScreenSize() const override;
@@ -84,8 +85,8 @@ private:
 	void GameSizeChanged();
 
 	void UpdateVideoModes();
-	void GetDeviceInfo();
-	bool SetVideoMode(int width, int height, int bpp);
+
+	bool MakeWindow(int width, int height);
 
 	void UpdatePalette(uint first_color, uint num_colors);
 	void CheckPaletteAnim();
