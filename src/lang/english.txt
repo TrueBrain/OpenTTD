@@ -324,6 +324,7 @@ STR_GROUP_BY_NONE                                               :None
 STR_GROUP_BY_SHARED_ORDERS                                      :Shared orders
 
 # Tooltips for the main toolbar
+##length WID_TN_END
 STR_TOOLBAR_TOOLTIP_PAUSE_GAME                                  :{BLACK}Pause game
 STR_TOOLBAR_TOOLTIP_FORWARD                                     :{BLACK}Fast forward the game
 STR_TOOLBAR_TOOLTIP_OPTIONS                                     :{BLACK}Options
@@ -493,7 +494,8 @@ STR_ABOUT_MENU_TOGGLE_BOUNDING_BOXES                            :Toggle bounding
 STR_ABOUT_MENU_TOGGLE_DIRTY_BLOCKS                              :Toggle colouring of dirty blocks
 ############ range ends here
 
-############ range for ordinal numbers used for the place in the highscore window
+# Used for the place in the highscore window
+##length MAX_COMPANIES
 STR_ORDINAL_NUMBER_1ST                                          :1st
 STR_ORDINAL_NUMBER_2ND                                          :2nd
 STR_ORDINAL_NUMBER_3RD                                          :3rd
@@ -509,9 +511,8 @@ STR_ORDINAL_NUMBER_12TH                                         :12th
 STR_ORDINAL_NUMBER_13TH                                         :13th
 STR_ORDINAL_NUMBER_14TH                                         :14th
 STR_ORDINAL_NUMBER_15TH                                         :15th
-############ range for ordinal numbers ends
 
-############ range for days starts
+##length 31
 STR_DAY_NUMBER_1ST                                              :1st
 STR_DAY_NUMBER_2ND                                              :2nd
 STR_DAY_NUMBER_3RD                                              :3rd
@@ -543,9 +544,8 @@ STR_DAY_NUMBER_28TH                                             :28th
 STR_DAY_NUMBER_29TH                                             :29th
 STR_DAY_NUMBER_30TH                                             :30th
 STR_DAY_NUMBER_31ST                                             :31st
-############ range for days ends
 
-############ range for months starts
+##length 12
 STR_MONTH_ABBREV_JAN                                            :Jan
 STR_MONTH_ABBREV_FEB                                            :Feb
 STR_MONTH_ABBREV_MAR                                            :Mar
@@ -559,6 +559,7 @@ STR_MONTH_ABBREV_OCT                                            :Oct
 STR_MONTH_ABBREV_NOV                                            :Nov
 STR_MONTH_ABBREV_DEC                                            :Dec
 
+##length 12
 STR_MONTH_JAN                                                   :January
 STR_MONTH_FEB                                                   :February
 STR_MONTH_MAR                                                   :March
@@ -571,7 +572,6 @@ STR_MONTH_SEP                                                   :September
 STR_MONTH_OCT                                                   :October
 STR_MONTH_NOV                                                   :November
 STR_MONTH_DEC                                                   :December
-############ range for months ends
 
 # Graph window
 STR_GRAPH_KEY_BUTTON                                            :{BLACK}Key
@@ -1077,6 +1077,7 @@ STR_VARIETY_MEDIUM                                              :Medium
 STR_VARIETY_HIGH                                                :High
 STR_VARIETY_VERY_HIGH                                           :Very High
 
+##length 5
 STR_AI_SPEED_VERY_SLOW                                          :Very Slow
 STR_AI_SPEED_SLOW                                               :Slow
 STR_AI_SPEED_MEDIUM                                             :Medium
@@ -1305,6 +1306,7 @@ STR_CONFIG_SETTING_AUTORENEW_VEHICLE                            :Autorenew vehic
 STR_CONFIG_SETTING_AUTORENEW_VEHICLE_HELPTEXT                   :When enabled, a vehicle nearing its end of life gets automatically replaced when the renew conditions are fulfilled
 STR_CONFIG_SETTING_AUTORENEW_MONTHS                             :Autorenew when vehicle is {STRING2} maximum age
 STR_CONFIG_SETTING_AUTORENEW_MONTHS_HELPTEXT                    :Relative age when a vehicle should be considered for auto-renewing
+##length 2
 STR_CONFIG_SETTING_AUTORENEW_MONTHS_VALUE_BEFORE                :{COMMA} month{P 0 "" s} before
 STR_CONFIG_SETTING_AUTORENEW_MONTHS_VALUE_AFTER                 :{COMMA} month{P 0 "" s} after
 STR_CONFIG_SETTING_AUTORENEW_MONEY                              :Autorenew minimum needed money for renew: {STRING2}
@@ -1492,6 +1494,7 @@ STR_CONFIG_SETTING_AI_BUILDS_SHIPS_HELPTEXT                     :Enabling this s
 
 STR_CONFIG_SETTING_AI_PROFILE                                   :Default settings profile: {STRING2}
 STR_CONFIG_SETTING_AI_PROFILE_HELPTEXT                          :Choose which settings profile to use for random AIs or for initial values when adding a new AI or Game Script
+##length 3
 STR_CONFIG_SETTING_AI_PROFILE_EASY                              :Easy
 STR_CONFIG_SETTING_AI_PROFILE_MEDIUM                            :Medium
 STR_CONFIG_SETTING_AI_PROFILE_HARD                              :Hard
@@ -1642,6 +1645,7 @@ STR_CONFIG_SETTING_ZOOM_MIN                                     :Maximum zoom in
 STR_CONFIG_SETTING_ZOOM_MIN_HELPTEXT                            :The maximum zoom-in level for viewports. Note that enabling higher zoom-in levels increases memory requirements
 STR_CONFIG_SETTING_ZOOM_MAX                                     :Maximum zoom out level: {STRING2}
 STR_CONFIG_SETTING_ZOOM_MAX_HELPTEXT                            :The maximum zoom-out level for viewports. Higher zoom-out levels might cause lag when used
+##length ZOOM_LVL_COUNT
 STR_CONFIG_SETTING_ZOOM_LVL_MIN                                 :4x
 STR_CONFIG_SETTING_ZOOM_LVL_IN_2X                               :2x
 STR_CONFIG_SETTING_ZOOM_LVL_NORMAL                              :Normal
@@ -2028,6 +2032,7 @@ STR_NETWORK_START_SERVER_NEW_GAME_NAME_OSKTITLE                 :{BLACK}Enter a 
 
 # Network game languages
 ############ Leave those lines in this order!!
+##length NETLANG_COUNT
 STR_NETWORK_LANG_ANY                                            :Any
 STR_NETWORK_LANG_ENGLISH                                        :English
 STR_NETWORK_LANG_GERMAN                                         :German
@@ -3450,11 +3455,13 @@ STR_CONFIG_GAME_PRODUCTION                                      :{WHITE}Change p
 STR_CONFIG_GAME_PRODUCTION_LEVEL                                :{WHITE}Change production level (percentage, up to 800%)
 
 # Vehicle lists
+##length 4
 STR_VEHICLE_LIST_TRAIN_CAPTION                                  :{WHITE}{STRING2} - {COMMA} Train{P "" s}
 STR_VEHICLE_LIST_ROAD_VEHICLE_CAPTION                           :{WHITE}{STRING2} - {COMMA} Road Vehicle{P "" s}
 STR_VEHICLE_LIST_SHIP_CAPTION                                   :{WHITE}{STRING2} - {COMMA} Ship{P "" s}
 STR_VEHICLE_LIST_AIRCRAFT_CAPTION                               :{WHITE}{STRING2} - {COMMA} Aircraft
 
+##length 4
 STR_VEHICLE_LIST_TRAIN_LIST_TOOLTIP                             :{BLACK}Trains - click on train for information
 STR_VEHICLE_LIST_ROAD_VEHICLE_TOOLTIP                           :{BLACK}Road vehicles - click on vehicle for information
 STR_VEHICLE_LIST_SHIP_TOOLTIP                                   :{BLACK}Ships - click on ship for information
@@ -3462,6 +3469,7 @@ STR_VEHICLE_LIST_AIRCRAFT_TOOLTIP                               :{BLACK}Aircraft
 
 STR_VEHICLE_LIST_PROFIT_THIS_YEAR_LAST_YEAR                     :{TINY_FONT}{BLACK}Profit this year: {CURRENCY_LONG} (last year: {CURRENCY_LONG})
 
+##length 4
 STR_VEHICLE_LIST_AVAILABLE_TRAINS                               :Available Trains
 STR_VEHICLE_LIST_AVAILABLE_ROAD_VEHICLES                        :Available Vehicles
 STR_VEHICLE_LIST_AVAILABLE_SHIPS                                :Available Ships
@@ -3759,16 +3767,19 @@ STR_REPLACE_REMOVE_WAGON_HELP                                   :{BLACK}Make aut
 # Vehicle view
 STR_VEHICLE_VIEW_CAPTION                                        :{WHITE}{VEHICLE}
 
+##length VEH_COMPANY_END
 STR_VEHICLE_VIEW_TRAIN_CENTER_TOOLTIP                           :{BLACK}Centre main view on train's location. Double click will follow train in main view. Ctrl+Click opens a new viewport on train's location
 STR_VEHICLE_VIEW_ROAD_VEHICLE_CENTER_TOOLTIP                    :{BLACK}Centre main view on vehicle's location. Double click will follow vehicle in main view. Ctrl+Click opens a new viewport on vehicle's location
 STR_VEHICLE_VIEW_SHIP_CENTER_TOOLTIP                            :{BLACK}Centre main view on ship's location. Double click will follow ship in main view. Ctrl+Click opens a new viewport on ship's location
 STR_VEHICLE_VIEW_AIRCRAFT_CENTER_TOOLTIP                        :{BLACK}Centre main view on aircraft's location. Double click will follow aircraft in main view. Ctrl+Click opens a new viewport on aircraft's location
 
+##length VEH_COMPANY_END
 STR_VEHICLE_VIEW_TRAIN_SEND_TO_DEPOT_TOOLTIP                    :{BLACK}Send train to depot. Ctrl+Click will only service
 STR_VEHICLE_VIEW_ROAD_VEHICLE_SEND_TO_DEPOT_TOOLTIP             :{BLACK}Send vehicle to depot. Ctrl+Click will only service
 STR_VEHICLE_VIEW_SHIP_SEND_TO_DEPOT_TOOLTIP                     :{BLACK}Send ship to depot. Ctrl+Click will only service
 STR_VEHICLE_VIEW_AIRCRAFT_SEND_TO_DEPOT_TOOLTIP                 :{BLACK}Send aircraft to hangar. Ctrl+Click will only service
 
+##length VEH_COMPANY_END
 STR_VEHICLE_VIEW_CLONE_TRAIN_INFO                               :{BLACK}This will buy a copy of the train including all cars. Ctrl+Click will share the orders. Shift+Click shows estimated cost without purchase
 STR_VEHICLE_VIEW_CLONE_ROAD_VEHICLE_INFO                        :{BLACK}This will buy a copy of the road vehicle. Ctrl+Click will share the orders. Shift+Click shows estimated cost without purchase
 STR_VEHICLE_VIEW_CLONE_SHIP_INFO                                :{BLACK}This will buy a copy of the ship. Ctrl+Click will share the orders. Shift+Click shows estimated cost without purchase
@@ -3776,6 +3787,7 @@ STR_VEHICLE_VIEW_CLONE_AIRCRAFT_INFO                            :{BLACK}This wil
 
 STR_VEHICLE_VIEW_TRAIN_IGNORE_SIGNAL_TOOLTIP                    :{BLACK}Force train to proceed without waiting for signal to clear it
 
+##length VEH_COMPANY_END
 STR_VEHICLE_VIEW_TRAIN_REFIT_TOOLTIP                            :{BLACK}Refit train to carry a different cargo type
 STR_VEHICLE_VIEW_ROAD_VEHICLE_REFIT_TOOLTIP                     :{BLACK}Refit road vehicle to carry a different cargo type
 STR_VEHICLE_VIEW_SHIP_REFIT_TOOLTIP                             :{BLACK}Refit ship to carry a different cargo type
@@ -3784,16 +3796,19 @@ STR_VEHICLE_VIEW_AIRCRAFT_REFIT_TOOLTIP                         :{BLACK}Refit ai
 STR_VEHICLE_VIEW_TRAIN_REVERSE_TOOLTIP                          :{BLACK}Reverse direction of train
 STR_VEHICLE_VIEW_ROAD_VEHICLE_REVERSE_TOOLTIP                   :{BLACK}Force vehicle to turn around
 
+##length VEH_COMPANY_END
 STR_VEHICLE_VIEW_TRAIN_ORDERS_TOOLTIP                           :{BLACK}Show train's orders. Ctrl+Click to show train's timetable
 STR_VEHICLE_VIEW_ROAD_VEHICLE_ORDERS_TOOLTIP                    :{BLACK}Show vehicle's orders. Ctrl+Click to show vehicle's timetable
 STR_VEHICLE_VIEW_SHIP_ORDERS_TOOLTIP                            :{BLACK}Show ship's orders. Ctrl+Click to show ship's timetable
 STR_VEHICLE_VIEW_AIRCRAFT_ORDERS_TOOLTIP                        :{BLACK}Show aircraft's orders. Ctrl+Click to show aircraft's timetable
 
+##length VEH_COMPANY_END
 STR_VEHICLE_VIEW_TRAIN_SHOW_DETAILS_TOOLTIP                     :{BLACK}Show train details
 STR_VEHICLE_VIEW_ROAD_VEHICLE_SHOW_DETAILS_TOOLTIP              :{BLACK}Show road vehicle details
 STR_VEHICLE_VIEW_SHIP_SHOW_DETAILS_TOOLTIP                      :{BLACK}Show ship details
 STR_VEHICLE_VIEW_AIRCRAFT_SHOW_DETAILS_TOOLTIP                  :{BLACK}Show aircraft details
 
+##length VEH_COMPANY_END
 STR_VEHICLE_VIEW_TRAIN_STATUS_START_STOP_TOOLTIP                :{BLACK}Current train action - click to stop/start train
 STR_VEHICLE_VIEW_ROAD_VEHICLE_STATUS_START_STOP_TOOLTIP         :{BLACK}Current vehicle action - click to stop/start vehicle
 STR_VEHICLE_VIEW_SHIP_STATE_STATUS_STOP_TOOLTIP                 :{BLACK}Current ship action - click to stop/start ship
@@ -3819,8 +3834,10 @@ STR_VEHICLE_STATUS_HEADING_FOR_DEPOT_VEL                        :{ORANGE}Heading
 STR_VEHICLE_STATUS_HEADING_FOR_DEPOT_SERVICE_VEL                :{LTBLUE}Service at {DEPOT}, {VELOCITY}
 
 # Vehicle stopped/started animations
+##length 2
 STR_VEHICLE_COMMAND_STOPPED_SMALL                               :{TINY_FONT}{RED}Stopped
 STR_VEHICLE_COMMAND_STOPPED                                     :{RED}Stopped
+##length 2
 STR_VEHICLE_COMMAND_STARTED_SMALL                               :{TINY_FONT}{GREEN}Started
 STR_VEHICLE_COMMAND_STARTED                                     :{GREEN}Started
 
@@ -3828,13 +3845,13 @@ STR_VEHICLE_COMMAND_STARTED                                     :{GREEN}Started
 STR_VEHICLE_DETAILS_CAPTION                                     :{WHITE}{VEHICLE} (Details)
 STR_VEHICLE_NAME_BUTTON                                         :{BLACK}Name
 
+##length 4
 STR_VEHICLE_DETAILS_TRAIN_RENAME                                :{BLACK}Name train
 STR_VEHICLE_DETAILS_ROAD_VEHICLE_RENAME                         :{BLACK}Name road vehicle
 STR_VEHICLE_DETAILS_SHIP_RENAME                                 :{BLACK}Name ship
 STR_VEHICLE_DETAILS_AIRCRAFT_RENAME                             :{BLACK}Name aircraft
 
 STR_VEHICLE_INFO_AGE_RUNNING_COST_YR                            :{BLACK}Age: {LTBLUE}{STRING2}{BLACK}   Running Cost: {LTBLUE}{CURRENCY_LONG}/yr
-# The next two need to stay in this order
 STR_VEHICLE_INFO_AGE                                            :{COMMA} year{P "" s} ({COMMA})
 STR_VEHICLE_INFO_AGE_RED                                        :{RED}{COMMA} year{P "" s} ({COMMA})
 
@@ -4799,6 +4816,7 @@ STR_SV_STNAME_FALLBACK                                          :{STRING1} Stati
 ############ end of savegame specific region!
 
 ##id 0x8000
+##length 116
 # Vehicle names
 STR_VEHICLE_NAME_TRAIN_ENGINE_RAIL_KIRBY_PAUL_TANK_STEAM        :Kirby Paul Tank (Steam)
 STR_VEHICLE_NAME_TRAIN_ENGINE_RAIL_MJS_250_DIESEL               :MJS 250 (Diesel)
@@ -4916,6 +4934,8 @@ STR_VEHICLE_NAME_TRAIN_WAGON_MAGLEV_TOY_VAN                     :Toy Van
 STR_VEHICLE_NAME_TRAIN_WAGON_MAGLEV_BATTERY_TRUCK               :Battery Truck
 STR_VEHICLE_NAME_TRAIN_WAGON_MAGLEV_FIZZY_DRINK_TRUCK           :Fizzy Drink Truck
 STR_VEHICLE_NAME_TRAIN_WAGON_MAGLEV_PLASTIC_TRUCK               :Plastic Truck
+
+##length 88
 STR_VEHICLE_NAME_ROAD_VEHICLE_MPS_REGAL_BUS                     :MPS Regal Bus
 STR_VEHICLE_NAME_ROAD_VEHICLE_HEREFORD_LEOPARD_BUS              :Hereford Leopard Bus
 STR_VEHICLE_NAME_ROAD_VEHICLE_FOSTER_BUS                        :Foster Bus
@@ -5004,6 +5024,8 @@ STR_VEHICLE_NAME_ROAD_VEHICLE_WIZZOWOW_PLASTIC_TRUCK            :Wizzowow Plasti
 STR_VEHICLE_NAME_ROAD_VEHICLE_MIGHTYMOVER_BUBBLE_TRUCK          :MightyMover Bubble Truck
 STR_VEHICLE_NAME_ROAD_VEHICLE_POWERNAUGHT_BUBBLE_TRUCK          :Powernaught Bubble Truck
 STR_VEHICLE_NAME_ROAD_VEHICLE_WIZZOWOW_BUBBLE_TRUCK             :Wizzowow Bubble Truck
+
+##length 11
 STR_VEHICLE_NAME_SHIP_MPS_OIL_TANKER                            :MPS Oil Tanker
 STR_VEHICLE_NAME_SHIP_CS_INC_OIL_TANKER                         :CS-Inc. Oil Tanker
 STR_VEHICLE_NAME_SHIP_MPS_PASSENGER_FERRY                       :MPS Passenger Ferry
@@ -5015,6 +5037,8 @@ STR_VEHICLE_NAME_SHIP_YATE_CARGO_SHIP                           :Yate Cargo Ship
 STR_VEHICLE_NAME_SHIP_BAKEWELL_CARGO_SHIP                       :Bakewell Cargo Ship
 STR_VEHICLE_NAME_SHIP_MIGHTYMOVER_CARGO_SHIP                    :MightyMover Cargo Ship
 STR_VEHICLE_NAME_SHIP_POWERNAUT_CARGO_SHIP                      :Powernaut Cargo Ship
+
+##length 41
 STR_VEHICLE_NAME_AIRCRAFT_SAMPSON_U52                           :Sampson U52
 STR_VEHICLE_NAME_AIRCRAFT_COLEMAN_COUNT                         :Coleman Count
 STR_VEHICLE_NAME_AIRCRAFT_FFP_DART                              :FFP Dart
