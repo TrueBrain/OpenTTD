@@ -207,12 +207,6 @@ static bool BindVBOExtension()
 		_glUnmapBuffer = (PFNGLUNMAPBUFFERPROC)GetOGLProcAddress("glUnmapBufferARB");
 	}
 
-	if (IsOpenGLVersionAtLeast(4, 3) || IsOpenGLExtensionSupported("GL_ARB_clear_buffer_object")) {
-		_glClearBufferSubData = (PFNGLCLEARBUFFERSUBDATAPROC)GetOGLProcAddress("glClearBufferSubData");
-	} else {
-		_glClearBufferSubData = nullptr;
-	}
-
 	return _glGenBuffers != nullptr && _glDeleteBuffers != nullptr && _glBindBuffer != nullptr && _glBufferData != nullptr && _glMapBuffer != nullptr && _glUnmapBuffer != nullptr;
 }
 
@@ -328,6 +322,16 @@ static bool BindPersistentBufferExtensions()
 		&& _glClientWaitSync != nullptr && _glFenceSync != nullptr && _glDeleteSync != nullptr
 #endif
 		;
+}
+
+/** Bind optional extension functions. */
+static void BindOptionalFeatures()
+{
+	if (IsOpenGLVersionAtLeast(4, 3) || IsOpenGLExtensionSupported("GL_ARB_clear_buffer_object")) {
+		_glClearBufferSubData = (PFNGLCLEARBUFFERSUBDATAPROC)GetOGLProcAddress("glClearBufferSubData");
+	} else {
+		_glClearBufferSubData = nullptr;
+	}
 }
 
 /** Callback to receive OpenGL debug messages. */
@@ -480,22 +484,7 @@ const char *OpenGLBackend::Init()
 	if (!BindShaderExtensions()) return "Failed to bind shader extension functions";
 	if (IsOpenGLVersionAtLeast(3, 2) && _glBindFragDataLocation == nullptr) return "OpenGL claims to support version 3.2 but doesn't have glBindFragDataLocation";
 
-	this->persistent_mapping_supported = IsOpenGLVersionAtLeast(3, 0) && (IsOpenGLVersionAtLeast(4, 4) || IsOpenGLExtensionSupported("GL_ARB_buffer_storage"));
-#ifndef NO_GL_BUFFER_SYNC
-	this->persistent_mapping_supported = this->persistent_mapping_supported && (IsOpenGLVersionAtLeast(3, 2) || IsOpenGLExtensionSupported("GL_ARB_sync"));
-#endif
-
-	if (this->persistent_mapping_supported && (strstr(vend, "AMD") != nullptr || strstr(renderer, "Radeon") != nullptr)) {
-		/* AMD GPUs seem to perform badly with persistent buffer mapping, disable it for them. */
-		DEBUG(driver, 3, "OpenGL: Detected AMD GPU, not using persistent buffer mapping due to performance problems");
-		this->persistent_mapping_supported = false;
-	}
-
-	if (this->persistent_mapping_supported && !BindPersistentBufferExtensions()) {
-		DEBUG(driver, 1, "OpenGL claims to support persistent buffer mapping but doesn't export all functions, not using persistent mapping.");
-		this->persistent_mapping_supported = false;
-	}
-	if (this->persistent_mapping_supported) DEBUG(driver, 3, "OpenGL: Using persistent buffer mapping");
+	RequeryHardwareCapabilities();
 
 	/* Check available texture units. */
 	GLint max_tex_units = 0;
@@ -624,6 +613,31 @@ const char *OpenGLBackend::Init()
 	(void)glGetError(); // Clear errors.
 
 	return nullptr;
+}
+
+void OpenGLBackend::RequeryHardwareCapabilities()
+{
+	BindOptionalFeatures();
+
+	const char *vend = (const char *)glGetString(GL_VENDOR);
+	const char *renderer = (const char *)glGetString(GL_RENDERER);
+
+	this->persistent_mapping_supported = IsOpenGLVersionAtLeast(3, 0) && (IsOpenGLVersionAtLeast(4, 4) || IsOpenGLExtensionSupported("GL_ARB_buffer_storage"));
+#ifndef NO_GL_BUFFER_SYNC
+	this->persistent_mapping_supported = this->persistent_mapping_supported && (IsOpenGLVersionAtLeast(3, 2) || IsOpenGLExtensionSupported("GL_ARB_sync"));
+#endif
+
+	if (this->persistent_mapping_supported && (strstr(vend, "AMD") != nullptr || strstr(renderer, "Radeon") != nullptr)) {
+		/* AMD GPUs seem to perform badly with persistent buffer mapping, disable it for them. */
+		DEBUG(driver, 3, "OpenGL: Detected AMD GPU, not using persistent buffer mapping due to performance problems");
+		this->persistent_mapping_supported = false;
+	}
+
+	if (this->persistent_mapping_supported && !BindPersistentBufferExtensions()) {
+		DEBUG(driver, 1, "OpenGL claims to support persistent buffer mapping but doesn't export all functions, not using persistent mapping.");
+		this->persistent_mapping_supported = false;
+	}
+	if (this->persistent_mapping_supported) DEBUG(driver, 3, "OpenGL: Using persistent buffer mapping");
 }
 
 /**

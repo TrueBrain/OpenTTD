@@ -73,6 +73,8 @@ public:
 	static const char *Create(GetOGLProcAddressProc get_proc);
 	static void Destroy();
 
+	void RequeryHardwareCapabilities();
+
 	void UpdatePalette(const Colour *pal, uint first, uint length);
 	bool Resize(int w, int h, bool force = false);
 	void Paint();
