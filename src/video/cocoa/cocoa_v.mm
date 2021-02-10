@@ -98,6 +98,7 @@ VideoDriver_Cocoa::VideoDriver_Cocoa()
 {
 	this->active        = false;
 	this->setup         = false;
+	this->buffer_locked = false;
 
 	this->window    = nil;
 	this->cocoaview = nil;
@@ -235,6 +236,30 @@ Dimension VideoDriver_Cocoa::GetScreenSize() const
 	return { static_cast<uint>(NSWidth(frame)), static_cast<uint>(NSHeight(frame)) };
 }
 
+/** Lock video buffer for drawing if it isn't already mapped. */
+bool VideoDriver_Cocoa::LockVideoBuffer()
+{
+	if (this->buffer_locked) return false;
+	this->buffer_locked = true;
+
+	_screen.dst_ptr = this->GetVideoPointer();
+	assert(_screen.dst_ptr != nullptr);
+
+	return true;
+}
+
+/** Unlock video buffer. */
+void VideoDriver_Cocoa::UnlockVideoBuffer()
+{
+	if (_screen.dst_ptr != nullptr) {
+		/* Hand video buffer back to the drawing backend. */
+		this->ReleaseVideoPointer();
+		_screen.dst_ptr = nullptr;
+	}
+
+	this->buffer_locked = false;
+}
+
 /**
  * Are we in fullscreen mode
  * @return whether fullscreen mode is currently used
@@ -357,8 +382,6 @@ bool VideoDriver_Cocoa::MakeWindow(int width, int height)
 
 	this->setup = false;
 
-	this->AllocateBackingStore();
-
 	return true;
 }
 
@@ -393,6 +416,7 @@ void VideoDriver_Cocoa::GameLoop()
 	uint32 st = 0;
 #endif
 
+	this->CheckPaletteAnim();
 	for (;;) {
 		@autoreleasepool {
 
@@ -433,15 +457,22 @@ void VideoDriver_Cocoa::GameLoop()
 
 				if (old_ctrl_pressed != _ctrl_pressed) HandleCtrlChanged();
 
-				::GameLoop();
 
-				UpdateWindows();
+				this->UnlockVideoBuffer();
+				::GameLoop();
+				this->LockVideoBuffer();
+
+				::UpdateWindows();
+
+				this->CheckPaletteAnim();
 				this->Draw();
 			} else {
 #ifdef _DEBUG
 				uint32 st0 = GetTick();
 #endif
+				this->UnlockVideoBuffer();
 				CSleep(1);
+				this->LockVideoBuffer();
 #ifdef _DEBUG
 				st += GetTick() - st0;
 #endif
@@ -560,6 +591,8 @@ const char *VideoDriver_CocoaQuartz::Start(const StringList &param)
 		return "Could not create window";
 	}
 
+	this->AllocateBackingStore(true);
+
 	if (fullscreen) this->ToggleFullscreen(fullscreen);
 
 	this->GameSizeChanged();
@@ -604,7 +637,7 @@ NSView *VideoDriver_CocoaQuartz::AllocateDrawView()
 }
 
 /** Resize the window. */
-void VideoDriver_CocoaQuartz::AllocateBackingStore()
+void VideoDriver_CocoaQuartz::AllocateBackingStore(bool force)
 {
 	if (this->window == nil || this->cocoaview == nil || this->setup) return;
 
@@ -652,7 +685,7 @@ void VideoDriver_CocoaQuartz::AllocateBackingStore()
 	_screen.width   = this->window_width;
 	_screen.height  = this->window_height;
 	_screen.pitch   = this->buffer_depth == 8 ? this->window_width : this->window_pitch;
-	_screen.dst_ptr = this->buffer_depth == 8 ? this->pixel_buffer : this->window_buffer;
+	_screen.dst_ptr = this->GetVideoPointer();
 
 	/* Redraw screen */
 	this->num_dirty_rects = MAX_DIRTY_RECTS;
@@ -729,8 +762,6 @@ void VideoDriver_CocoaQuartz::CheckPaletteAnim()
 void VideoDriver_CocoaQuartz::Draw(bool force_update)
 {
 	PerformanceMeasurer framerate(PFE_VIDEO);
-
-	this->CheckPaletteAnim();
 
 	/* Check if we need to do anything */
 	if (this->num_dirty_rects == 0 || [ this->window isMiniaturized ]) return;

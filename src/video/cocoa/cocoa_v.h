@@ -52,10 +52,14 @@ public:
 	/** Main game loop. */
 	void GameLoop();
 
-	virtual void AllocateBackingStore() = 0;
+	virtual void AllocateBackingStore(bool force = false) = 0;
 
 protected:
+	bool buffer_locked; ///< Video buffer was locked by the main thread.
+
 	Dimension GetScreenSize() const override;
+	bool LockVideoBuffer() override;
+	void UnlockVideoBuffer() override;
 
 	void GameSizeChanged();
 
@@ -67,6 +71,12 @@ protected:
 
 	virtual void Draw(bool force_update = false) = 0;
 	virtual NSView* AllocateDrawView() = 0;
+	virtual void CheckPaletteAnim() = 0;
+
+	/** Get a pointer to the video buffer. */
+	virtual void *GetVideoPointer() = 0;
+	/** Hand video buffer back to the drawing backend. */
+	virtual void ReleaseVideoPointer() {}
 
 private:
 	bool PollEvent();
@@ -90,7 +100,6 @@ private:
 	uint32 palette[256];  ///< Colour Palette
 
 	void BlitIndexedToView32(int left, int top, int right, int bottom);
-	void CheckPaletteAnim();
 	void UpdatePalette(uint first_color, uint num_colors);
 
 public:
@@ -106,17 +115,20 @@ public:
 	/** Return driver name */
 	const char *GetName() const override { return "cocoa"; }
 
-	void AllocateBackingStore() override;
+	void AllocateBackingStore(bool force = false) override;
 
 protected:
 	void Draw(bool force_update = false) override;
 
 	NSView* AllocateDrawView() override;
+	void CheckPaletteAnim() override;
+
+	void *GetVideoPointer() override { return this->buffer_depth == 8 ? this->pixel_buffer : this->window_buffer; }
 };
 
 class FVideoDriver_CocoaQuartz : public DriverFactoryBase {
 public:
-	FVideoDriver_CocoaQuartz() : DriverFactoryBase(Driver::DT_VIDEO, 10, "cocoa", "Cocoa Video Driver") {}
+	FVideoDriver_CocoaQuartz() : DriverFactoryBase(Driver::DT_VIDEO, 8, "cocoa", "Cocoa Video Driver") {}
 	Driver *CreateInstance() const override { return new VideoDriver_CocoaQuartz(); }
 };
 
