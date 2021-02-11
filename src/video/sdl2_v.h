@@ -52,6 +52,7 @@ private:
 	bool CreateMainWindow(uint w, uint h);
 	void CheckPaletteAnim();
 	const char *Initialize();
+	bool AllocateBackingStore(int w, int h, bool force = false);
 
 #ifdef __EMSCRIPTEN__
 	/* Convert a constant pointer back to a non-constant pointer to a member function. */
