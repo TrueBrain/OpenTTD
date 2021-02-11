@@ -878,7 +878,7 @@ void VideoDriver_Win32Base::CheckPaletteAnim()
 	InvalidateRect(this->main_wnd, nullptr, FALSE);
 }
 
-/* static */ void VideoDriver_Win32Base::PaintWindowThreadThunk(VideoDriver_Win32Base *drv)
+/* static */ void VideoDriver_Win32Base::PaintThreadThunk(VideoDriver_Win32Base *drv)
 {
 	drv->PaintThread();
 }
@@ -912,7 +912,7 @@ void VideoDriver_Win32Base::MainLoop()
 			this->draw_lock = std::unique_lock<std::recursive_mutex>(*this->draw_mutex);
 
 			this->draw_continue = true;
-			this->draw_threaded = StartNewThread(&draw_thread, "ottd:draw-win32", &VideoDriver_Win32Base::PaintWindowThreadThunk, this);
+			this->draw_threaded = StartNewThread(&draw_thread, "ottd:draw-win32", &VideoDriver_Win32Base::PaintThreadThunk, this);
 
 			/* Free the mutex if we won't be able to use it. */
 			if (!this->draw_threaded) {

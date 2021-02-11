@@ -82,7 +82,7 @@ protected:
 	/** Unlock video buffer. */
 	virtual void UnlockVideoBuffer();
 
-	static void PaintWindowThreadThunk(VideoDriver_Win32Base *drv);
+	static void PaintThreadThunk(VideoDriver_Win32Base *drv);
 	friend LRESULT CALLBACK WndProcGdi(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 };
 
