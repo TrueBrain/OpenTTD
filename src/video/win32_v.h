@@ -62,6 +62,10 @@ protected:
 
 	void ClientSizeChanged(int w, int h, bool force = false);
 	void CheckPaletteAnim();
+	/** Lock video buffer for drawing if it isn't already mapped. */
+	bool LockVideoBuffer();
+	/** Unlock video buffer. */
+	void UnlockVideoBuffer();
 
 	/** (Re-)create the backing store. */
 	virtual bool AllocateBackingStore(int w, int h, bool force = false) = 0;
@@ -77,10 +81,6 @@ protected:
 	virtual void PaintThread() = 0;
 	/** Draw the mouse cursor. */
 	virtual void DrawMouseCursor();
-	/** Lock video buffer for drawing if it isn't already mapped. */
-	virtual bool LockVideoBuffer();
-	/** Unlock video buffer. */
-	virtual void UnlockVideoBuffer();
 
 	static void PaintThreadThunk(VideoDriver_Win32Base *drv);
 	friend LRESULT CALLBACK WndProcGdi(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
