@@ -131,9 +131,16 @@ void VideoDriver_SDL::Paint()
 				this->UpdatePalette();
 				break;
 
-			case Blitter::PALETTE_ANIMATION_BLITTER:
+			case Blitter::PALETTE_ANIMATION_BLITTER: {
+				bool need_buf = _screen.dst_ptr == nullptr;
+				if (need_buf) _screen.dst_ptr = this->GetVideoPointer();
 				blitter->PaletteAnimate(this->local_palette);
+				if (need_buf) {
+					this->ReleaseVideoPointer();
+					_screen.dst_ptr = nullptr;
+				}
 				break;
+			}
 
 			case Blitter::PALETTE_ANIMATION_NONE:
 				break;
@@ -262,11 +269,26 @@ static uint FindStartupDisplay(uint startup_display)
 	return 0;
 }
 
-bool VideoDriver_SDL::CreateMainWindow(uint w, uint h)
+void VideoDriver_SDL::ClientSizeChanged(int w, int h, bool force)
+{
+	/* Allocate backing store of the new size. */
+	if (this->AllocateBackingStore(w, h, force)) {
+		/* Mark all palette colours dirty. */
+		_cur_palette.first_dirty = 0;
+		_cur_palette.count_dirty = 256;
+		this->local_palette = _cur_palette;
+
+		BlitterFactory::GetCurrentBlitter()->PostResize();
+
+		GameSizeChanged();
+	}
+}
+
+bool VideoDriver_SDL::CreateMainWindow(uint w, uint h, uint flags)
 {
 	if (this->sdl_window != nullptr) return true;
 
-	Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+	flags |= SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
 
 	if (_fullscreen) {
 		flags |= SDL_WINDOW_FULLSCREEN;
@@ -316,17 +338,13 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h, bool resize)
 
 	if (!this->CreateMainWindow(w, h)) return false;
 	if (resize) SDL_SetWindowSize(this->sdl_window, w, h);
-
-	if (!this->AllocateBackingStore(w, h, true)) return false;
+	this->ClientSizeChanged(w, h, true);
 
 	/* When in full screen, we will always have the mouse cursor
 	 * within the window, even though SDL does not give us the
 	 * appropriate event to know this. */
 	if (_fullscreen) _cursor.in_window = true;
 
-	BlitterFactory::GetCurrentBlitter()->PostResize();
-
-	GameSizeChanged();
 	return true;
 }
 
@@ -357,11 +375,21 @@ bool VideoDriver_SDL::AllocateBackingStore(int w, int h, bool force)
 	_screen.width = _sdl_surface->w;
 	_screen.height = _sdl_surface->h;
 	_screen.pitch = _sdl_surface->pitch / (bpp / 8);
-	_screen.dst_ptr = _sdl_surface->pixels;
+	_screen.dst_ptr = this->GetVideoPointer();
 
 	this->MakePalette();
 
 	return true;
+}
+
+void *VideoDriver_SDL::GetVideoPointer()
+{
+	return _sdl_surface->pixels;
+}
+
+void VideoDriver_SDL::DrawMouseCursor()
+{
+	::DrawMouseCursor();
 }
 
 bool VideoDriver_SDL::ClaimMousePointer()
@@ -743,6 +771,31 @@ void VideoDriver_SDL::Stop()
 	}
 }
 
+bool VideoDriver_SDL::LockVideoBuffer()
+{
+	if (this->buffer_locked) return false;
+	this->buffer_locked = true;
+
+	if (this->draw_threaded) this->draw_lock.lock();
+
+	_screen.dst_ptr = this->GetVideoPointer();
+	assert(_screen.dst_ptr != nullptr);
+
+	return true;
+}
+
+void VideoDriver_SDL::UnlockVideoBuffer()
+{
+	if (_screen.dst_ptr != nullptr) {
+		/* Hand video buffer back to the drawing backend. */
+		this->ReleaseVideoPointer();
+		_screen.dst_ptr = nullptr;
+	}
+
+	if (this->draw_threaded) this->draw_lock.unlock();
+	this->buffer_locked = false;
+}
+
 void VideoDriver_SDL::LoopOnce()
 {
 	uint32 mod;
@@ -801,32 +854,25 @@ void VideoDriver_SDL::LoopOnce()
 			(keys[SDL_SCANCODE_DOWN]  ? 8 : 0);
 		if (old_ctrl_pressed != _ctrl_pressed) HandleCtrlChanged();
 
-		/* The gameloop is the part that can run asynchronously. The rest
-		 * except sleeping can't. */
-		if (this->draw_mutex != nullptr) draw_lock.unlock();
-
+		/* The gameloop is the part that can run asynchronously.
+		 * The rest except sleeping can't. */
+		this->UnlockVideoBuffer();
 		GameLoop();
-
-		if (this->draw_mutex != nullptr) draw_lock.lock();
+		this->LockVideoBuffer();
 
 		UpdateWindows();
 		this->CheckPaletteAnim();
 	} else {
-		/* Release the thread while sleeping */
-		if (this->draw_mutex != nullptr) {
-			draw_lock.unlock();
-			CSleep(1);
-			draw_lock.lock();
-		} else {
+		this->UnlockVideoBuffer();
 /* Emscripten is running an event-based mainloop; there is already some
  * downtime between each iteration, so no need to sleep. */
 #ifndef __EMSCRIPTEN__
-			CSleep(1);
+		CSleep(1);
 #endif
-		}
+		this->LockVideoBuffer();
 
 		NetworkDrawChatMessage();
-		DrawMouseCursor();
+		this->DrawMouseCursor();
 	}
 
 	/* End of the critical part. */
