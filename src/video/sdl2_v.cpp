@@ -273,7 +273,7 @@ bool VideoDriver_SDL::CreateMainWindow(uint w, uint h)
 {
 	if (_sdl_window != nullptr) return true;
 
-	Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+	Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
 
 	if (_fullscreen) {
 		flags |= SDL_WINDOW_FULLSCREEN;
@@ -974,4 +974,21 @@ Dimension VideoDriver_SDL::GetScreenSize() const
 	if (SDL_GetCurrentDisplayMode(this->startup_display, &mode) != 0) return VideoDriver::GetScreenSize();
 
 	return { static_cast<uint>(mode.w), static_cast<uint>(mode.h) };
+}
+
+ZoomLevel VideoDriver_SDL::GetSuggestedUIZoom()
+{
+	float ddpi;
+	if (SDL_GetDisplayDPI(this->startup_display, &ddpi, NULL, NULL) != 0) {
+		/* No DPI information available. */
+		return ZOOM_LVL_OUT_4X;
+	}
+
+	uint cur_dpi = (uint)ddpi;
+
+	const uint BASE_DPI = 96; // Default display DPI value.
+
+	if (cur_dpi >= BASE_DPI * 3) return ZOOM_LVL_NORMAL;
+	if (cur_dpi >= BASE_DPI * 3 / 2) return ZOOM_LVL_OUT_2X;
+	return ZOOM_LVL_OUT_4X;
 }

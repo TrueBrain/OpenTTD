@@ -39,6 +39,8 @@ public:
 
 	void EditBoxLostFocus() override;
 
+	ZoomLevel GetSuggestedUIZoom() override;
+
 	const char *GetName() const override { return "sdl"; }
 
 protected:
