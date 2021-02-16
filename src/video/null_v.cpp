@@ -9,6 +9,7 @@
 
 #include "../stdafx.h"
 #include "../gfx_func.h"
+#include "../window_func.h"
 #include "../blitter/factory.hpp"
 #include "null_v.h"
 
@@ -48,6 +49,7 @@ void VideoDriver_Null::MainLoop()
 
 	for (i = 0; i < this->ticks; i++) {
 		GameLoop();
+		InputLoop();
 		UpdateWindows();
 	}
 }

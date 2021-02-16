@@ -24,6 +24,8 @@
 #include "../core/math_func.hpp"
 #include "../framerate_type.h"
 #include "../thread.h"
+#include "../window_func.h"
+#include "../settings_type.h"
 #include "allegro_v.h"
 #include <allegro.h>
 
@@ -465,14 +467,14 @@ static uint32 GetTime()
 
 void VideoDriver_Allegro::MainLoop()
 {
-	uint32 cur_ticks = GetTime();
-	uint32 last_cur_ticks = cur_ticks;
-	uint32 next_tick = cur_ticks + MILLISECONDS_PER_TICK;
+	auto cur_ticks = std::chrono::steady_clock::now();
+	auto last_cur_ticks = cur_ticks;
+	auto next_game_tick = cur_ticks;
+	auto next_draw_tick = cur_ticks;
 
 	CheckPaletteAnim();
 
 	for (;;) {
-		uint32 prev_cur_ticks = cur_ticks; // to check for wrapping
 		InteractiveRandom(); // randomness
 
 		PollEvent();
@@ -491,11 +493,32 @@ void VideoDriver_Allegro::MainLoop()
 			_fast_forward = 0;
 		}
 
-		cur_ticks = GetTime();
-		if (cur_ticks >= next_tick || (_fast_forward && !_pause_mode) || cur_ticks < prev_cur_ticks) {
-			_realtime_tick += cur_ticks - last_cur_ticks;
+		cur_ticks = std::chrono::steady_clock::now();
+
+		/* If more than a millisecond has passed, increase the _realtime_tick. */
+		if (cur_ticks - last_cur_ticks > std::chrono::milliseconds(1)) {
+			_realtime_tick += std::chrono::duration_cast<std::chrono::milliseconds>(cur_ticks - last_cur_ticks).count();
 			last_cur_ticks = cur_ticks;
-			next_tick = cur_ticks + MILLISECONDS_PER_TICK;
+		}
+
+		if (cur_ticks >= next_game_tick || (_fast_forward && !_pause_mode)) {
+			if (_fast_forward && !_pause_mode) {
+				next_game_tick = cur_ticks + std::chrono::milliseconds(MILLISECONDS_PER_TICK);
+			} else {
+				next_game_tick += std::chrono::milliseconds(MILLISECONDS_PER_TICK);
+				/* Avoid next_game_tick getting behind more and more if it cannot keep up. */
+				if (next_game_tick < cur_ticks - std::chrono::milliseconds(5 * MILLISECONDS_PER_TICK)) next_game_tick = cur_ticks;
+			}
+
+			GameLoop();
+		}
+
+		if (cur_ticks >= next_draw_tick) {
+			/* On initalizing, the configuration is not read yet, and refresh_rate is 0. */
+			uint8 refresh_rate = _settings_client.gui.refresh_rate != 0 ? _settings_client.gui.refresh_rate : 30;
+			next_draw_tick += std::chrono::microseconds(1000000 / refresh_rate);
+			/* Avoid next_draw_tick getting behind more and more if it cannot keep up. */
+			if (next_draw_tick < cur_ticks - std::chrono::microseconds(5 * 1000000 / refresh_rate)) next_draw_tick = cur_ticks;
 
 			bool old_ctrl_pressed = _ctrl_pressed;
 
@@ -511,16 +534,22 @@ void VideoDriver_Allegro::MainLoop()
 
 			if (old_ctrl_pressed != _ctrl_pressed) HandleCtrlChanged();
 
-			GameLoop();
-
+			InputLoop();
 			UpdateWindows();
 			CheckPaletteAnim();
+
 			DrawSurfaceToScreen();
-		} else {
-			CSleep(1);
-			NetworkDrawChatMessage();
-			DrawMouseCursor();
-			DrawSurfaceToScreen();
+		}
+
+		/* If we are not in fast-forward, create some time between calls to ease up CPU usage. */
+		if (!_fast_forward || _pause_mode) {
+			/* See how much time there is till we have to process the next event, and try to hit that as close as possible. */
+			auto next_tick = std::min(next_draw_tick, next_game_tick);
+			auto now = std::chrono::steady_clock::now();
+
+			if (next_tick > now) {
+				std::this_thread::sleep_for(next_tick - now);
+			}
 		}
 	}
 }

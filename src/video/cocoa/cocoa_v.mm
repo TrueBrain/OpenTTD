@@ -634,19 +634,14 @@ bool VideoDriver_Cocoa::PollEvent()
 /** Main game loop. */
 void VideoDriver_Cocoa::GameLoop()
 {
-	uint32 cur_ticks = GetTick();
-	uint32 last_cur_ticks = cur_ticks;
-	uint32 next_tick = cur_ticks + MILLISECONDS_PER_TICK;
-
-#ifdef _DEBUG
-	uint32 et0 = GetTick();
-	uint32 st = 0;
-#endif
+	auto cur_ticks = std::chrono::steady_clock::now();
+	auto last_cur_ticks = cur_ticks;
+	auto next_game_tick = cur_ticks;
+	auto next_draw_tick = cur_ticks;
 
 	for (;;) {
 		@autoreleasepool {
 
-			uint32 prev_cur_ticks = cur_ticks; // to check for wrapping
 			InteractiveRandom(); // randomness
 
 			while (this->PollEvent()) {}
@@ -669,11 +664,32 @@ void VideoDriver_Cocoa::GameLoop()
 				_fast_forward = 0;
 			}
 
-			cur_ticks = GetTick();
-			if (cur_ticks >= next_tick || (_fast_forward && !_pause_mode) || cur_ticks < prev_cur_ticks) {
-				_realtime_tick += cur_ticks - last_cur_ticks;
+			cur_ticks = std::chrono::steady_clock::now();
+
+			/* If more than a millisecond has passed, increase the _realtime_tick. */
+			if (cur_ticks - last_cur_ticks > std::chrono::milliseconds(1)) {
+				_realtime_tick += std::chrono::duration_cast<std::chrono::milliseconds>(cur_ticks - last_cur_ticks).count();
 				last_cur_ticks = cur_ticks;
-				next_tick = cur_ticks + MILLISECONDS_PER_TICK;
+			}
+
+			if (cur_ticks >= next_game_tick || (_fast_forward && !_pause_mode)) {
+				if (_fast_forward && !_pause_mode) {
+					next_game_tick = cur_ticks + std::chrono::milliseconds(MILLISECONDS_PER_TICK);
+				} else {
+					next_game_tick += std::chrono::milliseconds(MILLISECONDS_PER_TICK);
+					/* Avoid next_game_tick getting behind more and more if it cannot keep up. */
+					if (next_game_tick < cur_ticks - std::chrono::milliseconds(5 * MILLISECONDS_PER_TICK)) next_game_tick = cur_ticks;
+				}
+
+				::GameLoop();
+			}
+
+			if (cur_ticks >= next_draw_tick) {
+				/* On initalizing, the configuration is not read yet, and refresh_rate is 0. */
+				uint8 refresh_rate = _settings_client.gui.refresh_rate != 0 ? _settings_client.gui.refresh_rate : 30;
+				next_draw_tick += std::chrono::microseconds(1000000 / refresh_rate);
+				/* Avoid next_draw_tick getting behind more and more if it cannot keep up. */
+				if (next_draw_tick < cur_ticks - std::chrono::microseconds(5 * 1000000 / refresh_rate)) next_draw_tick = cur_ticks;
 
 				bool old_ctrl_pressed = _ctrl_pressed;
 
@@ -682,34 +698,25 @@ void VideoDriver_Cocoa::GameLoop()
 
 				if (old_ctrl_pressed != _ctrl_pressed) HandleCtrlChanged();
 
-				::GameLoop();
-
+				InputLoop();
 				UpdateWindows();
 				this->CheckPaletteAnim();
+
 				this->Draw();
-			} else {
-#ifdef _DEBUG
-				uint32 st0 = GetTick();
-#endif
-				CSleep(1);
-#ifdef _DEBUG
-				st += GetTick() - st0;
-#endif
-				NetworkDrawChatMessage();
-				DrawMouseCursor();
-				this->Draw();
+			}
+
+			/* If we are not in fast-forward, create some time between calls to ease up CPU usage. */
+			if (!_fast_forward || _pause_mode) {
+				/* See how much time there is till we have to process the next event, and try to hit that as close as possible. */
+				auto next_tick = std::min(next_draw_tick, next_game_tick);
+				auto now = std::chrono::steady_clock::now();
+
+				if (next_tick > now) {
+					std::this_thread::sleep_for(next_tick - now);
+				}
 			}
 		}
 	}
-
-#ifdef _DEBUG
-	uint32 et = GetTick();
-
-	DEBUG(driver, 1, "cocoa_v: nextEventMatchingMask took %i ms total", _tEvent);
-	DEBUG(driver, 1, "cocoa_v: game loop took %i ms total (%i ms without sleep)", et - et0, et - et0 - st);
-	DEBUG(driver, 1, "cocoa_v: (nextEventMatchingMask total)/(game loop total) is %f%%", (double)_tEvent / (double)(et - et0) * 100);
-	DEBUG(driver, 1, "cocoa_v: (nextEventMatchingMask total)/(game loop without sleep total) is %f%%", (double)_tEvent / (double)(et - et0 - st) * 100);
-#endif
 }
 
 
