@@ -173,6 +173,8 @@ public:
 	};
 
 protected:
+	const uint ALLOWED_DRIFT = 5; ///< How many times videodriver can miss deadlines without it being overly compensated.
+
 	/**
 	 * Make sure the video buffer is ready for drawing.
 	 * @returns True if the video buffer has to be unlocked.
