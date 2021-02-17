@@ -656,8 +656,18 @@ void VideoDriver_SDL_Base::LoopOnce()
 		last_realtime_tick += delta;
 	}
 
-	if (cur_ticks >= next_tick || (_fast_forward && !_pause_mode)) {
-		next_tick = cur_ticks + std::chrono::milliseconds(MILLISECONDS_PER_TICK);
+	if (cur_ticks >= next_game_tick || (_fast_forward && !_pause_mode)) {
+		next_game_tick = cur_ticks + std::chrono::milliseconds(MILLISECONDS_PER_TICK);
+
+		/* The gameloop is the part that can run asynchronously. The rest
+		 * except sleeping can't. */
+		this->UnlockVideoBuffer();
+		GameLoop();
+		this->LockVideoBuffer();
+	}
+
+	if (cur_ticks >= next_draw_tick) {
+		next_draw_tick = cur_ticks + std::chrono::milliseconds(MILLISECONDS_PER_TICK);
 
 		bool old_ctrl_pressed = _ctrl_pressed;
 
@@ -672,41 +682,33 @@ void VideoDriver_SDL_Base::LoopOnce()
 			(keys[SDL_SCANCODE_DOWN]  ? 8 : 0);
 		if (old_ctrl_pressed != _ctrl_pressed) HandleCtrlChanged();
 
-		/* The gameloop is the part that can run asynchronously.
-		 * The rest except sleeping can't. */
-		this->UnlockVideoBuffer();
-		GameLoop();
-		this->LockVideoBuffer();
-
+		InputLoop();
 		UpdateWindows();
 		this->CheckPaletteAnim();
-	} else {
-		this->UnlockVideoBuffer();
+
+		if (_draw_mutex != nullptr && !HasModalProgress()) {
+			_draw_signal->notify_one();
+		} else {
+			Paint();
+		}
+	}
+
 /* Emscripten is running an event-based mainloop; there is already some
  * downtime between each iteration, so no need to sleep. */
 #ifndef __EMSCRIPTEN__
+	if (!_fast_forward || _pause_mode) {
+		this->UnlockVideoBuffer();
 		CSleep(1);
-#endif
 		this->LockVideoBuffer();
-
-		NetworkDrawChatMessage();
-		this->DrawMouseCursor();
 	}
-
-	/* End of the critical part. */
-	if (this->draw_mutex != nullptr && !HasModalProgress()) {
-		this->draw_signal->notify_one();
-	} else {
-		/* Oh, we didn't have threads, then just draw unthreaded */
-		this->Paint();
-	}
+#endif
 }
 
 void VideoDriver_SDL_Base::MainLoop()
 {
 	cur_ticks = std::chrono::steady_clock::now();
 	last_realtime_tick = cur_ticks;
-	next_tick = cur_ticks;
+	next_game_tick = cur_ticks;
 
 	this->CheckPaletteAnim();
 

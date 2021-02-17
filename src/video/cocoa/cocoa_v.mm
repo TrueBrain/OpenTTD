@@ -409,7 +409,8 @@ void VideoDriver_Cocoa::GameLoop()
 {
 	auto cur_ticks = std::chrono::steady_clock::now();
 	auto last_realtime_tick = cur_ticks;
-	auto next_tick = cur_ticks;
+	auto next_game_tick = cur_ticks;
+	auto next_draw_tick = cur_ticks;
 
 	this->CheckPaletteAnim();
 	for (;;) {
@@ -447,8 +448,16 @@ void VideoDriver_Cocoa::GameLoop()
 				last_realtime_tick += delta;
 			}
 
-			if (cur_ticks >= next_tick || (_fast_forward && !_pause_mode)) {
-				next_tick = cur_ticks + std::chrono::milliseconds(MILLISECONDS_PER_TICK);
+			if (cur_ticks >= next_game_tick || (_fast_forward && !_pause_mode)) {
+				next_game_tick = cur_ticks + std::chrono::milliseconds(MILLISECONDS_PER_TICK);
+
+				this->UnlockVideoBuffer();
+				::GameLoop();
+				this->LockVideoBuffer();
+			}
+
+			if (cur_ticks >= next_draw_tick) {
+				next_draw_tick = cur_ticks + std::chrono::milliseconds(MILLISECONDS_PER_TICK);
 
 				bool old_ctrl_pressed = _ctrl_pressed;
 
@@ -457,22 +466,15 @@ void VideoDriver_Cocoa::GameLoop()
 
 				if (old_ctrl_pressed != _ctrl_pressed) HandleCtrlChanged();
 
-
-				this->UnlockVideoBuffer();
-				::GameLoop();
-				this->LockVideoBuffer();
-
-				::UpdateWindows();
-
+				InputLoop();
+				UpdateWindows();
 				this->CheckPaletteAnim();
+
 				this->Draw();
-			} else {
-				this->UnlockVideoBuffer();
+			}
+
+			if (!_fast_forward || _pause_mode) {
 				CSleep(1);
-				this->LockVideoBuffer();
-				NetworkDrawChatMessage();
-				DrawMouseCursor();
-				this->Draw();
 			}
 		}
 	}
