@@ -13,6 +13,9 @@
 #include "../driver.h"
 #include "../core/geometry_type.hpp"
 #include "../core/math_func.hpp"
+#include "../settings_type.h"
+#include "../zoom_type.h"
+#include <chrono>
 #include <vector>
 
 extern std::string _ini_videodriver;
@@ -208,6 +211,18 @@ protected:
 			_cur_resolution.width  = ClampU(res.width  * 3 / 4, DEFAULT_WINDOW_WIDTH, UINT16_MAX / 2);
 			_cur_resolution.height = ClampU(res.height * 3 / 4, DEFAULT_WINDOW_HEIGHT, UINT16_MAX / 2);
 		}
+	}
+
+	std::chrono::steady_clock::duration GetGameInterval()
+	{
+		return std::chrono::milliseconds(MILLISECONDS_PER_TICK);
+	}
+
+	std::chrono::steady_clock::duration GetDrawInterval()
+	{
+		/* TODO -- If michi_cc' patch lands for startup flag, possibly this can be removed. */
+		uint8 refresh_rate = _settings_client.gui.refresh_rate != 0 ? _settings_client.gui.refresh_rate : 30;
+		return std::chrono::microseconds(1000000 / refresh_rate);
 	}
 };
 
