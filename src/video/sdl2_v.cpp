@@ -614,7 +614,6 @@ void VideoDriver_SDL_Base::LoopOnce()
 	uint32 mod;
 	int numkeys;
 	const Uint8 *keys;
-	uint32 prev_cur_ticks = cur_ticks; // to check for wrapping
 	InteractiveRandom(); // randomness
 
 	while (PollEvent() == -1) {}
@@ -648,11 +647,11 @@ void VideoDriver_SDL_Base::LoopOnce()
 		_fast_forward = 0;
 	}
 
-	cur_ticks = SDL_GetTicks();
-	if (SDL_TICKS_PASSED(cur_ticks, next_tick) || (_fast_forward && !_pause_mode) || cur_ticks < prev_cur_ticks) {
-		_realtime_tick += cur_ticks - last_cur_ticks;
+	cur_ticks = std::chrono::steady_clock::now();
+	if (cur_ticks >= next_tick || (_fast_forward && !_pause_mode)) {
+		_realtime_tick += std::chrono::duration_cast<std::chrono::milliseconds>(cur_ticks - last_cur_ticks).count();
 		last_cur_ticks = cur_ticks;
-		next_tick = cur_ticks + MILLISECONDS_PER_TICK;
+		next_tick = cur_ticks + std::chrono::milliseconds(MILLISECONDS_PER_TICK);
 
 		bool old_ctrl_pressed = _ctrl_pressed;
 
@@ -699,9 +698,9 @@ void VideoDriver_SDL_Base::LoopOnce()
 
 void VideoDriver_SDL_Base::MainLoop()
 {
-	cur_ticks = SDL_GetTicks();
+	cur_ticks = std::chrono::steady_clock::now();
 	last_cur_ticks = cur_ticks;
-	next_tick = cur_ticks + MILLISECONDS_PER_TICK;
+	next_tick = cur_ticks;
 
 	this->CheckPaletteAnim();
 
