@@ -694,8 +694,8 @@ void VideoDriver_SDL_Base::LoopOnce()
 		UpdateWindows();
 		this->CheckPaletteAnim();
 
-		if (_draw_mutex != nullptr && !HasModalProgress()) {
-			_draw_signal->notify_one();
+		if (this->draw_mutex != nullptr && !HasModalProgress()) {
+			this->draw_signal->notify_one();
 		} else {
 			Paint();
 		}
