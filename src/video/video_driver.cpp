@@ -16,7 +16,7 @@
 #include "../window_func.h"
 #include "video_driver.hpp"
 
-bool VideoDriver::Tick()
+void VideoDriver::Tick()
 {
 	auto cur_ticks = std::chrono::steady_clock::now();
 
@@ -64,12 +64,10 @@ bool VideoDriver::Tick()
 		this->InputLoop();
 		::InputLoop();
 		UpdateWindows();
+
 		this->CheckPaletteAnim();
-
-		return true;
+		this->Paint();
 	}
-
-	return false;
 }
 
 void VideoDriver::SleepTillNextTick()
