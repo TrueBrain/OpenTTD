@@ -15,7 +15,10 @@
 #include "../core/math_func.hpp"
 #include "../settings_type.h"
 #include "../zoom_type.h"
+#include <atomic>
 #include <chrono>
+#include <condition_variable>
+#include <mutex>
 #include <vector>
 
 extern std::string _ini_videodriver;
@@ -29,6 +32,8 @@ class VideoDriver : public Driver {
 	const uint DEFAULT_WINDOW_HEIGHT = 480u; ///< Default window height.
 
 public:
+	VideoDriver() : is_game_threaded(true) {}
+
 	/**
 	 * Mark a particular area dirty.
 	 * @param left   The left most line of the dirty area.
@@ -251,6 +256,11 @@ protected:
 	virtual bool PollEvent() { return false; };
 
 	/**
+	 * Start the loop for game-tick.
+	 */
+	void StartGameThread();
+
+	/**
 	 * Give the video-driver a tick.
 	 * It will process any potential game-tick and/or draw-tick, and/or any
 	 * other video-driver related event.
@@ -264,6 +274,8 @@ protected:
 
 	std::chrono::steady_clock::duration GetGameInterval()
 	{
+		extern byte _fast_forward;
+		if (_fast_forward && !_pause_mode) return std::chrono::milliseconds(0);
 		return std::chrono::milliseconds(MILLISECONDS_PER_TICK);
 	}
 
@@ -275,6 +287,16 @@ protected:
 	std::chrono::steady_clock::time_point last_realtime_tick;
 	std::chrono::steady_clock::time_point next_game_tick;
 	std::chrono::steady_clock::time_point next_draw_tick;
+
+	bool is_game_threaded;
+	std::mutex game_state_mutex;
+	std::mutex game_thread_wait_mutex;
+
+	static void GameThreadThunk(VideoDriver *drv);
+
+private:
+	void GameLoop();
+	void GameThread();
 };
 
 #endif /* VIDEO_VIDEO_DRIVER_HPP */

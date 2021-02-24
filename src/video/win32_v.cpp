@@ -867,6 +867,8 @@ bool VideoDriver_Win32Base::PollEvent()
 
 void VideoDriver_Win32Base::MainLoop()
 {
+	this->StartGameThread();
+
 	for (;;) {
 		if (_exit_game) break;
 
@@ -1115,13 +1117,7 @@ void VideoDriver_Win32GDI::Paint()
 				break;
 
 			case Blitter::PALETTE_ANIMATION_BLITTER: {
-				bool need_buf = _screen.dst_ptr == nullptr;
-				if (need_buf) _screen.dst_ptr = this->GetVideoPointer();
 				blitter->PaletteAnimate(_local_palette);
-				if (need_buf) {
-					this->ReleaseVideoPointer();
-					_screen.dst_ptr = nullptr;
-				}
 				break;
 			}
 
@@ -1285,6 +1281,8 @@ const char *VideoDriver_Win32OpenGL::Start(const StringList &param)
 	this->ClientSizeChanged(this->width, this->height, true);
 
 	MarkWholeScreenDirty();
+
+	this->is_game_threaded = !GetDriverParamBool(param, "no_threads") && !GetDriverParamBool(param, "no_thread");
 
 	return nullptr;
 }
