@@ -166,7 +166,6 @@ struct ViewportDrawer {
 	StringSpriteToDrawVector string_sprites_to_draw;
 	TileSpriteToDrawVector tile_sprites_to_draw;
 	ParentSpriteToDrawVector parent_sprites_to_draw;
-	ParentSpriteToSortVector parent_sprites_to_sort; ///< Parent sprite pointer array used for sorting
 	ChildScreenSpriteToDrawVector child_screen_sprites_to_draw;
 
 	int *last_child;
@@ -177,11 +176,15 @@ struct ViewportDrawer {
 	FoundationPart foundation_part;                  ///< Currently active foundation for ground sprite drawing.
 	int *last_foundation_child[FOUNDATION_PART_END]; ///< Tail of ChildSprite list of the foundations. (index into child_screen_sprites_to_draw)
 	Point foundation_offset[FOUNDATION_PART_END];    ///< Pixel offset for ground sprites on the foundations.
+
+	int x, y;
+	const Viewport *vp;
 };
 
 static bool MarkViewportDirty(const Viewport *vp, int left, int top, int right, int bottom);
 
-static ViewportDrawer _vd;
+static ViewportDrawer *_vd;
+static std::vector<ViewportDrawer> _vd_queue;
 
 TileHighlightData _thd;
 static TileInfo *_cur_ti;
@@ -500,7 +503,7 @@ static void AddTileSpriteToDraw(SpriteID image, PaletteID pal, int32 x, int32 y,
 {
 	assert((image & SPRITE_MASK) < MAX_SPRITES);
 
-	TileSpriteToDraw &ts = _vd.tile_sprites_to_draw.emplace_back();
+	TileSpriteToDraw &ts = _vd->tile_sprites_to_draw.emplace_back();
 	ts.image = image;
 	ts.pal = pal;
 	ts.sub = sub;
@@ -524,17 +527,17 @@ static void AddTileSpriteToDraw(SpriteID image, PaletteID pal, int32 x, int32 y,
 static void AddChildSpriteToFoundation(SpriteID image, PaletteID pal, const SubSprite *sub, FoundationPart foundation_part, int extra_offs_x, int extra_offs_y)
 {
 	assert(IsInsideMM(foundation_part, 0, FOUNDATION_PART_END));
-	assert(_vd.foundation[foundation_part] != -1);
-	Point offs = _vd.foundation_offset[foundation_part];
+	assert(_vd->foundation[foundation_part] != -1);
+	Point offs = _vd->foundation_offset[foundation_part];
 
 	/* Change the active ChildSprite list to the one of the foundation */
-	int *old_child = _vd.last_child;
-	_vd.last_child = _vd.last_foundation_child[foundation_part];
+	int *old_child = _vd->last_child;
+	_vd->last_child = _vd->last_foundation_child[foundation_part];
 
 	AddChildSpriteScreen(image, pal, offs.x + extra_offs_x, offs.y + extra_offs_y, false, sub, false);
 
 	/* Switch back to last ChildSprite list */
-	_vd.last_child = old_child;
+	_vd->last_child = old_child;
 }
 
 /**
@@ -553,11 +556,11 @@ static void AddChildSpriteToFoundation(SpriteID image, PaletteID pal, const SubS
 void DrawGroundSpriteAt(SpriteID image, PaletteID pal, int32 x, int32 y, int z, const SubSprite *sub, int extra_offs_x, int extra_offs_y)
 {
 	/* Switch to first foundation part, if no foundation was drawn */
-	if (_vd.foundation_part == FOUNDATION_PART_NONE) _vd.foundation_part = FOUNDATION_PART_NORMAL;
+	if (_vd->foundation_part == FOUNDATION_PART_NONE) _vd->foundation_part = FOUNDATION_PART_NORMAL;
 
-	if (_vd.foundation[_vd.foundation_part] != -1) {
+	if (_vd->foundation[_vd->foundation_part] != -1) {
 		Point pt = RemapCoords(x, y, z);
-		AddChildSpriteToFoundation(image, pal, sub, _vd.foundation_part, pt.x + extra_offs_x * ZOOM_LVL_BASE, pt.y + extra_offs_y * ZOOM_LVL_BASE);
+		AddChildSpriteToFoundation(image, pal, sub, _vd->foundation_part, pt.x + extra_offs_x * ZOOM_LVL_BASE, pt.y + extra_offs_y * ZOOM_LVL_BASE);
 	} else {
 		AddTileSpriteToDraw(image, pal, _cur_ti->x + x, _cur_ti->y + y, _cur_ti->z + z, sub, extra_offs_x * ZOOM_LVL_BASE, extra_offs_y * ZOOM_LVL_BASE);
 	}
@@ -588,22 +591,22 @@ void DrawGroundSprite(SpriteID image, PaletteID pal, const SubSprite *sub, int e
 void OffsetGroundSprite(int x, int y)
 {
 	/* Switch to next foundation part */
-	switch (_vd.foundation_part) {
+	switch (_vd->foundation_part) {
 		case FOUNDATION_PART_NONE:
-			_vd.foundation_part = FOUNDATION_PART_NORMAL;
+			_vd->foundation_part = FOUNDATION_PART_NORMAL;
 			break;
 		case FOUNDATION_PART_NORMAL:
-			_vd.foundation_part = FOUNDATION_PART_HALFTILE;
+			_vd->foundation_part = FOUNDATION_PART_HALFTILE;
 			break;
 		default: NOT_REACHED();
 	}
 
-	/* _vd.last_child == nullptr if foundation sprite was clipped by the viewport bounds */
-	if (_vd.last_child != nullptr) _vd.foundation[_vd.foundation_part] = (uint)_vd.parent_sprites_to_draw.size() - 1;
+	/* _vd->last_child == nullptr if foundation sprite was clipped by the viewport bounds */
+	if (_vd->last_child != nullptr) _vd->foundation[_vd->foundation_part] = (uint)_vd->parent_sprites_to_draw.size() - 1;
 
-	_vd.foundation_offset[_vd.foundation_part].x = x * ZOOM_LVL_BASE;
-	_vd.foundation_offset[_vd.foundation_part].y = y * ZOOM_LVL_BASE;
-	_vd.last_foundation_child[_vd.foundation_part] = _vd.last_child;
+	_vd->foundation_offset[_vd->foundation_part].x = x * ZOOM_LVL_BASE;
+	_vd->foundation_offset[_vd->foundation_part].y = y * ZOOM_LVL_BASE;
+	_vd->last_foundation_child[_vd->foundation_part] = _vd->last_child;
 }
 
 /**
@@ -622,13 +625,13 @@ static void AddCombinedSprite(SpriteID image, PaletteID pal, int x, int y, int z
 	Point pt = RemapCoords(x, y, z);
 	const Sprite *spr = GetSprite(image & SPRITE_MASK, ST_NORMAL);
 
-	if (pt.x + spr->x_offs >= _vd.dpi.left + _vd.dpi.width ||
-			pt.x + spr->x_offs + spr->width <= _vd.dpi.left ||
-			pt.y + spr->y_offs >= _vd.dpi.top + _vd.dpi.height ||
-			pt.y + spr->y_offs + spr->height <= _vd.dpi.top)
+	if (pt.x + spr->x_offs >= _vd->dpi.left + _vd->dpi.width ||
+			pt.x + spr->x_offs + spr->width <= _vd->dpi.left ||
+			pt.y + spr->y_offs >= _vd->dpi.top + _vd->dpi.height ||
+			pt.y + spr->y_offs + spr->height <= _vd->dpi.top)
 		return;
 
-	const ParentSpriteToDraw &pstd = _vd.parent_sprites_to_draw.back();
+	const ParentSpriteToDraw &pstd = _vd->parent_sprites_to_draw.back();
 	AddChildSpriteScreen(image, pal, pt.x - pstd.left, pt.y - pstd.top, false, sub, false);
 }
 
@@ -669,12 +672,12 @@ void AddSortableSpriteToDraw(SpriteID image, PaletteID pal, int x, int y, int w,
 		pal = PALETTE_TO_TRANSPARENT;
 	}
 
-	if (_vd.combine_sprites == SPRITE_COMBINE_ACTIVE) {
+	if (_vd->combine_sprites == SPRITE_COMBINE_ACTIVE) {
 		AddCombinedSprite(image, pal, x, y, z, sub);
 		return;
 	}
 
-	_vd.last_child = nullptr;
+	_vd->last_child = nullptr;
 
 	Point pt = RemapCoords(x, y, z);
 	int tmp_left, tmp_top, tmp_x = pt.x, tmp_y = pt.y;
@@ -702,14 +705,14 @@ void AddSortableSpriteToDraw(SpriteID image, PaletteID pal, int x, int y, int w,
 	}
 
 	/* Do not add the sprite to the viewport, if it is outside */
-	if (left   >= _vd.dpi.left + _vd.dpi.width ||
-	    right  <= _vd.dpi.left                 ||
-	    top    >= _vd.dpi.top + _vd.dpi.height ||
-	    bottom <= _vd.dpi.top) {
+	if (left   >= _vd->dpi.left + _vd->dpi.width ||
+	    right  <= _vd->dpi.left                 ||
+	    top    >= _vd->dpi.top + _vd->dpi.height ||
+	    bottom <= _vd->dpi.top) {
 		return;
 	}
 
-	ParentSpriteToDraw &ps = _vd.parent_sprites_to_draw.emplace_back();
+	ParentSpriteToDraw &ps = _vd->parent_sprites_to_draw.emplace_back();
 	ps.x = tmp_x;
 	ps.y = tmp_y;
 
@@ -730,9 +733,9 @@ void AddSortableSpriteToDraw(SpriteID image, PaletteID pal, int x, int y, int w,
 
 	ps.first_child = -1;
 
-	_vd.last_child = &ps.first_child;
+	_vd->last_child = &ps.first_child;
 
-	if (_vd.combine_sprites == SPRITE_COMBINE_PENDING) _vd.combine_sprites = SPRITE_COMBINE_ACTIVE;
+	if (_vd->combine_sprites == SPRITE_COMBINE_PENDING) _vd->combine_sprites = SPRITE_COMBINE_ACTIVE;
 }
 
 /**
@@ -755,8 +758,8 @@ void AddSortableSpriteToDraw(SpriteID image, PaletteID pal, int x, int y, int w,
  */
 void StartSpriteCombine()
 {
-	assert(_vd.combine_sprites == SPRITE_COMBINE_NONE);
-	_vd.combine_sprites = SPRITE_COMBINE_PENDING;
+	assert(_vd->combine_sprites == SPRITE_COMBINE_NONE);
+	_vd->combine_sprites = SPRITE_COMBINE_PENDING;
 }
 
 /**
@@ -765,8 +768,8 @@ void StartSpriteCombine()
  */
 void EndSpriteCombine()
 {
-	assert(_vd.combine_sprites != SPRITE_COMBINE_NONE);
-	_vd.combine_sprites = SPRITE_COMBINE_NONE;
+	assert(_vd->combine_sprites != SPRITE_COMBINE_NONE);
+	_vd->combine_sprites = SPRITE_COMBINE_NONE;
 }
 
 /**
@@ -816,7 +819,7 @@ void AddChildSpriteScreen(SpriteID image, PaletteID pal, int x, int y, bool tran
 	assert((image & SPRITE_MASK) < MAX_SPRITES);
 
 	/* If the ParentSprite was clipped by the viewport bounds, do not draw the ChildSprites either */
-	if (_vd.last_child == nullptr) return;
+	if (_vd->last_child == nullptr) return;
 
 	/* make the sprites transparent with the right palette */
 	if (transparent) {
@@ -824,9 +827,9 @@ void AddChildSpriteScreen(SpriteID image, PaletteID pal, int x, int y, bool tran
 		pal = PALETTE_TO_TRANSPARENT;
 	}
 
-	*_vd.last_child = (uint)_vd.child_screen_sprites_to_draw.size();
+	*_vd->last_child = (uint)_vd->child_screen_sprites_to_draw.size();
 
-	ChildScreenSpriteToDraw &cs = _vd.child_screen_sprites_to_draw.emplace_back();
+	ChildScreenSpriteToDraw &cs = _vd->child_screen_sprites_to_draw.emplace_back();
 	cs.image = image;
 	cs.pal = pal;
 	cs.sub = sub;
@@ -837,15 +840,15 @@ void AddChildSpriteScreen(SpriteID image, PaletteID pal, int x, int y, bool tran
 	/* Append the sprite to the active ChildSprite list.
 	 * If the active ParentSprite is a foundation, update last_foundation_child as well.
 	 * Note: ChildSprites of foundations are NOT sequential in the vector, as selection sprites are added at last. */
-	if (_vd.last_foundation_child[0] == _vd.last_child) _vd.last_foundation_child[0] = &cs.next;
-	if (_vd.last_foundation_child[1] == _vd.last_child) _vd.last_foundation_child[1] = &cs.next;
-	_vd.last_child = &cs.next;
+	if (_vd->last_foundation_child[0] == _vd->last_child) _vd->last_foundation_child[0] = &cs.next;
+	if (_vd->last_foundation_child[1] == _vd->last_child) _vd->last_foundation_child[1] = &cs.next;
+	_vd->last_child = &cs.next;
 }
 
 static void AddStringToDraw(int x, int y, StringID string, uint64 params_1, uint64 params_2, Colours colour, uint16 width)
 {
 	assert(width != 0);
-	StringSpriteToDraw &ss = _vd.string_sprites_to_draw.emplace_back();
+	StringSpriteToDraw &ss = _vd->string_sprites_to_draw.emplace_back();
 	ss.string = string;
 	ss.x = x;
 	ss.y = y;
@@ -870,7 +873,7 @@ static void AddStringToDraw(int x, int y, StringID string, uint64 params_1, uint
 static void DrawSelectionSprite(SpriteID image, PaletteID pal, const TileInfo *ti, int z_offset, FoundationPart foundation_part)
 {
 	/* FIXME: This is not totally valid for some autorail highlights that extend over the edges of the tile. */
-	if (_vd.foundation[foundation_part] == -1) {
+	if (_vd->foundation[foundation_part] == -1) {
 		/* draw on real ground */
 		AddTileSpriteToDraw(image, pal, ti->x, ti->y, ti->z + z_offset);
 	} else {
@@ -1164,11 +1167,11 @@ static int GetViewportY(Point tile)
  */
 static void ViewportAddLandscape()
 {
-	assert(_vd.dpi.top <= _vd.dpi.top + _vd.dpi.height);
-	assert(_vd.dpi.left <= _vd.dpi.left + _vd.dpi.width);
+	assert(_vd->dpi.top <= _vd->dpi.top + _vd->dpi.height);
+	assert(_vd->dpi.left <= _vd->dpi.left + _vd->dpi.width);
 
-	Point upper_left = InverseRemapCoords(_vd.dpi.left, _vd.dpi.top);
-	Point upper_right = InverseRemapCoords(_vd.dpi.left + _vd.dpi.width, _vd.dpi.top);
+	Point upper_left = InverseRemapCoords(_vd->dpi.left, _vd->dpi.top);
+	Point upper_right = InverseRemapCoords(_vd->dpi.left + _vd->dpi.width, _vd->dpi.top);
 
 	/* Transformations between tile coordinates and viewport rows/columns: See vp_column_row
 	 *   column = y - x
@@ -1231,14 +1234,14 @@ static void ViewportAddLandscape()
 
 			int viewport_y = GetViewportY(tilecoord);
 
-			if (viewport_y + MAX_TILE_EXTENT_BOTTOM < _vd.dpi.top) {
+			if (viewport_y + MAX_TILE_EXTENT_BOTTOM < _vd->dpi.top) {
 				/* The tile in this column is not visible yet.
 				 * Tiles in other columns may be visible, but we need more rows in any case. */
 				last_row = false;
 				continue;
 			}
 
-			int min_visible_height = viewport_y - (_vd.dpi.top + _vd.dpi.height);
+			int min_visible_height = viewport_y - (_vd->dpi.top + _vd->dpi.height);
 			bool tile_visible = min_visible_height <= 0;
 
 			if (tile_type != MP_VOID) {
@@ -1263,11 +1266,11 @@ static void ViewportAddLandscape()
 
 			if (tile_visible) {
 				last_row = false;
-				_vd.foundation_part = FOUNDATION_PART_NONE;
-				_vd.foundation[0] = -1;
-				_vd.foundation[1] = -1;
-				_vd.last_foundation_child[0] = nullptr;
-				_vd.last_foundation_child[1] = nullptr;
+				_vd->foundation_part = FOUNDATION_PART_NONE;
+				_vd->foundation[0] = -1;
+				_vd->foundation[1] = -1;
+				_vd->last_foundation_child[0] = nullptr;
+				_vd->last_foundation_child[1] = nullptr;
 
 				_tile_type_procs[tile_type]->draw_tile_proc(&tile_info);
 				if (tile_info.tile != INVALID_TILE) DrawTileSelection(&tile_info);
@@ -1713,73 +1716,92 @@ static void ViewportDrawStrings(ZoomLevel zoom, const StringSpriteToDrawVector *
 
 void ViewportDoDraw(const Viewport *vp, int left, int top, int right, int bottom)
 {
-	DrawPixelInfo *old_dpi = _cur_dpi;
-	_cur_dpi = &_vd.dpi;
+	_vd = &_vd_queue.emplace_back();
 
-	_vd.dpi.zoom = vp->zoom;
+	DrawPixelInfo *old_dpi = _cur_dpi;
+	_cur_dpi = &_vd->dpi;
+
+	_vd->dpi.zoom = vp->zoom;
 	int mask = ScaleByZoom(-1, vp->zoom);
 
-	_vd.combine_sprites = SPRITE_COMBINE_NONE;
+	_vd->combine_sprites = SPRITE_COMBINE_NONE;
 
-	_vd.dpi.width = (right - left) & mask;
-	_vd.dpi.height = (bottom - top) & mask;
-	_vd.dpi.left = left & mask;
-	_vd.dpi.top = top & mask;
-	_vd.dpi.pitch = old_dpi->pitch;
-	_vd.last_child = nullptr;
+	_vd->dpi.width = (right - left) & mask;
+	_vd->dpi.height = (bottom - top) & mask;
+	_vd->dpi.left = left & mask;
+	_vd->dpi.top = top & mask;
+	_vd->dpi.pitch = old_dpi->pitch;
+	_vd->last_child = nullptr;
 
-	int x = UnScaleByZoom(_vd.dpi.left - (vp->virtual_left & mask), vp->zoom) + vp->left;
-	int y = UnScaleByZoom(_vd.dpi.top - (vp->virtual_top & mask), vp->zoom) + vp->top;
+	int x = UnScaleByZoom(_vd->dpi.left - (vp->virtual_left & mask), vp->zoom) + vp->left;
+	int y = UnScaleByZoom(_vd->dpi.top - (vp->virtual_top & mask), vp->zoom) + vp->top;
 
-	_vd.dpi.dst_ptr = BlitterFactory::GetCurrentBlitter()->MoveTo(old_dpi->dst_ptr, x - old_dpi->left, y - old_dpi->top);
+	_vd->x = x;
+	_vd->y = y;
+	_vd->vp = vp;
+
+	_vd->dpi.dst_ptr = BlitterFactory::GetCurrentBlitter()->MoveTo(old_dpi->dst_ptr, x - old_dpi->left, y - old_dpi->top);
 
 	ViewportAddLandscape();
-	ViewportAddVehicles(&_vd.dpi);
+	ViewportAddVehicles(&_vd->dpi);
 
-	ViewportAddKdtreeSigns(&_vd.dpi);
+	ViewportAddKdtreeSigns(&_vd->dpi);
 
-	DrawTextEffects(&_vd.dpi);
+	DrawTextEffects(&_vd->dpi);
 
-	if (_vd.tile_sprites_to_draw.size() != 0) ViewportDrawTileSprites(&_vd.tile_sprites_to_draw);
+	_cur_dpi = old_dpi;
+}
 
-	for (auto &psd : _vd.parent_sprites_to_draw) {
-		_vd.parent_sprites_to_sort.push_back(&psd);
+static void ViewportDoBlitter(ViewportDrawer &vd)
+{
+	_vd = &vd;
+	DrawPixelInfo *old_dpi = _cur_dpi;
+	_cur_dpi = &vd.dpi;
+
+	if (vd.tile_sprites_to_draw.size() != 0) ViewportDrawTileSprites(&vd.tile_sprites_to_draw);
+
+	ParentSpriteToSortVector parent_sprites_to_sort = {};
+
+	for (auto &psd : vd.parent_sprites_to_draw) {
+		parent_sprites_to_sort.push_back(&psd);
 	}
 
-	_vp_sprite_sorter(&_vd.parent_sprites_to_sort);
-	ViewportDrawParentSprites(&_vd.parent_sprites_to_sort, &_vd.child_screen_sprites_to_draw);
+	_vp_sprite_sorter(&parent_sprites_to_sort);
+	ViewportDrawParentSprites(&parent_sprites_to_sort, &vd.child_screen_sprites_to_draw);
 
-	if (_draw_bounding_boxes) ViewportDrawBoundingBoxes(&_vd.parent_sprites_to_sort);
+	if (_draw_bounding_boxes) ViewportDrawBoundingBoxes(&parent_sprites_to_sort);
 	if (_draw_dirty_blocks) ViewportDrawDirtyBlocks();
 
-	DrawPixelInfo dp = _vd.dpi;
-	ZoomLevel zoom = _vd.dpi.zoom;
+	DrawPixelInfo dp = vd.dpi;
+	ZoomLevel zoom = vd.dpi.zoom;
 	dp.zoom = ZOOM_LVL_NORMAL;
 	dp.width = UnScaleByZoom(dp.width, zoom);
 	dp.height = UnScaleByZoom(dp.height, zoom);
 	_cur_dpi = &dp;
 
-	if (vp->overlay != nullptr && vp->overlay->GetCargoMask() != 0 && vp->overlay->GetCompanyMask() != 0) {
+	if (vd.vp->overlay != nullptr && vd.vp->overlay->GetCargoMask() != 0 && vd.vp->overlay->GetCompanyMask() != 0) {
 		/* translate to window coordinates */
-		dp.left = x;
-		dp.top = y;
-		vp->overlay->Draw(&dp);
+		dp.left = vd.x;
+		dp.top = vd.y;
+		vd.vp->overlay->Draw(&dp);
 	}
 
-	if (_vd.string_sprites_to_draw.size() != 0) {
+	if (vd.string_sprites_to_draw.size() != 0) {
 		/* translate to world coordinates */
-		dp.left = UnScaleByZoom(_vd.dpi.left, zoom);
-		dp.top = UnScaleByZoom(_vd.dpi.top, zoom);
-		ViewportDrawStrings(zoom, &_vd.string_sprites_to_draw);
+		dp.left = UnScaleByZoom(vd.dpi.left, zoom);
+		dp.top = UnScaleByZoom(vd.dpi.top, zoom);
+		ViewportDrawStrings(zoom, &vd.string_sprites_to_draw);
 	}
 
 	_cur_dpi = old_dpi;
+}
 
-	_vd.string_sprites_to_draw.clear();
-	_vd.tile_sprites_to_draw.clear();
-	_vd.parent_sprites_to_draw.clear();
-	_vd.parent_sprites_to_sort.clear();
-	_vd.child_screen_sprites_to_draw.clear();
+void ViewportDoBlitterAll()
+{
+	for (auto &vd : _vd_queue) {
+		ViewportDoBlitter(vd);
+	}
+	_vd_queue.clear();
 }
 
 static inline void ViewportDraw(const Viewport *vp, int left, int top, int right, int bottom)

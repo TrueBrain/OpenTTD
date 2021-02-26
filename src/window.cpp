@@ -3199,12 +3199,12 @@ void UpdateWindows()
 		}
 	}
 
-	DrawDirtyBlocks();
-
 	FOR_ALL_WINDOWS_FROM_BACK(w) {
 		/* Update viewport only if window is not shaded. */
 		if (w->viewport != nullptr && !w->IsShaded()) UpdateViewportPosition(w);
 	}
+	DrawDirtyBlocks();
+
 	NetworkDrawChatMessage();
 	/* Redraw mouse cursor in case it was hidden */
 	DrawMouseCursor();

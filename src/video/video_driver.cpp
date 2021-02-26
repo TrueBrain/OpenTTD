@@ -105,9 +105,16 @@ void VideoDriver::Tick()
 
 			/* Prevent drawing when switching mode, as windows can be removed when they should still appear. */
 			if (_switch_mode == SM_NONE || HasModalProgress()) {
+				TICC();
 				::UpdateWindows();
+				TOCC("update", 100);
 			}
 		}
+
+		TICC();
+		extern void ViewportDoBlitterAll();
+		ViewportDoBlitterAll();
+		TOCC("blitter", 100);
 
 		this->CheckPaletteAnim();
 		this->Paint();
