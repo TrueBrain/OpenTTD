@@ -40,10 +40,17 @@ void VideoDriver::GameLoop()
 void VideoDriver::GameThread()
 {
 	while (!_exit_game) {
-		this->GameLoop();
+		if (std::chrono::steady_clock::now() >= this->next_game_tick) {
+			this->GameLoop();
+		}
 
 		auto now = std::chrono::steady_clock::now();
+#ifdef _WIN32
+		/* Resolution of sleep_for() on Windows is ~2ms, so don't try to sleep anything shorter. */
+		if (std::chrono::duration_cast<std::chrono::milliseconds>(this->next_game_tick - now).count() > 2) {
+#else
 		if (this->next_game_tick > now) {
+#endif
 			std::this_thread::sleep_for(this->next_game_tick - now);
 		} else {
 			/* Ensure we yield this thread if drawings wants to take a lock on
@@ -190,7 +197,12 @@ void VideoDriver::SleepTillNextTick()
 		next_tick = min(next_tick, this->next_game_tick);
 	}
 
+#ifdef _WIN32
+	/* Resolution of sleep_for() on Windows is ~2ms, so don't try to sleep anything shorter. */
+	if (std::chrono::duration_cast<std::chrono::milliseconds>(next_tick - now).count() > 2) {
+#else
 	if (next_tick > now) {
+#endif
 		std::this_thread::sleep_for(next_tick - now);
 	}
 }
