@@ -31,16 +31,21 @@ private:
 	char hostname[NETWORK_HOSTNAME_LENGTH]; ///< The hostname
 	int address_length;                     ///< The length of the resolved address
 	sockaddr_storage address;               ///< The resolved address
+	bool connect_blocking;                  ///< Whether Connect() should be blocking or not.
+	int connect_bind_address_length;        ///< The length of connect_bind_address.
+	sockaddr_storage connect_bind_address;  ///< Where to bind the connecting socket to.
 	bool resolved;                          ///< Whether the address has been (tried to be) resolved
 
 	/**
 	 * Helper function to resolve something to a socket.
 	 * @param runp information about the socket to try not
+	 * @param source the source NetworkAddress being resolved
 	 * @return the opened socket or INVALID_SOCKET
 	 */
-	typedef SOCKET (*LoopProc)(addrinfo *runp);
+	typedef SOCKET (*LoopProc)(addrinfo *runp, NetworkAddress *source);
 
 	SOCKET Resolve(int family, int socktype, int flags, SocketList *sockets, LoopProc func);
+
 public:
 	/**
 	 * Create a network address based on a resolved IP and port.
@@ -50,6 +55,8 @@ public:
 	NetworkAddress(struct sockaddr_storage &address, int address_length) :
 		address_length(address_length),
 		address(address),
+		connect_blocking(true),
+		connect_bind_address_length(0),
 		resolved(address_length != 0)
 	{
 		*this->hostname = '\0';
@@ -62,6 +69,8 @@ public:
 	 */
 	NetworkAddress(sockaddr *address, int address_length) :
 		address_length(address_length),
+		connect_blocking(true),
+		connect_bind_address_length(0),
 		resolved(address_length != 0)
 	{
 		*this->hostname = '\0';
@@ -77,6 +86,8 @@ public:
 	 */
 	NetworkAddress(const char *hostname = "", uint16 port = 0, int family = AF_UNSPEC) :
 		address_length(0),
+		connect_blocking(true),
+		connect_bind_address_length(0),
 		resolved(false)
 	{
 		/* Also handle IPv6 bracket enclosed hostnames */
@@ -109,6 +120,30 @@ public:
 
 	uint16 GetPort() const;
 	void SetPort(uint16 port);
+
+	/**
+	 * Set if Connect() should be blocking or not.
+	 */
+	void SetConnectBlocking(bool blocking) { this->connect_blocking = blocking; }
+
+	/** Get whether Connect() should be blocking. */
+	bool GetConnectBlocking() { return this->connect_blocking; }
+
+	/**
+	 * Set if and to what address Connect() should bind before connecting.
+	 */
+	void SetConnectBindAddress(NetworkAddress bind) {
+		this->connect_bind_address = *bind.GetAddress();
+		this->connect_bind_address_length = bind.GetAddressLength();
+	}
+
+	/**
+	 * Get the bind address for Connect().
+	 */
+	void GetConnectBindAddress(const sockaddr **bind_address, int *bind_address_length) {
+		*bind_address = (sockaddr *)&this->connect_bind_address;
+		*bind_address_length = this->connect_bind_address_length;
+	}
 
 	/**
 	 * Check whether the IP address has been resolved already

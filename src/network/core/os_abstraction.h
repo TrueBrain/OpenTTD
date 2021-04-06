@@ -193,6 +193,24 @@ static inline bool SetNonBlocking(SOCKET d)
 }
 
 /**
+ * Try to set the socket to reuse ports.
+ * @param d The socket to reuse ports on.
+ * @return True if disabling the delaying succeeded, otherwise false.
+ */
+static inline bool SetReusePort(SOCKET d)
+{
+	int b = 1;
+
+#ifdef _WIN32
+	/* Windows has no SO_REUSEPORT but for our usecase SO_REUSEADDR does the same job. */
+	return setsockopt(d, SOL_SOCKET, SO_REUSEADDR, (const char*)&b, sizeof(b)) == 0;
+#else
+	/* SO_REUSEADDR doesn't work for our usecase on Linux, so SO_REUSEPORT has to be used. */
+	return setsockopt(d, SOL_SOCKET, SO_REUSEPORT, (const char*)&b, sizeof(b)) == 0;
+#endif
+}
+
+/**
  * Try to set the socket to not delay sending.
  * @param d The socket to disable the delaying for.
  * @return True if disabling the delaying succeeded, otherwise false.

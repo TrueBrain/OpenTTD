@@ -108,9 +108,10 @@ std::string NetworkAddress::GetAddressAsString(bool with_family)
 /**
  * Helper function to resolve without opening a socket.
  * @param runp information about the socket to try not
+ * @param source the source NetworkAddress being resolved
  * @return the opened socket or INVALID_SOCKET
  */
-static SOCKET ResolveLoopProc(addrinfo *runp)
+static SOCKET ResolveLoopProc(addrinfo *runp, NetworkAddress *source)
 {
 	/* We just want the first 'entry', so return a valid socket. */
 	return !INVALID_SOCKET;
@@ -271,7 +272,8 @@ SOCKET NetworkAddress::Resolve(int family, int socktype, int flags, SocketList *
 			NetworkAddress address(runp->ai_addr, (int)runp->ai_addrlen);
 			if (sockets->Contains(address)) continue;
 		}
-		sock = func(runp);
+
+		sock = func(runp, this);
 		if (sock == INVALID_SOCKET) continue;
 
 		if (sockets == nullptr) {
@@ -305,9 +307,10 @@ SOCKET NetworkAddress::Resolve(int family, int socktype, int flags, SocketList *
 /**
  * Helper function to resolve a connected socket.
  * @param runp information about the socket to try not
+ * @param source the source NetworkAddress being resolved
  * @return the opened socket or INVALID_SOCKET
  */
-static SOCKET ConnectLoopProc(addrinfo *runp)
+static SOCKET ConnectLoopProc(addrinfo *runp, NetworkAddress *source)
 {
 	const char *type = NetworkAddress::SocketTypeAsString(runp->ai_socktype);
 	const char *family = NetworkAddress::AddressFamilyAsString(runp->ai_family);
@@ -322,14 +325,26 @@ static SOCKET ConnectLoopProc(addrinfo *runp)
 
 	if (!SetNoDelay(sock)) DEBUG(net, 1, "[%s] setting TCP_NODELAY failed", type);
 
+	SetReusePort(sock);
+
+	const sockaddr *bind_address;
+	int bind_address_length;
+	source->GetConnectBindAddress(&bind_address, &bind_address_length);
+
+	if (bind_address_length != 0) {
+		if (bind(sock, bind_address, bind_address_length) != 0) {
+			DEBUG(net, 1, "[%s] could not bind: %s", type, strerror(errno));
+			closesocket(sock);
+			return INVALID_SOCKET;
+		}
+	}
+
+	if (!source->GetConnectBlocking()) {
+		if (!SetNonBlocking(sock)) DEBUG(net, 0, "[%s] setting non-blocking mode failed", type);
+	}
+
 	int err = connect(sock, runp->ai_addr, (int)runp->ai_addrlen);
-#ifdef __EMSCRIPTEN__
-	/* Emscripten is asynchronous, and as such a connect() is still in
-	 * progress by the time the call returns. */
 	if (err != 0 && errno != EINPROGRESS)
-#else
-	if (err != 0)
-#endif
 	{
 		DEBUG(net, 1, "[%s] could not connect %s socket: %s", type, family, strerror(errno));
 		closesocket(sock);
@@ -337,9 +352,10 @@ static SOCKET ConnectLoopProc(addrinfo *runp)
 	}
 
 	/* Connection succeeded */
-	if (!SetNonBlocking(sock)) DEBUG(net, 0, "[%s] setting non-blocking mode failed", type);
-
-	DEBUG(net, 1, "[%s] connected to %s", type, address);
+	if (source->GetConnectBlocking()) {
+		if (!SetNonBlocking(sock)) DEBUG(net, 0, "[%s] setting non-blocking mode failed", type);
+		DEBUG(net, 1, "[%s] connected to %s", type, address);
+	}
 
 	return sock;
 }
@@ -358,9 +374,10 @@ SOCKET NetworkAddress::Connect()
 /**
  * Helper function to resolve a listening.
  * @param runp information about the socket to try not
+ * @param source the source NetworkAddress being resolved
  * @return the opened socket or INVALID_SOCKET
  */
-static SOCKET ListenLoopProc(addrinfo *runp)
+static SOCKET ListenLoopProc(addrinfo *runp, NetworkAddress *source)
 {
 	const char *type = NetworkAddress::SocketTypeAsString(runp->ai_socktype);
 	const char *family = NetworkAddress::AddressFamilyAsString(runp->ai_family);
@@ -382,6 +399,8 @@ static SOCKET ListenLoopProc(addrinfo *runp)
 	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const char*)&on, sizeof(on)) == -1) {
 		DEBUG(net, 3, "[%s] could not set reusable %s sockets for port %s: %s", type, family, address, strerror(errno));
 	}
+
+	SetReusePort(sock);
 
 #ifndef __OS2__
 	if (runp->ai_family == AF_INET6 &&

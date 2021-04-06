@@ -16,6 +16,8 @@
 #include "network_client.h"
 #include "network_server.h"
 #include "network_content.h"
+#include "network_stun.h"
+#include "network_coordinator.h"
 #include "network_udp.h"
 #include "network_gamelist.h"
 #include "network_base.h"
@@ -676,7 +678,9 @@ void NetworkClientConnectGame(NetworkAddress address, CompanyID join_as, const c
 	_network_join_status = NETWORK_JOIN_STATUS_CONNECTING;
 	ShowJoinStatusWindow();
 
-	new TCPClientConnecter(address);
+	_network_coordinator_client.Join(address.GetHostname());
+
+//	new TCPClientConnecter(address);
 }
 
 static void NetworkInitGameInfo()
@@ -737,10 +741,6 @@ bool NetworkServerStart()
 	IConsoleCmdExec("exec scripts/on_server.scr 0");
 	/* if the server is dedicated ... add some other script */
 	if (_network_dedicated) IConsoleCmdExec("exec scripts/on_dedicated.scr 0");
-
-	/* Try to register us to the master server */
-	_network_need_advertise = true;
-	NetworkUDPAdvertise();
 
 	/* welcome possibly still connected admins - this can only happen on a dedicated server. */
 	if (_network_dedicated) ServerNetworkAdminSocketHandler::WelcomeAll();
@@ -833,6 +833,8 @@ static void NetworkSend()
 void NetworkBackgroundLoop()
 {
 	_network_content_client.SendReceive();
+	_network_stun_client.SendReceive();
+	_network_coordinator_client.SendReceive();
 	TCPConnecter::CheckCallbacks();
 	NetworkHTTPSocketHandler::HTTPReceive();
 

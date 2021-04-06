@@ -17,11 +17,15 @@ add_files(
     tcp_connect.cpp
     tcp_content.cpp
     tcp_content.h
+    tcp_coordinator.cpp
+    tcp_coordinator.h
     tcp_game.cpp
     tcp_game.h
     tcp_http.cpp
     tcp_http.h
     tcp_listen.h
+    tcp_stun.cpp
+    tcp_stun.h
     udp.cpp
     udp.h
 )

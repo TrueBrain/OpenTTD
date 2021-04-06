@@ -30,6 +30,41 @@ class TCPListenHandler {
 	static SocketList sockets;
 
 public:
+	static bool ValidateClient(SOCKET s, NetworkAddress &address)
+	{
+		/* Check if the client is banned */
+		for (const auto &entry : _network_ban_list) {
+			if (address.IsInNetmask(entry.c_str())) {
+				Packet p(Tban_packet);
+				p.PrepareToSend();
+
+				DEBUG(net, 1, "[%s] Banned ip tried to join (%s), refused", Tsocket::GetName(), entry.c_str());
+
+				if (send(s, (const char*)p.buffer, p.size, 0) < 0) {
+					DEBUG(net, 0, "send failed with error %d", GET_LAST_ERROR());
+				}
+				closesocket(s);
+				return false;
+			}
+		}
+
+		/* Can we handle a new client? */
+		if (!Tsocket::AllowConnection()) {
+			/* no more clients allowed?
+				* Send to the client that we are full! */
+			Packet p(Tfull_packet);
+			p.PrepareToSend();
+
+			if (send(s, (const char*)p.buffer, p.size, 0) < 0) {
+				DEBUG(net, 0, "send failed with error %d", GET_LAST_ERROR());
+			}
+			closesocket(s);
+			return false;
+		}
+
+		return true;
+	}
+
 	/**
 	 * Accepts clients from the sockets.
 	 * @param ls Socket to accept clients from.
@@ -53,41 +88,7 @@ public:
 
 			SetNoDelay(s); // XXX error handling?
 
-			/* Check if the client is banned */
-			bool banned = false;
-			for (const auto &entry : _network_ban_list) {
-				banned = address.IsInNetmask(entry.c_str());
-				if (banned) {
-					Packet p(Tban_packet);
-					p.PrepareToSend();
-
-					DEBUG(net, 1, "[%s] Banned ip tried to join (%s), refused", Tsocket::GetName(), entry.c_str());
-
-					if (send(s, (const char*)p.buffer, p.size, 0) < 0) {
-						DEBUG(net, 0, "send failed with error %d", GET_LAST_ERROR());
-					}
-					closesocket(s);
-					break;
-				}
-			}
-			/* If this client is banned, continue with next client */
-			if (banned) continue;
-
-			/* Can we handle a new client? */
-			if (!Tsocket::AllowConnection()) {
-				/* no more clients allowed?
-				 * Send to the client that we are full! */
-				Packet p(Tfull_packet);
-				p.PrepareToSend();
-
-				if (send(s, (const char*)p.buffer, p.size, 0) < 0) {
-					DEBUG(net, 0, "send failed with error %d", GET_LAST_ERROR());
-				}
-				closesocket(s);
-
-				continue;
-			}
-
+			if (!Tsocket::ValidateClient(s, address)) continue;
 			Tsocket::AcceptConnection(s, address);
 		}
 	}
@@ -155,6 +156,12 @@ public:
 			return false;
 		}
 
+		return true;
+	}
+
+	static bool Listen(NetworkAddress &address)
+	{
+		address.Listen(SOCK_STREAM, &sockets);
 		return true;
 	}
 
