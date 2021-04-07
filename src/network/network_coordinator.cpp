@@ -45,6 +45,7 @@ public:
 	{
 		if (_network_server) {
 			if (!ServerNetworkGameSocketHandler::ValidateClient(s, address)) return;
+			DEBUG(net, 1, "[%s] Client connected from %s via STUN on frame %d", ServerNetworkGameSocketHandler::GetName(), address.GetHostname(), _frame_counter);
 			ServerNetworkGameSocketHandler::AcceptConnection(s, address);
 		} else {
 			_networking = true;
@@ -67,7 +68,6 @@ public:
 	void OnFailure() override
 	{
 		_network_coordinator_client.connecting = false;
-		DEBUG(misc, 0, "Failure");
 		_network_coordinator_client.CloseConnection(true);
 	}
 
@@ -77,7 +77,6 @@ public:
 
         _network_coordinator_client.sock = s;
 		_network_coordinator_client.connecting = false;
-		DEBUG(misc, 0, "Connected");
 	}
 };
 

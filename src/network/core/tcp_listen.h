@@ -159,12 +159,6 @@ public:
 		return true;
 	}
 
-	static bool Listen(NetworkAddress &address)
-	{
-		address.Listen(SOCK_STREAM, &sockets);
-		return true;
-	}
-
 	/** Close the sockets we're listening on. */
 	static void CloseListeners()
 	{

@@ -678,9 +678,11 @@ void NetworkClientConnectGame(NetworkAddress address, CompanyID join_as, const c
 	_network_join_status = NETWORK_JOIN_STATUS_CONNECTING;
 	ShowJoinStatusWindow();
 
-	_network_coordinator_client.Join(address.GetHostname());
-
-//	new TCPClientConnecter(address);
+	if (address.GetHostname()[0] == '+') {
+		_network_coordinator_client.Join(address.GetHostname() + 1);
+	} else {
+		new TCPClientConnecter(address);
+	}
 }
 
 static void NetworkInitGameInfo()
