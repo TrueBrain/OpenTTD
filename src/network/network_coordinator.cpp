@@ -34,7 +34,7 @@ private:
 	std::string token;
 
 public:
-	TCPDirectConnecter(const NetworkAddress &address, std::string token) : TCPConnecter(address), token(token) {}
+	TCPDirectConnecter(const NetworkAddress &address, std::string token) : TCPConnecter(address), token(token) { }
 
 	void OnFailure() override
 	{
@@ -113,6 +113,9 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_STUN_PEER(Packet *p)
 
 	NetworkAddress address = NetworkAddress(host, port);
 	address.SetConnectBindAddress(_network_stun_client.local_addr);
+
+	/* Close the TCP to the STUN and immediately start a new connection from the same local address. */
+	_network_stun_client.CloseConnection(false);
 	new TCPDirectConnecter(address, std::string(token));
 
 	return true;

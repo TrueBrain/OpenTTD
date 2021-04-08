@@ -344,8 +344,7 @@ static SOCKET ConnectLoopProc(addrinfo *runp, NetworkAddress *source)
 	}
 
 	int err = connect(sock, runp->ai_addr, (int)runp->ai_addrlen);
-	if (err != 0 && errno != EINPROGRESS)
-	{
+	if (err != 0 && errno != EINPROGRESS) {
 		DEBUG(net, 1, "[%s] could not connect %s socket: %s", type, family, strerror(errno));
 		closesocket(sock);
 		return INVALID_SOCKET;

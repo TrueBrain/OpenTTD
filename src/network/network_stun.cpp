@@ -96,8 +96,5 @@ void ClientNetworkStunSocketHandler::SendReceive()
 		this->ReceivePackets();
 	}
 
-	/* If we have sent all packets, close the connection. */
-	if (this->SendPackets() == SPS_ALL_SENT) {
-		this->Close();
-	}
+	this->SendPackets();
 }
