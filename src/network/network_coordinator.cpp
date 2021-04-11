@@ -52,6 +52,7 @@ public:
 			ServerNetworkGameSocketHandler::AcceptConnection(s, address);
 		} else {
 			_networking = true;
+			_network_join_as = COMPANY_NEW_COMPANY;
 			new ClientNetworkGameSocketHandler(s);
 			IConsoleCmdExec("exec scripts/on_client.scr 0");
 			NetworkClient_Connected();
