@@ -739,7 +739,7 @@ public:
 			}
 
 			case WID_NG_SEARCH_INTERNET:
-				NetworkUDPQueryMasterServer();
+				_network_coordinator_client.GetListing();
 				break;
 
 			case WID_NG_SEARCH_LAN:
@@ -1574,10 +1574,11 @@ struct NetworkLobbyWindow : public Window {
 				break;
 
 			case WID_NL_REFRESH:  // Refresh
-				NetworkTCPQueryServer(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port)); // company info
-				NetworkUDPQueryServer(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port)); // general data
+				// TODO -- Allow for this via GameCoordinator
+				//NetworkTCPQueryServer(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port)); // company info
+				//NetworkUDPQueryServer(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port)); // general data
 				/* Clear the information so removed companies don't remain */
-				for (auto &company : this->company_info) company = {};
+				//for (auto &company : this->company_info) company = {};
 				break;
 		}
 	}
@@ -1643,8 +1644,9 @@ static void ShowNetworkLobbyWindow(NetworkGameList *ngl)
 	DeleteWindowById(WC_NETWORK_WINDOW, WN_NETWORK_WINDOW_START);
 	DeleteWindowById(WC_NETWORK_WINDOW, WN_NETWORK_WINDOW_GAME);
 
-	NetworkTCPQueryServer(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port)); // company info
-	NetworkUDPQueryServer(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port)); // general data
+	// TODO -- This shouldn't be needed for general data, but possibly for company info it is
+//	NetworkTCPQueryServer(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port)); // company info
+//	NetworkUDPQueryServer(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port)); // general data
 
 	new NetworkLobbyWindow(&_network_lobby_window_desc, ngl);
 }

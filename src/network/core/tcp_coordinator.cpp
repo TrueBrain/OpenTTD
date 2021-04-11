@@ -10,6 +10,7 @@
  */
 
 #include "../../stdafx.h"
+#include "../../date_func.h"
 #include "tcp_coordinator.h"
 
 #include "../../safeguards.h"
@@ -37,6 +38,8 @@ bool NetworkCoordinatorSocketHandler::HandlePacket(Packet *p)
 		case PACKET_COORDINATOR_CLIENT_REGISTER:     return this->Receive_CLIENT_REGISTER(p);
 		case PACKET_COORDINATOR_SERVER_REGISTER_ACK: return this->Receive_SERVER_REGISTER_ACK(p);
 		case PACKET_COORDINATOR_CLIENT_UPDATE:       return this->Receive_CLIENT_UPDATE(p);
+		case PACKET_COORDINATOR_CLIENT_LISTING:      return this->Receive_CLIENT_LISTING(p);
+		case PACKET_COORDINATOR_SERVER_LISTING:      return this->Receive_SERVER_LISTING(p);
 		case PACKET_COORDINATOR_CLIENT_JOIN:         return this->Receive_CLIENT_JOIN(p);
 		case PACKET_COORDINATOR_SERVER_STUN_REQUEST: return this->Receive_SERVER_STUN_REQUEST(p);
 		case PACKET_COORDINATOR_SERVER_STUN_PEER:    return this->Receive_SERVER_STUN_PEER(p);
@@ -66,6 +69,40 @@ bool NetworkCoordinatorSocketHandler::ReceivePackets()
 	return i != MAX_PACKETS_TO_RECEIVE - 1;
 }
 
+void NetworkCoordinatorSocketHandler::ReceiveNetworkGameInfo(Packet *p, NetworkGameInfo *info)
+{
+	static const Date MAX_DATE = ConvertYMDToDate(MAX_YEAR, 11, 31); // December is month 11
+
+	uint8 newgrf_count = p->Recv_uint8();
+
+	for (; newgrf_count > 0; newgrf_count--) {
+		GRFIdentifier c;
+		this->ReceiveGRFIdentifier(p, &c);
+		// TODO -- Do something with this
+	}
+
+	info->game_date = Clamp(p->Recv_uint32(), 0, MAX_DATE);
+	info->start_date = Clamp(p->Recv_uint32(), 0, MAX_DATE);
+
+	info->companies_max = p->Recv_uint8();
+	info->companies_on = p->Recv_uint8();
+	info->clients_max = p->Recv_uint8();
+	info->clients_on = p->Recv_uint8();
+	info->spectators_max = p->Recv_uint8();
+	info->spectators_on = p->Recv_uint8();
+
+	p->Recv_string(info->server_name, sizeof(info->server_name));
+	p->Recv_string(info->server_revision, sizeof(info->server_revision));
+	info->use_password = p->Recv_bool();
+	info->dedicated = p->Recv_bool();
+
+	info->map_width = p->Recv_uint16();
+	info->map_height = p->Recv_uint16();
+	info->map_set = p->Recv_uint8();
+
+	if (info->map_set >= NETWORK_NUM_LANDSCAPES) info->map_set = 0;
+}
+
 /**
  * Serializes the NetworkGameInfo struct to the packet
  * @param p    the packet to write the data to
@@ -73,20 +110,10 @@ bool NetworkCoordinatorSocketHandler::ReceivePackets()
  */
 void NetworkCoordinatorSocketHandler::SendNetworkGameInfo(Packet *p, const NetworkGameInfo *info)
 {
-	p->Send_uint8 (NETWORK_GAME_INFO_VERSION);
+	p->Send_uint8(NETWORK_GAME_COORDINATOR_VERSION);
 
-	/*
-	 *              Please observe the order.
-	 * The parts must be read in the same order as they are sent!
-	 */
-
-	/* Update the documentation in tcp_coordinator.h on changes
-	 * to the NetworkGameInfo wire-protocol in Receive_CLIENT_UPDATE(). */
-
-	/* NETWORK_GAME_INFO_VERSION = 5 */
 	p->Send_string(info->join_key);
 
-	/* NETWORK_GAME_INFO_VERSION = 4 */
 	{
 		/* Only send the GRF Identification (GRF_ID and MD5 checksum) of
 		 * the GRFs that are needed, i.e. the ones that the server has
@@ -107,28 +134,24 @@ void NetworkCoordinatorSocketHandler::SendNetworkGameInfo(Packet *p, const Netwo
 		}
 	}
 
-	/* NETWORK_GAME_INFO_VERSION = 3 */
 	p->Send_uint32(info->game_date);
 	p->Send_uint32(info->start_date);
 
-	/* NETWORK_GAME_INFO_VERSION = 2 */
 	p->Send_uint8 (info->companies_max);
 	p->Send_uint8 (info->companies_on);
-	p->Send_uint8 (info->spectators_max);
-
-	/* NETWORK_GAME_INFO_VERSION = 1 */
-	p->Send_string(info->server_name);
-	p->Send_string(info->server_revision);
-	p->Send_uint8 (info->server_lang);
-	p->Send_bool  (info->use_password);
 	p->Send_uint8 (info->clients_max);
 	p->Send_uint8 (info->clients_on);
+	p->Send_uint8 (info->spectators_max);
 	p->Send_uint8 (info->spectators_on);
-	p->Send_string(info->map_name);
+
+	p->Send_string(info->server_name);
+	p->Send_string(info->server_revision);
+	p->Send_bool  (info->use_password);
+	p->Send_bool  (info->dedicated);
+
 	p->Send_uint16(info->map_width);
 	p->Send_uint16(info->map_height);
 	p->Send_uint8 (info->map_set);
-	p->Send_bool  (info->dedicated);
 }
 
 /**
@@ -145,6 +168,8 @@ bool NetworkCoordinatorSocketHandler::ReceiveInvalidPacket(PacketCoordinatorType
 bool NetworkCoordinatorSocketHandler::Receive_CLIENT_REGISTER(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_CLIENT_REGISTER); }
 bool NetworkCoordinatorSocketHandler::Receive_SERVER_REGISTER_ACK(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_SERVER_REGISTER_ACK); }
 bool NetworkCoordinatorSocketHandler::Receive_CLIENT_UPDATE(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_CLIENT_UPDATE); }
+bool NetworkCoordinatorSocketHandler::Receive_CLIENT_LISTING(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_CLIENT_LISTING); }
+bool NetworkCoordinatorSocketHandler::Receive_SERVER_LISTING(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_SERVER_LISTING); }
 bool NetworkCoordinatorSocketHandler::Receive_CLIENT_JOIN(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_CLIENT_JOIN); }
 bool NetworkCoordinatorSocketHandler::Receive_SERVER_STUN_REQUEST(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_SERVER_STUN_REQUEST); }
 bool NetworkCoordinatorSocketHandler::Receive_SERVER_STUN_PEER(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_SERVER_STUN_PEER); }

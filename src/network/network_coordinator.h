@@ -17,6 +17,7 @@ protected:
     bool Receive_SERVER_REGISTER_ACK(Packet *p) override;
     bool Receive_SERVER_STUN_REQUEST(Packet *p) override;
     bool Receive_SERVER_STUN_PEER(Packet *p) override;
+    bool Receive_SERVER_LISTING(Packet *p) override;
 
 public:
     bool connecting;
@@ -32,6 +33,7 @@ public:
     void SendServerUpdate();
 
     void Join(const char *join_key);
+    void GetListing();
 
     void StunFailed(const char *token);
 };

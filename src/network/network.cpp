@@ -664,7 +664,7 @@ void NetworkClientConnectGame(NetworkAddress address, CompanyID join_as, const c
 {
 	if (!_network_available) return;
 
-	if (address.GetPort() == 0) return;
+	//if (address.GetPort() == 0) return;
 
 	strecpy(_settings_client.network.last_host, address.GetHostname(), lastof(_settings_client.network.last_host));
 	_settings_client.network.last_port = address.GetPort();

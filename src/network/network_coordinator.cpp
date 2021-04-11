@@ -25,6 +25,7 @@
 #include "network_client.h"
 #include "network_server.h"
 #include "network_coordinator.h"
+#include "network_gamelist.h"
 #include "network_stun.h"
 
 #include "table/strings.h"
@@ -93,6 +94,32 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_REGISTER_ACK(Packet *
 	return true;
 }
 
+bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_LISTING(Packet *p)
+{
+	uint8 servers = p->Recv_uint16();
+
+	for (; servers > 0; servers--) {
+		char join_key[NETWORK_JOIN_KEY_LENGTH + 1];
+		join_key[0] = '+';
+		p->Recv_string(join_key + 1, lengthof(join_key) - 1);
+
+		NetworkGameList *item = NetworkGameListAddItem(NetworkAddress(join_key));
+
+		ClearGRFConfigList(&item->info.grfconfig);
+		strecpy(item->info.join_key, join_key + 1, lastof(item->info.join_key));
+		ReceiveNetworkGameInfo(p, &item->info);
+
+		// TODO -- UDP does compatibility checks and more (see ClientNetworkUDPSocketHandler::Receive_SERVER_RESPONSE)
+		item->info.compatible = true;
+		item->info.version_compatible = true;
+		item->online = true;
+	}
+
+	UpdateNetworkGameWindow();
+
+	return true;
+}
+
 bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_STUN_REQUEST(Packet *p)
 {
 	char token[64];
@@ -144,6 +171,7 @@ void ClientNetworkCoordinatorSocketHandler::Register()
 	if (this->sock == INVALID_SOCKET) this->Connect();
 
 	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_REGISTER);
+	p->Send_uint8(NETWORK_GAME_COORDINATOR_VERSION);
 	p->Send_uint8(0); // TODO -- Make this into a type
 	p->Send_string(_openttd_revision);
 
@@ -158,7 +186,21 @@ void ClientNetworkCoordinatorSocketHandler::Join(const char *join_key)
 	if (this->sock == INVALID_SOCKET) this->Connect();
 
 	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_JOIN);
+	p->Send_uint8(NETWORK_GAME_COORDINATOR_VERSION);
 	p->Send_string(join_key);
+
+	this->SendPacket(p);
+}
+
+/**
+ * Request a listing of all public servers.
+ */
+void ClientNetworkCoordinatorSocketHandler::GetListing()
+{
+	if (this->sock == INVALID_SOCKET) this->Connect();
+
+	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_LISTING);
+	p->Send_uint8(NETWORK_GAME_COORDINATOR_VERSION);
 
 	this->SendPacket(p);
 }
@@ -172,6 +214,7 @@ void ClientNetworkCoordinatorSocketHandler::StunFailed(const char *token)
 	if (this->sock == INVALID_SOCKET) this->Connect();
 
 	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_STUN_FAILED);
+	p->Send_uint8(NETWORK_GAME_COORDINATOR_VERSION);
 	p->Send_string(token);
 
 	this->SendPacket(p);
