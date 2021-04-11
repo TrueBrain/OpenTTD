@@ -17,6 +17,7 @@
 #include "network.h"
 #include "network_base.h"
 #include "network_content.h"
+#include "network_coordinator.h"
 #include "../gui.h"
 #include "network_udp.h"
 #include "../window_func.h"
@@ -232,6 +233,8 @@ protected:
 	int lock_offset; ///< Left offset for lock icon.
 	int blot_offset; ///< Left offset for green/yellow/red compatibility icon.
 	int flag_offset; ///< Left offset for language flag icon.
+
+	byte widget_id; ///< The widget that has the pop-up input menu.
 
 	/**
 	 * (Re)build the GUI network game list (a.k.a. this->servers) as some
@@ -604,6 +607,7 @@ public:
 		this->SetWidgetDisabledState(WID_NG_SEARCH_INTERNET, true);
 		this->SetWidgetDisabledState(WID_NG_SEARCH_LAN, true);
 		this->SetWidgetDisabledState(WID_NG_ADD, true);
+		this->SetWidgetDisabledState(WID_NG_JOIN_KEY, true);
 		this->SetWidgetDisabledState(WID_NG_START, true);
 #endif
 
@@ -743,11 +747,22 @@ public:
 				break;
 
 			case WID_NG_ADD: // Add a server
+				this->widget_id = WID_NG_ADD;
 				SetDParamStr(0, _settings_client.network.connect_to_ip);
 				ShowQueryString(
 					STR_JUST_RAW_STRING,
 					STR_NETWORK_SERVER_LIST_ENTER_IP,
 					NETWORK_HOSTNAME_LENGTH,  // maximum number of characters including '\0'
+					this, CS_ALPHANUMERAL, QSF_ACCEPT_UNCHANGED);
+				break;
+
+			case WID_NG_JOIN_KEY: // Use invite code
+				this->widget_id = WID_NG_JOIN_KEY;
+				SetDParamStr(0, "");
+				ShowQueryString(
+					STR_JUST_RAW_STRING,
+					STR_NETWORK_SERVER_LIST_ENTER_JOIN_KEY,
+					NETWORK_JOIN_KEY_LENGTH,  // maximum number of characters including '\0'
 					this, CS_ALPHANUMERAL, QSF_ACCEPT_UNCHANGED);
 				break;
 
@@ -873,7 +888,17 @@ public:
 
 	void OnQueryTextFinished(char *str) override
 	{
-		if (!StrEmpty(str)) NetworkAddServer(str);
+		if (StrEmpty(str)) return;
+
+		switch (this->widget_id) {
+			case WID_NG_ADD:
+				NetworkAddServer(str);
+				break;
+
+			case WID_NG_JOIN_KEY:
+				_network_coordinator_client.Join(str);
+				break;
+		}
 	}
 
 	void OnResize() override
@@ -984,6 +1009,7 @@ static const NWidgetPart _nested_network_game_widgets[] = {
 						NWidget(WWT_PUSHTXTBTN, COLOUR_WHITE, WID_NG_SEARCH_INTERNET), SetResize(1, 0), SetFill(1, 0), SetDataTip(STR_NETWORK_SERVER_LIST_SEARCH_SERVER_INTERNET, STR_NETWORK_SERVER_LIST_SEARCH_SERVER_INTERNET_TOOLTIP),
 						NWidget(WWT_PUSHTXTBTN, COLOUR_WHITE, WID_NG_SEARCH_LAN), SetResize(1, 0), SetFill(1, 0), SetDataTip(STR_NETWORK_SERVER_LIST_SEARCH_SERVER_LAN, STR_NETWORK_SERVER_LIST_SEARCH_SERVER_LAN_TOOLTIP),
 						NWidget(WWT_PUSHTXTBTN, COLOUR_WHITE, WID_NG_ADD), SetResize(1, 0), SetFill(1, 0), SetDataTip(STR_NETWORK_SERVER_LIST_ADD_SERVER, STR_NETWORK_SERVER_LIST_ADD_SERVER_TOOLTIP),
+						NWidget(WWT_PUSHTXTBTN, COLOUR_WHITE, WID_NG_JOIN_KEY), SetResize(1, 0), SetFill(1, 0), SetDataTip(STR_NETWORK_SERVER_LIST_JOIN_KEY, STR_NETWORK_SERVER_LIST_JOIN_KEY_TOOLTIP),
 						NWidget(WWT_PUSHTXTBTN, COLOUR_WHITE, WID_NG_START), SetResize(1, 0), SetFill(1, 0), SetDataTip(STR_NETWORK_SERVER_LIST_START_SERVER, STR_NETWORK_SERVER_LIST_START_SERVER_TOOLTIP),
 						NWidget(WWT_PUSHTXTBTN, COLOUR_WHITE, WID_NG_CANCEL), SetResize(1, 0), SetFill(1, 0), SetDataTip(STR_BUTTON_CANCEL, STR_NULL),
 					EndContainer(),
