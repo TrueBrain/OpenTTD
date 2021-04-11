@@ -12,8 +12,11 @@
 #include "../rev.h"
 #include "../ai/ai.hpp"
 #include "../game/game.hpp"
+#include "../date_func.h"
+#include "../map_func.h"
 #include "../thread.h"
 #include "../console_func.h"
+#include "../company_base.h"
 #include "../window_func.h"
 #include "../error.h"
 #include "../base_media_base.h"
@@ -82,11 +85,9 @@ public:
 
 bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_REGISTER_ACK(Packet *p)
 {
-	char join_key[64];
+	p->Recv_string(_network_game_info.join_key, lengthof(_network_game_info.join_key));
 
-	p->Recv_string(join_key, lengthof(join_key));
-
-	DEBUG(misc, 0, "Your join-key: %s", join_key);
+	DEBUG(net, 5, "Game Coordinator registered our server with join-key '%s'", _network_game_info.join_key);
 
 	return true;
 }
@@ -134,6 +135,9 @@ NetworkRecvStatus ClientNetworkCoordinatorSocketHandler::CloseConnection(bool er
 	return NETWORK_RECV_STATUS_OKAY;
 }
 
+/**
+ * Register our server to receive our join-key.
+ */
 void ClientNetworkCoordinatorSocketHandler::Register()
 {
 	if (this->sock == INVALID_SOCKET) this->Connect();
@@ -145,6 +149,9 @@ void ClientNetworkCoordinatorSocketHandler::Register()
 	this->SendPacket(p);
 }
 
+/**
+ * Join a server based on a join-key.
+ */
 void ClientNetworkCoordinatorSocketHandler::Join(const char *join_key)
 {
 	if (this->sock == INVALID_SOCKET) this->Connect();
@@ -155,6 +162,10 @@ void ClientNetworkCoordinatorSocketHandler::Join(const char *join_key)
 	this->SendPacket(p);
 }
 
+/**
+ * Tell the Game Coordinator the STUN failed, and he needs to find us another
+ * way to connect.
+ */
 void ClientNetworkCoordinatorSocketHandler::StunFailed(const char *token)
 {
 	if (this->sock == INVALID_SOCKET) this->Connect();
@@ -166,11 +177,49 @@ void ClientNetworkCoordinatorSocketHandler::StunFailed(const char *token)
 }
 
 /**
+ * Send an update of our server status to the Game Coordinator.
+ */
+void ClientNetworkCoordinatorSocketHandler::SendServerUpdate()
+{
+	NetworkGameInfo ngi;
+
+	/* Update some game_info */
+	ngi.clients_on     = _network_game_info.clients_on;
+	ngi.start_date     = ConvertYMDToDate(_settings_game.game_creation.starting_year, 0, 1);
+
+	ngi.server_lang    = _settings_client.network.server_lang;
+	ngi.use_password   = !StrEmpty(_settings_client.network.server_password);
+	ngi.clients_max    = _settings_client.network.max_clients;
+	ngi.companies_on   = (byte)Company::GetNumItems();
+	ngi.companies_max  = _settings_client.network.max_companies;
+	ngi.spectators_on  = NetworkSpectatorCount();
+	ngi.spectators_max = _settings_client.network.max_spectators;
+	ngi.game_date      = _date;
+	ngi.map_width      = MapSizeX();
+	ngi.map_height     = MapSizeY();
+	ngi.map_set        = _settings_game.game_creation.landscape;
+	ngi.dedicated      = _network_dedicated;
+	ngi.grfconfig      = _grfconfig;
+
+	strecpy(ngi.map_name, _network_game_info.map_name, lastof(ngi.map_name));
+	strecpy(ngi.server_name, _settings_client.network.server_name, lastof(ngi.server_name));
+	strecpy(ngi.join_key, _network_game_info.join_key, lastof(ngi.join_key));
+	strecpy(ngi.server_revision, GetNetworkRevisionString(), lastof(ngi.server_revision));
+
+	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_UPDATE);
+	this->SendNetworkGameInfo(p, &ngi);
+
+	this->SendPacket(p);
+}
+
+/**
  * Check whether we received/can send some data from/to the Game Coordinator server and
  * when that's the case handle it appropriately
  */
 void ClientNetworkCoordinatorSocketHandler::SendReceive()
 {
+	static std::chrono::steady_clock::time_point last_update = {};
+
 	if (this->sock == INVALID_SOCKET) {
 		if (!this->connecting && _network_server) {
 			static std::chrono::steady_clock::time_point last_attempt = {};
@@ -181,9 +230,17 @@ void ClientNetworkCoordinatorSocketHandler::SendReceive()
 				DEBUG(net, 0, "[tcp/coordinator] Connection with Game Coordinator lost; reconnecting ...");
 				this->Reopen();
 				this->Register();
+				last_update = std::chrono::steady_clock::now() - std::chrono::seconds(30);
 			}
 		}
 		return;
+	}
+
+	if (!StrEmpty(_network_game_info.join_key) && std::chrono::steady_clock::now() > last_update + std::chrono::seconds(30)) {
+		last_update = std::chrono::steady_clock::now();
+
+		DEBUG(net, 5, "[tcp/coordinator] Sending server update");
+		this->SendServerUpdate();
 	}
 
 	if (this->CanSendReceive()) {

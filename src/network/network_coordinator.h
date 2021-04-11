@@ -29,7 +29,10 @@ public:
     void SendReceive();
 
     void Register();
+    void SendServerUpdate();
+
     void Join(const char *join_key);
+
     void StunFailed(const char *token);
 };
 
