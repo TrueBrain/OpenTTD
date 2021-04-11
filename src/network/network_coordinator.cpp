@@ -103,7 +103,8 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_LISTING(Packet *p)
 		join_key[0] = '+';
 		p->Recv_string(join_key + 1, lengthof(join_key) - 1);
 
-		NetworkGameList *item = NetworkGameListAddItem(NetworkAddress(join_key));
+		// TODO -- atoi() is a hack. We need to extend NetworkGameListAddItem to accept join-keys
+		NetworkGameList *item = NetworkGameListAddItem(NetworkAddress(join_key, atoi(join_key + 1)));
 
 		ClearGRFConfigList(&item->info.grfconfig);
 		strecpy(item->info.join_key, join_key + 1, lastof(item->info.join_key));
