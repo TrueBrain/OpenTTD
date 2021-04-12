@@ -56,6 +56,9 @@ public:
 			new ClientNetworkGameSocketHandler(s);
 			IConsoleCmdExec("exec scripts/on_client.scr 0");
 			NetworkClient_Connected();
+
+			/* As client, we no longer need a connection to the coordinator. */
+			_network_coordinator_client.CloseConnection();
 		}
 	}
 };
