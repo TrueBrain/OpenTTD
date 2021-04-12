@@ -351,39 +351,7 @@ void ClientNetworkUDPSocketHandler::Receive_SERVER_RESPONSE(Packet *p, NetworkAd
 	ClearGRFConfigList(&item->info.grfconfig);
 	this->ReceiveNetworkGameInfo(p, &item->info);
 
-	item->info.compatible = true;
-	{
-		/* Checks whether there needs to be a request for names of GRFs and makes
-		 * the request if necessary. GRFs that need to be requested are the GRFs
-		 * that do not exist on the clients system and we do not have the name
-		 * resolved of, i.e. the name is still UNKNOWN_GRF_NAME_PLACEHOLDER.
-		 * The in_request array and in_request_count are used so there is no need
-		 * to do a second loop over the GRF list, which can be relatively expensive
-		 * due to the string comparisons. */
-		const GRFConfig *in_request[NETWORK_MAX_GRF_COUNT];
-		const GRFConfig *c;
-		uint in_request_count = 0;
-
-		for (c = item->info.grfconfig; c != nullptr; c = c->next) {
-			if (c->status == GCS_NOT_FOUND) item->info.compatible = false;
-			if (c->status != GCS_NOT_FOUND || strcmp(c->GetName(), UNKNOWN_GRF_NAME_PLACEHOLDER) != 0) continue;
-			in_request[in_request_count] = c;
-			in_request_count++;
-		}
-
-		if (in_request_count > 0) {
-			/* There are 'unknown' GRFs, now send a request for them */
-			uint i;
-			Packet packet(PACKET_UDP_CLIENT_GET_NEWGRFS);
-
-			packet.Send_uint8(in_request_count);
-			for (i = 0; i < in_request_count; i++) {
-				this->SendGRFIdentifier(&packet, &in_request[i]->ident);
-			}
-
-			this->SendPacket(&packet, &item->address.direct_address);
-		}
-	}
+	CheckGameCompatability(item);
 
 	if (item->info.hostname[0] == '\0') {
 		seprintf(item->info.hostname, lastof(item->info.hostname), "%s", client_addr->GetHostname());
@@ -392,12 +360,6 @@ void ClientNetworkUDPSocketHandler::Receive_SERVER_RESPONSE(Packet *p, NetworkAd
 	if (client_addr->GetAddress()->ss_family == AF_INET6) {
 		strecat(item->info.server_name, " (IPv6)", lastof(item->info.server_name));
 	}
-
-	/* Check if we are allowed on this server based on the revision-match */
-	item->info.version_compatible = IsNetworkCompatibleVersion(item->info.server_revision);
-	item->info.compatible &= item->info.version_compatible; // Already contains match for GRFs
-
-	item->online = true;
 
 	UpdateNetworkGameWindow();
 }

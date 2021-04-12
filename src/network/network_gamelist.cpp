@@ -105,6 +105,50 @@ NetworkGameList *NetworkGameListAddItem(ServerAddress address)
 	return item;
 }
 
+void CheckGameCompatability(NetworkGameList *item)
+{
+	item->info.compatible = true;
+	{
+		/* Checks whether there needs to be a request for names of GRFs and makes
+		 * the request if necessary. GRFs that need to be requested are the GRFs
+		 * that do not exist on the clients system and we do not have the name
+		 * resolved of, i.e. the name is still UNKNOWN_GRF_NAME_PLACEHOLDER.
+		 * The in_request array and in_request_count are used so there is no need
+		 * to do a second loop over the GRF list, which can be relatively expensive
+		 * due to the string comparisons. */
+		const GRFConfig *in_request[NETWORK_MAX_GRF_COUNT];
+		const GRFConfig *c;
+		uint in_request_count = 0;
+
+		for (c = item->info.grfconfig; c != nullptr; c = c->next) {
+			if (c->status == GCS_NOT_FOUND) item->info.compatible = false;
+			if (c->status != GCS_NOT_FOUND || strcmp(c->GetName(), UNKNOWN_GRF_NAME_PLACEHOLDER) != 0) continue;
+			in_request[in_request_count] = c;
+			in_request_count++;
+		}
+
+		// TODO -- See if we can't do this via GC
+		// if (in_request_count > 0) {
+		// 	/* There are 'unknown' GRFs, now send a request for them */
+		// 	uint i;
+		// 	Packet packet(PACKET_UDP_CLIENT_GET_NEWGRFS);
+
+		// 	packet.Send_uint8(in_request_count);
+		// 	for (i = 0; i < in_request_count; i++) {
+		// 		this->SendGRFIdentifier(&packet, &in_request[i]->ident);
+		// 	}
+
+		// 	this->SendPacket(&packet, &item->address.direct_address);
+		// }
+	}
+
+	/* Check if we are allowed on this server based on the revision-match */
+	item->info.version_compatible = IsNetworkCompatibleVersion(item->info.server_revision);
+	item->info.compatible &= item->info.version_compatible; // Already contains match for GRFs
+
+	item->online = true;
+}
+
 /**
  * Remove an item from the gamelist linked list
  * @param remove pointer to the item to be removed

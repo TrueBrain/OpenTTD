@@ -69,16 +69,40 @@ bool NetworkCoordinatorSocketHandler::ReceivePackets()
 	return i != MAX_PACKETS_TO_RECEIVE - 1;
 }
 
+void NetworkCoordinatorSocketHandler::HandleIncomingNetworkGameInfoGRFConfig(GRFConfig *config)
+{
+	/* Find the matching GRF file */
+	const GRFConfig *f = FindGRFConfig(config->ident.grfid, FGCM_EXACT, config->ident.md5sum);
+	if (f == nullptr) {
+		/* Don't know the GRF, so mark game incompatible and the (possibly)
+		 * already resolved name for this GRF (another server has sent the
+		 * name of the GRF already). */
+		config->name = FindUnknownGRFName(config->ident.grfid, config->ident.md5sum, true);
+		config->status = GCS_NOT_FOUND;
+	} else {
+		config->filename = f->filename;
+		config->name = f->name;
+		config->info = f->info;
+		config->url = f->url;
+	}
+	SetBit(config->flags, GCF_COPY);
+}
+
 void NetworkCoordinatorSocketHandler::ReceiveNetworkGameInfo(Packet *p, NetworkGameInfo *info)
 {
 	static const Date MAX_DATE = ConvertYMDToDate(MAX_YEAR, 11, 31); // December is month 11
 
 	uint8 newgrf_count = p->Recv_uint8();
 
+	GRFConfig **dst = &info->grfconfig;
 	for (; newgrf_count > 0; newgrf_count--) {
-		GRFIdentifier c;
-		this->ReceiveGRFIdentifier(p, &c);
-		// TODO -- Do something with this
+		GRFConfig *c = new GRFConfig();
+		this->ReceiveGRFIdentifier(p, &c->ident);
+		this->HandleIncomingNetworkGameInfoGRFConfig(c);
+
+		/* Append GRFConfig to the list */
+		*dst = c;
+		dst = &c->next;
 	}
 
 	info->game_date = Clamp(p->Recv_uint32(), 0, MAX_DATE);

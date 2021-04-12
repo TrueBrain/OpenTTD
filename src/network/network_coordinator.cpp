@@ -108,12 +108,9 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_LISTING(Packet *p)
 
 		ClearGRFConfigList(&item->info.grfconfig);
 		strecpy(item->info.join_key, join_key, lastof(item->info.join_key));
-		ReceiveNetworkGameInfo(p, &item->info);
+		this->ReceiveNetworkGameInfo(p, &item->info);
 
-		// TODO -- UDP does compatibility checks and more (see ClientNetworkUDPSocketHandler::Receive_SERVER_RESPONSE)
-		item->info.compatible = true;
-		item->info.version_compatible = true;
-		item->online = true;
+		CheckGameCompatability(item);
 	}
 
 	UpdateNetworkGameWindow();

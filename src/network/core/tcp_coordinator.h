@@ -157,6 +157,7 @@ protected:
 	bool HandlePacket(Packet *p);
 	void ReceiveNetworkGameInfo(Packet *p, NetworkGameInfo *info);
 	void SendNetworkGameInfo(Packet *p, const NetworkGameInfo *info);
+	void HandleIncomingNetworkGameInfoGRFConfig(GRFConfig *config);
 public:
 	/**
 	 * Create a new cs socket handler for a given cs

@@ -30,5 +30,6 @@ void NetworkGameListAddItemDelayed(NetworkGameList *item);
 NetworkGameList *NetworkGameListAddItem(ServerAddress address);
 void NetworkGameListRemoveItem(NetworkGameList *remove);
 void NetworkGameListRequery();
+void CheckGameCompatability(NetworkGameList *item);
 
 #endif /* NETWORK_GAMELIST_H */
