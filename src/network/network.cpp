@@ -766,6 +766,8 @@ bool NetworkServerStart()
 
 	NetworkInitGameInfo();
 
+	_network_coordinator_client.Register();
+
 	/* execute server initialization script */
 	IConsoleCmdExec("exec scripts/on_server.scr 0");
 	/* if the server is dedicated ... add some other script */
