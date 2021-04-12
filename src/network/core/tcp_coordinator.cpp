@@ -40,7 +40,7 @@ bool NetworkCoordinatorSocketHandler::HandlePacket(Packet *p)
 		case PACKET_COORDINATOR_CLIENT_UPDATE:       return this->Receive_CLIENT_UPDATE(p);
 		case PACKET_COORDINATOR_CLIENT_LISTING:      return this->Receive_CLIENT_LISTING(p);
 		case PACKET_COORDINATOR_SERVER_LISTING:      return this->Receive_SERVER_LISTING(p);
-		case PACKET_COORDINATOR_CLIENT_JOIN:         return this->Receive_CLIENT_JOIN(p);
+		case PACKET_COORDINATOR_CLIENT_CONNECT:      return this->Receive_CLIENT_CONNECT(p);
 		case PACKET_COORDINATOR_SERVER_STUN_REQUEST: return this->Receive_SERVER_STUN_REQUEST(p);
 		case PACKET_COORDINATOR_SERVER_STUN_PEER:    return this->Receive_SERVER_STUN_PEER(p);
 		case PACKET_COORDINATOR_CLIENT_STUN_FAILED:  return this->Receive_CLIENT_STUN_FAILED(p);
@@ -194,7 +194,7 @@ bool NetworkCoordinatorSocketHandler::Receive_SERVER_REGISTER_ACK(Packet *p) { r
 bool NetworkCoordinatorSocketHandler::Receive_CLIENT_UPDATE(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_CLIENT_UPDATE); }
 bool NetworkCoordinatorSocketHandler::Receive_CLIENT_LISTING(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_CLIENT_LISTING); }
 bool NetworkCoordinatorSocketHandler::Receive_SERVER_LISTING(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_SERVER_LISTING); }
-bool NetworkCoordinatorSocketHandler::Receive_CLIENT_JOIN(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_CLIENT_JOIN); }
+bool NetworkCoordinatorSocketHandler::Receive_CLIENT_CONNECT(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_CLIENT_CONNECT); }
 bool NetworkCoordinatorSocketHandler::Receive_SERVER_STUN_REQUEST(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_SERVER_STUN_REQUEST); }
 bool NetworkCoordinatorSocketHandler::Receive_SERVER_STUN_PEER(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_SERVER_STUN_PEER); }
 bool NetworkCoordinatorSocketHandler::Receive_CLIENT_STUN_FAILED(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_CLIENT_STUN_FAILED); }

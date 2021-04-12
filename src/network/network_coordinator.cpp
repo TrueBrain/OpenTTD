@@ -168,11 +168,23 @@ void ClientNetworkCoordinatorSocketHandler::Connect()
     new NetworkCoordinatorConnecter(NetworkAddress(NETWORK_COORDINATOR_SERVER_HOST, NETWORK_COORDINATOR_SERVER_PORT, AF_UNSPEC));
 }
 
+NetworkRecvStatus ClientNetworkCoordinatorSocketHandler::CloseConnection(bool error)
+{
+	NetworkCoordinatorSocketHandler::CloseConnection(error);
+
+	if (this->sock != INVALID_SOCKET) closesocket(this->sock);
+	this->sock = INVALID_SOCKET;
+
+	return NETWORK_RECV_STATUS_OKAY;
+}
+
 /**
  * Register our server to receive our join-key.
  */
 void ClientNetworkCoordinatorSocketHandler::Register()
 {
+	*_network_game_info.join_key = '\0';
+
 	if (this->sock == INVALID_SOCKET) this->Connect();
 
 	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_REGISTER);
@@ -194,7 +206,7 @@ void ClientNetworkCoordinatorSocketHandler::ConnectToPeer(const char *join_key, 
 
 	if (this->sock == INVALID_SOCKET) this->Connect();
 
-	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_JOIN);
+	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_CONNECT);
 	p->Send_uint8(NETWORK_GAME_COORDINATOR_VERSION);
 	p->Send_string(join_key);
 

@@ -25,7 +25,7 @@ enum PacketCoordinatorType {
 	PACKET_COORDINATOR_CLIENT_UPDATE,
 	PACKET_COORDINATOR_CLIENT_LISTING,
 	PACKET_COORDINATOR_SERVER_LISTING,
-	PACKET_COORDINATOR_CLIENT_JOIN,
+	PACKET_COORDINATOR_CLIENT_CONNECT,
 	PACKET_COORDINATOR_SERVER_STUN_REQUEST,
 	PACKET_COORDINATOR_SERVER_STUN_PEER,
 	PACKET_COORDINATOR_CLIENT_STUN_FAILED,
@@ -100,8 +100,8 @@ protected:
 
 	/**
 	 * Game Coordinator replies with a list of all public servers. Multiple
-	 * packets after a single request can be received to complete the full
-	 * list of public servers.
+	 * of these packets are received after a request till all servers are
+	 * send over. Last packet will have server count of 0.
 	 *  uint16  Amount of public servers in this packet
 	 *  For each server:
 	 *    same structure as CLIENT_UPDATE
@@ -111,13 +111,13 @@ protected:
 	virtual bool Receive_SERVER_LISTING(Packet *p);
 
 	/**
-	 * Client wants to join a multiplayer game.
+	 * Client wants to connect to a server.
 	 *  uint8   Game Coordinator protocol version.
 	 *  string  Join-key of the server to join.
 	 * @param p The packet that was just received.
 	 * @return True upon success, otherwise false.
 	 */
-	virtual bool Receive_CLIENT_JOIN(Packet *p);
+	virtual bool Receive_CLIENT_CONNECT(Packet *p);
 
 	/**
 	 * Game Coordinator requests the client to do a STUN request to the STUN
@@ -148,7 +148,7 @@ protected:
 	/**
 	 * Client failed to connect to the remote side.
 	 *  uint8   Game Coordinator protocol version.
-	 *  uint64  Token to track the current STUN request.
+	 *  string  Token to track the current STUN request.
 	 * @param p The packet that was just received.
 	 * @return True upon success, otherwise false.
 	 */

@@ -27,6 +27,8 @@ public:
 
     ClientNetworkCoordinatorSocketHandler() : connecter(nullptr), connecting(false) {}
 
+    NetworkRecvStatus CloseConnection(bool error = true) override;
+
     void Connect();
     void SendReceive();
 
