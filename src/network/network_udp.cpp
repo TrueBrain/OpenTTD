@@ -88,11 +88,14 @@ static UDPSocket _udp_master("Master"); ///< udp master socket
  */
 static void DoNetworkUDPQueryServer(NetworkAddress &address, bool needs_mutex, bool manually)
 {
+	// TODO -- figure this out
+	return;
+
 	/* Clear item in gamelist */
 	NetworkGameList *item = CallocT<NetworkGameList>(1);
 	address.GetAddressAsString(item->info.server_name, lastof(item->info.server_name));
 	strecpy(item->info.hostname, address.GetHostname(), lastof(item->info.hostname));
-	item->address = address;
+	//item->address = address;
 	item->manually = manually;
 	NetworkGameListAddItemDelayed(item);
 
@@ -343,7 +346,7 @@ void ClientNetworkUDPSocketHandler::Receive_SERVER_RESPONSE(Packet *p, NetworkAd
 	DEBUG(net, 4, "[udp] server response from %s", client_addr->GetAddressAsString().c_str());
 
 	/* Find next item */
-	item = NetworkGameListAddItem(*client_addr);
+	item = NetworkGameListAddItem(ServerAddress(*client_addr));
 
 	ClearGRFConfigList(&item->info.grfconfig);
 	this->ReceiveNetworkGameInfo(p, &item->info);
@@ -378,7 +381,7 @@ void ClientNetworkUDPSocketHandler::Receive_SERVER_RESPONSE(Packet *p, NetworkAd
 				this->SendGRFIdentifier(&packet, &in_request[i]->ident);
 			}
 
-			this->SendPacket(&packet, &item->address);
+			this->SendPacket(&packet, &item->address.direct_address);
 		}
 	}
 

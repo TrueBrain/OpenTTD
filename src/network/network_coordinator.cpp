@@ -53,7 +53,6 @@ public:
 			ServerNetworkGameSocketHandler::AcceptConnection(s, address);
 		} else {
 			_networking = true;
-			_network_join_as = COMPANY_NEW_COMPANY;
 			new ClientNetworkGameSocketHandler(s);
 			IConsoleCmdExec("exec scripts/on_client.scr 0");
 			NetworkClient_Connected();
@@ -99,15 +98,13 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_LISTING(Packet *p)
 	uint8 servers = p->Recv_uint16();
 
 	for (; servers > 0; servers--) {
-		char join_key[NETWORK_JOIN_KEY_LENGTH + 1];
-		join_key[0] = '+';
-		p->Recv_string(join_key + 1, lengthof(join_key) - 1);
+		char join_key[NETWORK_JOIN_KEY_LENGTH];
+		p->Recv_string(join_key, lengthof(join_key));
 
-		// TODO -- atoi() is a hack. We need to extend NetworkGameListAddItem to accept join-keys
-		NetworkGameList *item = NetworkGameListAddItem(NetworkAddress(join_key, atoi(join_key + 1)));
+		NetworkGameList *item = NetworkGameListAddItem(ServerAddress(join_key));
 
 		ClearGRFConfigList(&item->info.grfconfig);
-		strecpy(item->info.join_key, join_key + 1, lastof(item->info.join_key));
+		strecpy(item->info.join_key, join_key, lastof(item->info.join_key));
 		ReceiveNetworkGameInfo(p, &item->info);
 
 		// TODO -- UDP does compatibility checks and more (see ClientNetworkUDPSocketHandler::Receive_SERVER_RESPONSE)

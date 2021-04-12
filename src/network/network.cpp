@@ -61,7 +61,6 @@ NetworkCompanyState *_network_company_states = nullptr; ///< Statistics about so
 ClientID _network_own_client_id;      ///< Our client identifier.
 ClientID _redirect_console_to_client; ///< If not invalid, redirect the console output to a client.
 bool _network_need_advertise;         ///< Whether we need to advertise.
-uint8 _network_reconnect;             ///< Reconnect timeout
 StringList _network_bind_list;        ///< The addresses to bind on.
 StringList _network_host_list;        ///< The servers we know.
 StringList _network_ban_list;         ///< The banned clients.
@@ -449,14 +448,46 @@ static void CheckPauseOnJoin()
 }
 
 /**
- * Converts a string to ip/port/company
- *  Format: IP:port#company
+ * Converts a string to ip/port
+ *  Format: IP:port
  *
- * connection_string will be re-terminated to separate out the hostname, and company and port will
- * be set to the company and port strings given by the user, inside the memory area originally
+ * connection_string will be re-terminated to separate out the hostname, port will
+ * be set to the port strings given by the user, inside the memory area originally
  * occupied by connection_string.
  */
-void ParseConnectionString(const char **company, const char **port, char *connection_string)
+void ParseConnectionString(const char **port, char *connection_string)
+{
+	bool ipv6 = (strchr(connection_string, ':') != strrchr(connection_string, ':'));
+	char *p;
+	for (p = connection_string; *p != '\0'; p++) {
+		switch (*p) {
+			case '[':
+				ipv6 = true;
+				break;
+
+			case ']':
+				ipv6 = false;
+				break;
+
+			case ':':
+				if (ipv6) break;
+				*port = p + 1;
+				*p = '\0';
+				break;
+		}
+	}
+}
+
+/**
+ * Converts a string to ip/port/company or join-key/company
+ *  Format: IP:port#company
+ *  Format: +join-key#company
+ *
+ * connection_string will be re-terminated to separate out the hostname, and join_key, company and port will
+ * be set to the join_key, company and port strings given by the user, inside the memory area originally
+ * occupied by connection_string.
+ */
+void ParseGameConnectionString(const char **join_key, const char **company, const char **port, char *connection_string)
 {
 	bool ipv6 = (strchr(connection_string, ':') != strrchr(connection_string, ':'));
 	char *p;
@@ -472,6 +503,11 @@ void ParseConnectionString(const char **company, const char **port, char *connec
 
 			case '#':
 				*company = p + 1;
+				*p = '\0';
+				break;
+
+			case '+':
+				*join_key = p + 1;
 				*p = '\0';
 				break;
 
@@ -595,6 +631,7 @@ void NetworkAddServer(const char *b)
 	if (*b != '\0') {
 		const char *port = nullptr;
 		const char *company = nullptr;
+		const char *join_key = nullptr;
 		char host[NETWORK_HOSTNAME_LENGTH];
 		uint16 rport;
 
@@ -603,10 +640,13 @@ void NetworkAddServer(const char *b)
 		strecpy(_settings_client.network.connect_to_ip, b, lastof(_settings_client.network.connect_to_ip));
 		rport = NETWORK_DEFAULT_PORT;
 
-		ParseConnectionString(&company, &port, host);
+		ParseGameConnectionString(&join_key, &company, &port, host);
 		if (port != nullptr) rport = atoi(port);
 
-		NetworkUDPQueryServer(NetworkAddress(host, rport), true);
+		// TODO -- What to do when someone adds a join-key? It cannot be persistent, so temporary add it?
+
+		// TODO -- Replace this with a query via TCP
+		//NetworkUDPQueryServer(NetworkAddress(host, rport), true);
 	}
 }
 
@@ -635,7 +675,10 @@ void NetworkRebuildHostList()
 	_network_host_list.clear();
 
 	for (NetworkGameList *item = _network_game_list; item != nullptr; item = item->next) {
-		if (item->manually) _network_host_list.emplace_back(item->address.GetAddressAsString(false));
+		/* Do not store servers based on join-key, as they are temporary keys. */
+		if (!item->address.IsDirectAddress()) continue;
+
+		if (item->manually) _network_host_list.emplace_back(item->address.direct_address.GetAddressAsString(false));
 	}
 }
 
@@ -660,14 +703,22 @@ public:
 
 
 /* Used by clients, to connect to a server */
-void NetworkClientConnectGame(NetworkAddress address, CompanyID join_as, const char *join_server_password, const char *join_company_password)
+void NetworkClientConnectGame(ServerAddress server_address, CompanyID join_as, const char *join_server_password, const char *join_company_password)
 {
 	if (!_network_available) return;
 
-	//if (address.GetPort() == 0) return;
+	if (server_address.IsDirectAddress()) {
+		if (server_address.direct_address.GetPort() == 0) return;
 
-	strecpy(_settings_client.network.last_host, address.GetHostname(), lastof(_settings_client.network.last_host));
-	_settings_client.network.last_port = address.GetPort();
+		strecpy(_settings_client.network.last_host, server_address.direct_address.GetHostname(), lastof(_settings_client.network.last_host));
+		_settings_client.network.last_port = server_address.direct_address.GetPort();
+		_network_join_key = {};
+	} else {
+		_settings_client.network.last_host[0] = '\0';
+		_settings_client.network.last_port = 0;
+		_network_join_key = server_address.join_key;
+	}
+
 	_network_join_as = join_as;
 	_network_join_server_password = join_server_password;
 	_network_join_company_password = join_company_password;
@@ -678,10 +729,10 @@ void NetworkClientConnectGame(NetworkAddress address, CompanyID join_as, const c
 	_network_join_status = NETWORK_JOIN_STATUS_CONNECTING;
 	ShowJoinStatusWindow();
 
-	if (address.GetHostname()[0] == '+') {
-		_network_coordinator_client.Join(address.GetHostname() + 1);
+	if (server_address.IsDirectAddress()) {
+		new TCPClientConnecter(server_address.direct_address);
 	} else {
-		new TCPClientConnecter(address);
+		_network_coordinator_client.Join(_network_join_key.c_str());
 	}
 }
 

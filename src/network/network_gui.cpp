@@ -481,9 +481,9 @@ public:
 		EM_ASM(if (window["openttd_server_list"]) openttd_server_list());
 #endif
 
-		this->last_joined = NetworkGameListAddItem(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port));
+		this->last_joined = NetworkGameListAddItem(ServerAddress(_settings_client.network.last_host, _settings_client.network.last_port));
 		this->server = this->last_joined;
-		if (this->last_joined != nullptr) NetworkUDPQueryServer(this->last_joined->address);
+		if (this->last_joined != nullptr) NetworkUDPQueryServer(this->last_joined->address.direct_address);
 
 		this->requery_timer.SetInterval(MILLISECONDS_PER_TICK);
 
@@ -661,7 +661,11 @@ public:
 			y += FONT_HEIGHT_NORMAL;
 
 			char network_addr_buffer[NETWORK_HOSTNAME_LENGTH + 6 + 7];
-			sel->address.GetAddressAsString(network_addr_buffer, lastof(network_addr_buffer));
+			if (sel->address.IsDirectAddress()) {
+				sel->address.direct_address.GetAddressAsString(network_addr_buffer, lastof(network_addr_buffer));
+			} else {
+				strecpy(network_addr_buffer, sel->address.join_key, lastof(network_addr_buffer));
+			}
 			SetDParamStr(0, network_addr_buffer);
 			DrawString(r.left + WD_FRAMERECT_LEFT, r.right - WD_FRAMERECT_RIGHT, y, STR_NETWORK_SERVER_LIST_SERVER_ADDRESS); // server address
 			y += FONT_HEIGHT_NORMAL;
@@ -772,14 +776,19 @@ public:
 
 			case WID_NG_JOIN: // Join Game
 				if (this->server != nullptr) {
-					seprintf(_settings_client.network.last_host, lastof(_settings_client.network.last_host), "%s", this->server->address.GetHostname());
-					_settings_client.network.last_port = this->server->address.GetPort();
+					if (this->server->address.IsDirectAddress()) {
+						seprintf(_settings_client.network.last_host, lastof(_settings_client.network.last_host), "%s", this->server->address.direct_address.GetHostname());
+						_settings_client.network.last_port = this->server->address.direct_address.GetPort();
+					} else {
+						_network_join_key = this->server->address.join_key;
+					}
 					ShowNetworkLobbyWindow(this->server);
 				}
 				break;
 
 			case WID_NG_REFRESH: // Refresh
-				if (this->server != nullptr) NetworkUDPQueryServer(this->server->address);
+				// TODO -- Handle refreshes
+				//if (this->server != nullptr) NetworkUDPQueryServer(this->server->address);
 				break;
 
 			case WID_NG_NEWGRF: // NewGRF Settings
@@ -1560,18 +1569,24 @@ struct NetworkLobbyWindow : public Window {
 				break;
 			}
 
-			case WID_NL_JOIN:     // Join company
+			case WID_NL_JOIN: { // Join company
 				/* Button can be clicked only when it is enabled. */
-				NetworkClientConnectGame(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port), this->company);
+				ServerAddress server_address = !_network_join_key.empty() ? ServerAddress(_network_join_key.c_str()) : ServerAddress(_settings_client.network.last_host, _settings_client.network.last_port);
+				NetworkClientConnectGame(server_address, this->company);
 				break;
+			}
 
-			case WID_NL_NEW:      // New company
-				NetworkClientConnectGame(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port), COMPANY_NEW_COMPANY);
+			case WID_NL_NEW: { // New company
+				ServerAddress server_address = !_network_join_key.empty() ? ServerAddress(_network_join_key.c_str()) : ServerAddress(_settings_client.network.last_host, _settings_client.network.last_port);
+				NetworkClientConnectGame(server_address, COMPANY_NEW_COMPANY);
 				break;
+			}
 
-			case WID_NL_SPECTATE: // Spectate game
-				NetworkClientConnectGame(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port), COMPANY_SPECTATOR);
+			case WID_NL_SPECTATE: { // Spectate game
+				ServerAddress server_address = !_network_join_key.empty() ? ServerAddress(_network_join_key.c_str()) : ServerAddress(_settings_client.network.last_host, _settings_client.network.last_port);
+				NetworkClientConnectGame(server_address, COMPANY_SPECTATOR);
 				break;
+			}
 
 			case WID_NL_REFRESH:  // Refresh
 				// TODO -- Allow for this via GameCoordinator

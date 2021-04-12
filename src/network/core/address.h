@@ -188,8 +188,9 @@ public:
 	 */
 	bool operator == (NetworkAddress &address) const
 	{
-		return const_cast<NetworkAddress*>(this)->CompareTo(address) == 0;
+		return const_cast<NetworkAddress *>(this)->CompareTo(address) == 0;
 	}
+
 	/**
 	 * Compare the address of this class with the address of another.
 	 * @param address the other address.
@@ -197,7 +198,7 @@ public:
 	 */
 	bool operator != (NetworkAddress address) const
 	{
-		return const_cast<NetworkAddress*>(this)->CompareTo(address) != 0;
+		return const_cast<NetworkAddress *>(this)->CompareTo(address) != 0;
 	}
 
 	/**
@@ -214,6 +215,73 @@ public:
 
 	static const char *SocketTypeAsString(int socktype);
 	static const char *AddressFamilyAsString(int family);
+};
+
+/**
+ * Address of a server, which can either be a direct address or a join-key.
+ */
+class ServerAddress {
+public:
+	NetworkAddress direct_address;          ///< Is this server a direct IP:port address.
+	char join_key[NETWORK_JOIN_KEY_LENGTH]; ///< Is this server identified with a join_key.
+
+	ServerAddress(NetworkAddress address) : direct_address(address)
+	{
+		*this->join_key = '\0';
+	}
+
+	ServerAddress(const char *hostname, uint16 port) : direct_address(NetworkAddress(hostname, port))
+	{
+		*this->join_key = '\0';
+	}
+
+	ServerAddress(const char *join_key)
+	{
+		strecpy(this->join_key, join_key, lastof(this->join_key));
+	}
+
+	bool IsDirectAddress()
+	{
+		return StrEmpty(join_key);
+	}
+
+	/**
+	 * Compare the address of this class with the address of another.
+	 * @param address the other address.
+	 * @return < 0 if address is less, 0 if equal and > 0 if address is more
+	 */
+	int CompareTo(ServerAddress &address)
+	{
+		int r = this->IsDirectAddress() - address.IsDirectAddress();
+		if (r == 0) {
+			if (this->IsDirectAddress()) {
+				r = this->direct_address.CompareTo(address.direct_address);
+			} else {
+				r = strcmp(this->join_key, address.join_key);
+			}
+		}
+		return r;
+	}
+
+	/**
+	 * Compare the address of this class with the address of another.
+	 * @param address the other address.
+	 * @return true if both match.
+	 */
+	bool operator == (ServerAddress &address)
+	{
+		return this->CompareTo(address) == 0;
+	}
+
+	/**
+	 * Compare the address of this class with the address of another.
+	 * @param address the other address.
+	 * @return true if both match.
+	 */
+	bool operator == (ServerAddress &address) const
+	{
+		return const_cast<ServerAddress *>(this)->CompareTo(address) == 0;
+	}
 };
 
 #endif /* NETWORK_CORE_ADDRESS_H */

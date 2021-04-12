@@ -109,7 +109,10 @@ typedef ClientNetworkGameSocketHandler MyClient;
 void NetworkClient_Connected();
 void NetworkClientSetCompanyPassword(const char *password);
 
+extern std::string _network_join_key;
 extern CompanyID _network_join_as;
+
+extern uint8 _network_reconnect;
 
 extern const char *_network_join_server_password;
 extern const char *_network_join_company_password;

@@ -893,7 +893,8 @@ DEF_CONSOLE_CMD(ConNetworkReconnect)
 	/* Don't resolve the address first, just print it directly as it comes from the config file. */
 	IConsolePrintF(CC_DEFAULT, "Reconnecting to %s:%d...", _settings_client.network.last_host, _settings_client.network.last_port);
 
-	NetworkClientConnectGame(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port), playas);
+	ServerAddress server_address = !_network_join_key.empty() ? ServerAddress(_network_join_key.c_str()) : ServerAddress(_settings_client.network.last_host, _settings_client.network.last_port);
+	NetworkClientConnectGame(server_address, playas);
 	return true;
 }
 
@@ -911,14 +912,15 @@ DEF_CONSOLE_CMD(ConNetworkConnect)
 
 	const char *port = nullptr;
 	const char *company = nullptr;
+	const char *join_key = nullptr;
 	char *ip = argv[1];
 	/* Default settings: default port and new company */
 	uint16 rport = NETWORK_DEFAULT_PORT;
 	CompanyID join_as = COMPANY_NEW_COMPANY;
 
-	ParseConnectionString(&company, &port, ip);
+	ParseGameConnectionString(&join_key, &company, &port, ip);
 
-	IConsolePrintF(CC_DEFAULT, "Connecting to %s...", ip);
+	IConsolePrintF(CC_DEFAULT, "Connecting to %s...", join_key != nullptr ? join_key : ip);
 	if (company != nullptr) {
 		join_as = (CompanyID)atoi(company);
 		IConsolePrintF(CC_DEFAULT, "    company-no: %d", join_as);
@@ -935,7 +937,8 @@ DEF_CONSOLE_CMD(ConNetworkConnect)
 		IConsolePrintF(CC_DEFAULT, "    port: %s", port);
 	}
 
-	NetworkClientConnectGame(NetworkAddress(ip, rport), join_as);
+	ServerAddress server_address = join_key != nullptr ? ServerAddress(join_key) : ServerAddress(ip, rport);
+	NetworkClientConnectGame(server_address, join_as);
 
 	return true;
 }

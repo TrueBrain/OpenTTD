@@ -322,8 +322,14 @@ static uint8 _network_server_max_companies;
 /** Maximum number of spectators of the currently joined server. */
 static uint8 _network_server_max_spectators;
 
+/** Which server we want to join based on join-key. */
+std::string _network_join_key;
+
 /** Who would we like to join as. */
 CompanyID _network_join_as;
+
+/** Reconnect timeout (used when server is starting a new game). */
+uint8 _network_reconnect = 0;
 
 /** Login password from -p argument */
 const char *_network_join_server_password = nullptr;

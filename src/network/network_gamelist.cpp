@@ -68,15 +68,17 @@ static void NetworkGameListHandleDelayedInsert()
  * @param address the address of the to-be added item
  * @return a point to the newly added or already existing item
  */
-NetworkGameList *NetworkGameListAddItem(NetworkAddress address)
+NetworkGameList *NetworkGameListAddItem(ServerAddress address)
 {
-	const char *hostname = address.GetHostname();
+	if (address.IsDirectAddress()) {
+		const char *hostname = address.direct_address.GetHostname();
 
-	/* Do not query the 'any' address. */
-	if (StrEmpty(hostname) ||
-			strcmp(hostname, "0.0.0.0") == 0 ||
-			strcmp(hostname, "::") == 0) {
-		return nullptr;
+		/* Do not query the 'any' address. */
+		if (StrEmpty(hostname) ||
+				strcmp(hostname, "0.0.0.0") == 0 ||
+				strcmp(hostname, "::") == 0) {
+			return nullptr;
+		}
 	}
 
 	NetworkGameList *item, *prev_item;
@@ -139,6 +141,9 @@ static const uint REFRESH_GAMEINFO_X_REQUERIES = 50; ///< Refresh the game info 
 /** Requeries the (game) servers we have not gotten a reply from */
 void NetworkGameListRequery()
 {
+	// TODO -- This most likely should be a new GetListing
+	return;
+
 	NetworkGameListHandleDelayedInsert();
 
 	static uint8 requery_cnt = 0;
@@ -152,7 +157,7 @@ void NetworkGameListRequery()
 
 		/* item gets mostly zeroed by NetworkUDPQueryServer */
 		uint8 retries = item->retries;
-		NetworkUDPQueryServer(NetworkAddress(item->address));
+//		NetworkUDPQueryServer(NetworkAddress(item->address));
 		item->retries = (retries >= REFRESH_GAMEINFO_X_REQUERIES) ? 0 : retries;
 	}
 }

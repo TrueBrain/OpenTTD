@@ -31,6 +31,7 @@
 #include "console_func.h"
 #include "screenshot.h"
 #include "network/network.h"
+#include "network/network_client.h"
 #include "network/network_func.h"
 #include "ai/ai.hpp"
 #include "ai/ai_config.hpp"
@@ -475,10 +476,11 @@ struct AfterNewGRFScan : NewGRFScanCallback {
 		if (_network_available && network_conn != nullptr) {
 			const char *port = nullptr;
 			const char *company = nullptr;
+			const char *join_key = nullptr;
 			uint16 rport = NETWORK_DEFAULT_PORT;
 			CompanyID join_as = COMPANY_NEW_COMPANY;
 
-			ParseConnectionString(&company, &port, network_conn);
+			ParseGameConnectionString(&join_key, &company, &port, network_conn);
 
 			if (company != nullptr) {
 				join_as = (CompanyID)atoi(company);
@@ -493,9 +495,12 @@ struct AfterNewGRFScan : NewGRFScanCallback {
 			}
 			if (port != nullptr) rport = atoi(port);
 
+
 			LoadIntroGame();
 			_switch_mode = SM_NONE;
-			NetworkClientConnectGame(NetworkAddress(network_conn, rport), join_as, join_server_password, join_company_password);
+
+			ServerAddress server_address = join_key != nullptr ? ServerAddress(join_key) : ServerAddress(network_conn, rport);
+			NetworkClientConnectGame(server_address, join_as, join_server_password, join_company_password);
 		}
 
 		/* After the scan we're not used anymore. */
@@ -584,11 +589,8 @@ int openttd_main(int argc, char *argv[])
 			dedicated = true;
 			SetDebugString("net=6");
 			if (mgo.opt != nullptr) {
-				/* Use the existing method for parsing (openttd -n).
-				 * However, we do ignore the #company part. */
-				const char *temp = nullptr;
 				const char *port = nullptr;
-				ParseConnectionString(&temp, &port, mgo.opt);
+				ParseConnectionString(&port, mgo.opt);
 				if (!StrEmpty(mgo.opt)) scanner->dedicated_host = mgo.opt;
 				if (port != nullptr) scanner->dedicated_port = atoi(port);
 			}
@@ -774,13 +776,12 @@ int openttd_main(int argc, char *argv[])
 	NetworkStartUp(); // initialize network-core
 
 	if (debuglog_conn != nullptr && _network_available) {
-		const char *not_used = nullptr;
 		const char *port = nullptr;
 		uint16 rport;
 
 		rport = NETWORK_DEFAULT_DEBUGLOG_PORT;
 
-		ParseConnectionString(&not_used, &port, debuglog_conn);
+		ParseConnectionString(&port, debuglog_conn);
 		if (port != nullptr) rport = atoi(port);
 
 		NetworkStartDebugLog(NetworkAddress(debuglog_conn, rport));
@@ -1504,7 +1505,8 @@ void GameLoop()
 		if (_network_reconnect > 0 && --_network_reconnect == 0) {
 			/* This means that we want to reconnect to the last host
 			 * We do this here, because it means that the network is really closed */
-			NetworkClientConnectGame(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port), COMPANY_SPECTATOR);
+			ServerAddress server_address = !_network_join_key.empty() ? ServerAddress(_network_join_key.c_str()) : ServerAddress(_settings_client.network.last_host, _settings_client.network.last_port);
+			NetworkClientConnectGame(server_address, COMPANY_SPECTATOR);
 		}
 		/* Singleplayer */
 		StateGameLoop();
