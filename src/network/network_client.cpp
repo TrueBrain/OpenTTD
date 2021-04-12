@@ -1335,3 +1335,16 @@ bool NetworkMaxSpectatorsReached()
 {
 	return NetworkSpectatorCount() >= (_network_server ? _settings_client.network.max_spectators : _network_server_max_spectators);
 }
+
+void TCPClientConnecter::OnFailure()
+{
+	NetworkError(STR_NETWORK_ERROR_NOCONNECTION);
+}
+
+void TCPClientConnecter::OnConnect(SOCKET s)
+{
+	_networking = true;
+	new ClientNetworkGameSocketHandler(s);
+	IConsoleCmdExec("exec scripts/on_client.scr 0");
+	NetworkClient_Connected();
+}

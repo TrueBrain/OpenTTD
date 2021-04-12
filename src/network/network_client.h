@@ -117,4 +117,13 @@ extern uint8 _network_reconnect;
 extern const char *_network_join_server_password;
 extern const char *_network_join_company_password;
 
+/** Non blocking connection create to actually connect to servers */
+class TCPClientConnecter : TCPServerConnecter {
+public:
+	TCPClientConnecter(const ServerAddress &address) : TCPServerConnecter(address) {}
+
+	void OnFailure() override;
+	void OnConnect(SOCKET s) override;
+};
+
 #endif /* NETWORK_CLIENT_H */

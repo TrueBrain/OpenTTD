@@ -13,11 +13,23 @@
 #include "../../thread.h"
 
 #include "tcp.h"
+#include "../network_coordinator.h"
 
 #include "../../safeguards.h"
 
 /** List of connections that are currently being created */
 static std::vector<TCPConnecter *> _tcp_connecters;
+
+/**
+ * Create an empty connector.
+ */
+TCPConnecter::TCPConnecter() :
+	connected(false),
+	aborted(false),
+	killed(false),
+	sock(INVALID_SOCKET)
+{
+}
 
 /**
  * Create a new connecter for the given address
@@ -33,6 +45,27 @@ TCPConnecter::TCPConnecter(const NetworkAddress &address) :
 	_tcp_connecters.push_back(this);
 	if (!StartNewThread(nullptr, "ottd:tcp", &TCPConnecter::ThreadEntry, this)) {
 		this->Connect();
+	}
+}
+
+/**
+ * Create a new connecter for the server.
+ * @param address the server address.
+ */
+TCPServerConnecter::TCPServerConnecter(const ServerAddress &address) :
+	TCPConnecter(),
+	server_address(address)
+{
+	_tcp_connecters.push_back(this);
+
+	if (this->server_address.IsDirectAddress()) {
+		this->address = this->server_address.direct_address;
+
+		if (!StartNewThread(nullptr, "ottd:tcp", &TCPConnecter::ThreadEntry, this)) {
+			this->Connect();
+		}
+	} else {
+		_network_coordinator_client.ConnectToPeer(this->server_address.join_key, this);
 	}
 }
 
@@ -54,6 +87,16 @@ void TCPConnecter::Connect()
 /* static */ void TCPConnecter::ThreadEntry(TCPConnecter *param)
 {
 	param->Connect();
+}
+
+void TCPServerConnecter::SetResult(SOCKET sock)
+{
+	this->sock = sock;
+	if (this->sock == INVALID_SOCKET) {
+		this->aborted = true;
+	} else {
+		this->connected = true;
+	}
 }
 
 /**

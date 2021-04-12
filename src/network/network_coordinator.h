@@ -13,6 +13,9 @@
 #include "core/tcp_coordinator.h"
 
 class ClientNetworkCoordinatorSocketHandler : public NetworkCoordinatorSocketHandler {
+private:
+    TCPServerConnecter *connecter;
+
 protected:
     bool Receive_SERVER_REGISTER_ACK(Packet *p) override;
     bool Receive_SERVER_STUN_REQUEST(Packet *p) override;
@@ -22,9 +25,7 @@ protected:
 public:
     bool connecting;
 
-    ClientNetworkCoordinatorSocketHandler() : connecting(false) {}
-
-    NetworkRecvStatus CloseConnection(bool error = true) override;
+    ClientNetworkCoordinatorSocketHandler() : connecter(nullptr), connecting(false) {}
 
     void Connect();
     void SendReceive();
@@ -32,7 +33,7 @@ public:
     void Register();
     void SendServerUpdate();
 
-    void Join(const char *join_key);
+    void ConnectToPeer(const char *join_key, TCPServerConnecter *connecter);
     void GetListing();
 
     void StunFailed(const char *token);

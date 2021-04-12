@@ -60,14 +60,6 @@ void ClientNetworkStunSocketHandler::Connect()
     new NetworkStunConnecter(NetworkAddress(NETWORK_STUN_SERVER_HOST, NETWORK_STUN_SERVER_PORT, AF_UNSPEC));
 }
 
-NetworkRecvStatus ClientNetworkStunSocketHandler::CloseConnection(bool error)
-{
-	NetworkStunSocketHandler::CloseConnection(error);
-	_network_stun_client.sock = INVALID_SOCKET;
-
-	return NETWORK_RECV_STATUS_OKAY;
-}
-
 void ClientNetworkStunSocketHandler::Stun(const char *token)
 {
 	assert(this->sock == INVALID_SOCKET);

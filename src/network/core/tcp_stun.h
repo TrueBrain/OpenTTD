@@ -26,8 +26,6 @@ enum PacketStunType {
 /** Base socket handler for all STUN TCP sockets */
 class NetworkStunSocketHandler : public NetworkTCPSocketHandler {
 protected:
-	void Close() override;
-
 	bool ReceiveInvalidPacket(PacketStunType type);
 
 	/**
@@ -55,6 +53,7 @@ public:
 	/** On destructing of this class, the socket needs to be closed */
 	virtual ~NetworkStunSocketHandler() { this->Close(); }
 
+	void Close() override;
 	bool ReceivePackets();
 };
 

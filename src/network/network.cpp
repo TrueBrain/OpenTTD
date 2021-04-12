@@ -593,9 +593,9 @@ static void NetworkInitialize(bool close_admins = true)
 }
 
 /** Non blocking connection create to query servers */
-class TCPQueryConnecter : TCPConnecter {
+class TCPQueryConnecter : TCPServerConnecter {
 public:
-	TCPQueryConnecter(const NetworkAddress &address) : TCPConnecter(address) {}
+	TCPQueryConnecter(const ServerAddress &address) : TCPServerConnecter(address) {}
 
 	void OnFailure() override
 	{
@@ -613,7 +613,7 @@ public:
 /* Query a server to fetch his game-info
  *  If game_info is true, only the gameinfo is fetched,
  *   else only the client_info is fetched */
-void NetworkTCPQueryServer(NetworkAddress address)
+void NetworkTCPQueryServer(ServerAddress address)
 {
 	if (!_network_available) return;
 
@@ -682,26 +682,6 @@ void NetworkRebuildHostList()
 	}
 }
 
-/** Non blocking connection create to actually connect to servers */
-class TCPClientConnecter : TCPConnecter {
-public:
-	TCPClientConnecter(const NetworkAddress &address) : TCPConnecter(address) {}
-
-	void OnFailure() override
-	{
-		NetworkError(STR_NETWORK_ERROR_NOCONNECTION);
-	}
-
-	void OnConnect(SOCKET s) override
-	{
-		_networking = true;
-		new ClientNetworkGameSocketHandler(s);
-		IConsoleCmdExec("exec scripts/on_client.scr 0");
-		NetworkClient_Connected();
-	}
-};
-
-
 /* Used by clients, to connect to a server */
 void NetworkClientConnectGame(ServerAddress server_address, CompanyID join_as, const char *join_server_password, const char *join_company_password)
 {
@@ -729,11 +709,7 @@ void NetworkClientConnectGame(ServerAddress server_address, CompanyID join_as, c
 	_network_join_status = NETWORK_JOIN_STATUS_CONNECTING;
 	ShowJoinStatusWindow();
 
-	if (server_address.IsDirectAddress()) {
-		new TCPClientConnecter(server_address.direct_address);
-	} else {
-		_network_coordinator_client.Join(_network_join_key.c_str());
-	}
+	new TCPClientConnecter(server_address);
 }
 
 static void NetworkInitGameInfo()

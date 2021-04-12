@@ -905,7 +905,7 @@ public:
 				break;
 
 			case WID_NG_JOIN_KEY:
-				_network_coordinator_client.Join(str);
+				new TCPClientConnecter(ServerAddress(str));
 				break;
 		}
 	}
@@ -1660,7 +1660,8 @@ static void ShowNetworkLobbyWindow(NetworkGameList *ngl)
 	DeleteWindowById(WC_NETWORK_WINDOW, WN_NETWORK_WINDOW_GAME);
 
 	// TODO -- This shouldn't be needed for general data, but possibly for company info it is
-//	NetworkTCPQueryServer(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port)); // company info
+	ServerAddress server_address = !_network_join_key.empty() ? ServerAddress(_network_join_key.c_str()) : ServerAddress(_settings_client.network.last_host, _settings_client.network.last_port);
+	NetworkTCPQueryServer(server_address); // company info
 //	NetworkUDPQueryServer(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port)); // general data
 
 	new NetworkLobbyWindow(&_network_lobby_window_desc, ngl);

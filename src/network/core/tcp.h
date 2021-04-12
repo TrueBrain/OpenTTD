@@ -72,11 +72,15 @@ private:
 
 	static void ThreadEntry(TCPConnecter *param);
 
+	/* TCPServerConnecter acts like a TCPConnecter with some clever bits added. */
+	friend class TCPServerConnecter;
+
 protected:
 	/** Address we're connecting to */
 	NetworkAddress address;
 
 public:
+	TCPConnecter();
 	TCPConnecter(const NetworkAddress &address);
 	/** Silence the warnings */
 	virtual ~TCPConnecter() {}
@@ -94,6 +98,26 @@ public:
 
 	static void CheckCallbacks();
 	static void KillAll();
+};
+
+/**
+ * "Helper" class for creating TCP connection either via a direct IP connection
+ * or via a GameCoordinator exchange, like STUN.
+ *
+ * The caller doesn't need to care how the connection is established. Either
+ * OnFailure() is called if all possible ways to connect to the server are
+ * exhausted, or OnConnect() is called with a valid socket to talk to the
+ * server with.
+ */
+class TCPServerConnecter : public TCPConnecter {
+protected:
+	/* Server address we're connecting to. */
+	ServerAddress server_address;
+
+public:
+	TCPServerConnecter(const ServerAddress &address);
+
+	void SetResult(SOCKET sock);
 };
 
 #endif /* NETWORK_CORE_TCP_H */

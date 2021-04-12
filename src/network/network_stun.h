@@ -15,7 +15,6 @@
 class ClientNetworkStunSocketHandler : public NetworkStunSocketHandler {
 public:
     NetworkAddress local_addr;
-    NetworkRecvStatus CloseConnection(bool error = true) override;
 
     void Connect();
     void SendReceive();

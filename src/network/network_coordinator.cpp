@@ -33,32 +33,37 @@
 ClientNetworkCoordinatorSocketHandler _network_coordinator_client;
 
 /** Connecter used after STUN exchange to connect from both sides to each other. */
-class TCPDirectConnecter : TCPConnecter {
+class TCPStunConnecter : TCPConnecter {
 private:
 	std::string token;
+	TCPServerConnecter *connecter;
 
 public:
-	TCPDirectConnecter(const NetworkAddress &address, std::string token) : TCPConnecter(address), token(token) { }
+	TCPStunConnecter(const NetworkAddress &address, std::string token, TCPServerConnecter *connecter) : TCPConnecter(address), token(token), connecter(connecter) { }
 
 	void OnFailure() override
 	{
+		/* Close the STUN connection as we now have another TCP stream on the same local address. */
+		_network_stun_client.Close();
+
 		_network_coordinator_client.StunFailed(token.c_str());
+
+		if (!_network_server) {
+			this->connecter->SetResult(INVALID_SOCKET);
+		}
 	}
 
 	void OnConnect(SOCKET s) override
 	{
+		/* Close the STUN connection as we now have another TCP stream on the same local address. */
+		_network_stun_client.Close();
+
 		if (_network_server) {
 			if (!ServerNetworkGameSocketHandler::ValidateClient(s, address)) return;
 			DEBUG(net, 1, "[%s] Client connected from %s via STUN on frame %d", ServerNetworkGameSocketHandler::GetName(), address.GetHostname(), _frame_counter);
 			ServerNetworkGameSocketHandler::AcceptConnection(s, address);
 		} else {
-			_networking = true;
-			new ClientNetworkGameSocketHandler(s);
-			IConsoleCmdExec("exec scripts/on_client.scr 0");
-			NetworkClient_Connected();
-
-			/* As client, we no longer need a connection to the coordinator. */
-			_network_coordinator_client.CloseConnection();
+			this->connecter->SetResult(s);
 		}
 	}
 };
@@ -141,9 +146,18 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_STUN_PEER(Packet *p)
 	NetworkAddress address = NetworkAddress(host, port);
 	address.SetConnectBindAddress(_network_stun_client.local_addr);
 
-	/* Close the TCP to the STUN and immediately start a new connection from the same local address. */
+	/* We already mark the connection as close, but we do not really close the
+	 * socket yet. We do this when the TCPStunConnector is connected. This
+	 * prevents any NAT to already remove the route while we create the second
+	 * connection. */
 	_network_stun_client.CloseConnection(false);
-	new TCPDirectConnecter(address, std::string(token));
+
+	/* Connect to our peer from the same local address as we use for the
+	 * STUN server. This means that if there is any NAT in the local network,
+	 * the public ip:port is still pointing to the local address, and as such
+	 * a connection can be established. */
+	assert(_network_server || this->connecter != nullptr);
+	new TCPStunConnecter(address, std::string(token), this->connecter);
 
 	return true;
 }
@@ -152,13 +166,6 @@ void ClientNetworkCoordinatorSocketHandler::Connect()
 {
 	this->connecting = true;
     new NetworkCoordinatorConnecter(NetworkAddress(NETWORK_COORDINATOR_SERVER_HOST, NETWORK_COORDINATOR_SERVER_PORT, AF_UNSPEC));
-}
-
-NetworkRecvStatus ClientNetworkCoordinatorSocketHandler::CloseConnection(bool error)
-{
-	NetworkCoordinatorSocketHandler::CloseConnection(error);
-	_network_coordinator_client.sock = INVALID_SOCKET;
-	return NETWORK_RECV_STATUS_OKAY;
 }
 
 /**
@@ -179,8 +186,12 @@ void ClientNetworkCoordinatorSocketHandler::Register()
 /**
  * Join a server based on a join-key.
  */
-void ClientNetworkCoordinatorSocketHandler::Join(const char *join_key)
+void ClientNetworkCoordinatorSocketHandler::ConnectToPeer(const char *join_key, TCPServerConnecter *connecter)
 {
+	// TODO -- Open a window to show we are connecting
+	assert(connecter != nullptr);
+	this->connecter = connecter;
+
 	if (this->sock == INVALID_SOCKET) this->Connect();
 
 	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_JOIN);
