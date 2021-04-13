@@ -5,7 +5,7 @@ add_files(
     core.cpp
     core.h
     game_info.cpp
-    game_info.hpp
+    game_info.h
     host.cpp
     host.h
     os_abstraction.h
