@@ -221,7 +221,6 @@ protected:
 	static GUIGameServerList::SortFunction * const sorter_funcs[];
 	static GUIGameServerList::FilterFunction * const filter_funcs[];
 
-	NetworkGameList *server;      ///< selected server
 	NetworkGameList *last_joined; ///< the last joined server
 	GUIGameServerList servers;    ///< list with game servers.
 	ServerListPosition list_pos;  ///< position of the selected server
@@ -386,7 +385,13 @@ protected:
 		int icon_y_offset = (this->resize.step_height - GetSpriteSize(SPR_BLOT).height) / 2;
 		int lock_y_offset = (this->resize.step_height - GetSpriteSize(SPR_LOCK).height) / 2;
 
-		DrawString(nwi_name->pos_x + WD_FRAMERECT_LEFT, nwi_name->pos_x + nwi_name->current_x - WD_FRAMERECT_RIGHT, y + text_y_offset, cur_item->info.server_name, TC_BLACK);
+		if (StrEmpty(cur_item->info.server_name)) {
+			// TODO -- Make this translatable
+			// TODO -- Add the address of the offline server
+			DrawString(nwi_name->pos_x + WD_FRAMERECT_LEFT, nwi_name->pos_x + nwi_name->current_x - WD_FRAMERECT_RIGHT, y + text_y_offset, "(offline) TODO", TC_BLACK);
+		} else {
+			DrawString(nwi_name->pos_x + WD_FRAMERECT_LEFT, nwi_name->pos_x + nwi_name->current_x - WD_FRAMERECT_RIGHT, y + text_y_offset, cur_item->info.server_name, TC_BLACK);
+		}
 
 		/* only draw details if the server is online */
 		if (cur_item->online) {
@@ -453,6 +458,8 @@ protected:
 	}
 
 public:
+	NetworkGameList *server;      ///< selected server
+
 	NetworkGameWindow(WindowDesc *desc) : Window(desc), name_editbox(NETWORK_CLIENT_NAME_LENGTH), filter_editbox(120)
 	{
 		this->list_pos = SLP_INVALID;
@@ -483,7 +490,7 @@ public:
 
 		this->last_joined = NetworkGameListAddItem(ServerAddress(_settings_client.network.last_host, _settings_client.network.last_port));
 		this->server = this->last_joined;
-		if (this->last_joined != nullptr) NetworkUDPQueryServer(this->last_joined->address.direct_address);
+		if (this->last_joined != nullptr) NetworkTCPQueryServer(this->last_joined->address, false);
 
 		this->requery_timer.SetInterval(MILLISECONDS_PER_TICK);
 
@@ -786,8 +793,7 @@ public:
 				break;
 
 			case WID_NG_REFRESH: // Refresh
-				// TODO -- Handle refreshes
-				//if (this->server != nullptr) NetworkUDPQueryServer(this->server->address);
+				if (this->server != nullptr) NetworkTCPQueryServer(this->server->address, false);
 				break;
 
 			case WID_NG_NEWGRF: // NewGRF Settings
@@ -903,9 +909,12 @@ public:
 				NetworkAddServer(str);
 				break;
 
-			case WID_NG_JOIN_KEY:
-				new TCPClientConnecter(ServerAddress(str));
+			case WID_NG_JOIN_KEY: {
+				NetworkGameList *ngl = NetworkGameListAddItem(ServerAddress(str));
+				ngl->manually = true;
+				NetworkTCPQueryServer(ngl->address, false);
 				break;
+			}
 		}
 	}
 
@@ -1588,11 +1597,10 @@ struct NetworkLobbyWindow : public Window {
 			}
 
 			case WID_NL_REFRESH:  // Refresh
-				// TODO -- Allow for this via GameCoordinator
-				//NetworkTCPQueryServer(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port)); // company info
-				//NetworkUDPQueryServer(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port)); // general data
 				/* Clear the information so removed companies don't remain */
-				//for (auto &company : this->company_info) company = {};
+				for (auto &company : this->company_info) company = {};
+
+				NetworkTCPQueryServer(this->server->address);
 				break;
 		}
 	}
@@ -1658,11 +1666,7 @@ static void ShowNetworkLobbyWindow(NetworkGameList *ngl)
 	DeleteWindowById(WC_NETWORK_WINDOW, WN_NETWORK_WINDOW_START);
 	DeleteWindowById(WC_NETWORK_WINDOW, WN_NETWORK_WINDOW_GAME);
 
-	// TODO -- This shouldn't be needed for general data, but possibly for company info it is
-	ServerAddress server_address = !_network_join_key.empty() ? ServerAddress(_network_join_key.c_str()) : ServerAddress(_settings_client.network.last_host, _settings_client.network.last_port);
-	NetworkTCPQueryServer(server_address); // company info
-//	NetworkUDPQueryServer(NetworkAddress(_settings_client.network.last_host, _settings_client.network.last_port)); // general data
-
+	NetworkTCPQueryServer(ngl->address);
 	new NetworkLobbyWindow(&_network_lobby_window_desc, ngl);
 }
 
@@ -1673,8 +1677,18 @@ static void ShowNetworkLobbyWindow(NetworkGameList *ngl)
  */
 NetworkCompanyInfo *GetLobbyCompanyInfo(CompanyID company)
 {
-	NetworkLobbyWindow *lobby = dynamic_cast<NetworkLobbyWindow*>(FindWindowById(WC_NETWORK_WINDOW, WN_NETWORK_WINDOW_LOBBY));
+	NetworkLobbyWindow *lobby = dynamic_cast<NetworkLobbyWindow *>(FindWindowById(WC_NETWORK_WINDOW, WN_NETWORK_WINDOW_LOBBY));
 	return (lobby != nullptr && company < MAX_COMPANIES) ? &lobby->company_info[company] : nullptr;
+}
+
+/**
+ * Get the game information for the lobby.
+ * @return the server info struct to write the (downloaded) data to.
+ */
+NetworkGameList *GetLobbyGameInfo()
+{
+	NetworkLobbyWindow *lobby = dynamic_cast<NetworkLobbyWindow *>(FindWindowById(WC_NETWORK_WINDOW, WN_NETWORK_WINDOW_LOBBY));
+	return lobby != nullptr ? lobby->server : nullptr;
 }
 
 /* The window below gives information about the connected clients

@@ -128,7 +128,7 @@ extern uint8 _network_reconnect;
 
 extern CompanyMask _network_company_passworded;
 
-void NetworkTCPQueryServer(ServerAddress address);
+void NetworkTCPQueryServer(ServerAddress address, bool company_info = true);
 
 void GetBindAddresses(NetworkAddressList *addresses, uint16 port);
 void NetworkAddServer(const char *b);

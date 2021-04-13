@@ -26,6 +26,7 @@
 #include "network.h"
 #include "network_base.h"
 #include "network_client.h"
+#include "network_gamelist.h"
 #include "../core/backup_type.hpp"
 #include "../thread.h"
 
@@ -345,14 +346,20 @@ static_assert(NETWORK_SERVER_ID_LENGTH == 16 * 2 + 1);
  ************/
 
 /** Query the server for company information. */
-NetworkRecvStatus ClientNetworkGameSocketHandler::SendCompanyInformationQuery()
+NetworkRecvStatus ClientNetworkGameSocketHandler::SendInformationQuery(bool company_info)
 {
-	my_client->status = STATUS_COMPANY_INFO;
-	_network_join_status = NETWORK_JOIN_STATUS_GETTING_COMPANY_INFO;
-	SetWindowDirty(WC_NETWORK_STATUS_WINDOW, WN_NETWORK_STATUS_WINDOW_JOIN);
+	Packet *p1 = new Packet(PACKET_CLIENT_SERVER_INFO);
+	my_client->SendPacket(p1);
 
-	Packet *p = new Packet(PACKET_CLIENT_COMPANY_INFO);
-	my_client->SendPacket(p);
+	if (company_info) {
+		my_client->status = STATUS_COMPANY_INFO;
+		_network_join_status = NETWORK_JOIN_STATUS_GETTING_COMPANY_INFO;
+		SetWindowDirty(WC_NETWORK_STATUS_WINDOW, WN_NETWORK_STATUS_WINDOW_JOIN);
+
+		Packet *p2 = new Packet(PACKET_CLIENT_COMPANY_INFO);
+		my_client->SendPacket(p2);
+	}
+
 	return NETWORK_RECV_STATUS_OKAY;
 }
 
@@ -572,6 +579,37 @@ NetworkRecvStatus ClientNetworkGameSocketHandler::Receive_SERVER_BANNED(Packet *
 	DeleteWindowById(WC_NETWORK_STATUS_WINDOW, WN_NETWORK_STATUS_WINDOW_JOIN);
 
 	return NETWORK_RECV_STATUS_SERVER_BANNED;
+}
+
+NetworkRecvStatus ClientNetworkGameSocketHandler::Receive_SERVER_SERVER_INFO(Packet *p)
+{
+	if (this->status != STATUS_COMPANY_INFO && this->status != STATUS_INACTIVE) return NETWORK_RECV_STATUS_MALFORMED_PACKET;
+
+	/* Read the NetworkGameInfo from the packet. */
+	NetworkGameInfo ngi;
+	ReceiveNetworkGameInfo(p, &ngi);
+
+	/* Find the game info for the lobby. */
+	NetworkGameList *item = GetLobbyGameInfo();
+	if (item == nullptr) {
+		/* This is not the lobby, so add it to the game list. */
+		item = NetworkGameListAddItem(ServerAddress(ngi.join_key));
+	}
+
+	/* Clear any existing GRFConfig chain. */
+	ClearGRFConfigList(&item->info.grfconfig);
+	/* Copy the new NetworkGameInfo info. */
+	memcpy(&item->info, &ngi, sizeof(item->info));
+	/* Check for compatability with the client. */
+	CheckGameCompatability(item);
+
+	/* It could be either window, but only one is open, so redraw both. */
+	SetWindowDirty(WC_NETWORK_WINDOW, WN_NETWORK_WINDOW_GAME);
+	SetWindowDirty(WC_NETWORK_WINDOW, WN_NETWORK_WINDOW_LOBBY);
+
+	/* We will receive company info next, so keep connection open. */
+	if (this->status == STATUS_COMPANY_INFO) return NETWORK_RECV_STATUS_OKAY;
+	return NETWORK_RECV_STATUS_CLOSE_QUERY;
 }
 
 NetworkRecvStatus ClientNetworkGameSocketHandler::Receive_SERVER_COMPANY_INFO(Packet *p)

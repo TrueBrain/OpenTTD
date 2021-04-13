@@ -594,8 +594,11 @@ static void NetworkInitialize(bool close_admins = true)
 
 /** Non blocking connection create to query servers */
 class TCPQueryConnecter : TCPServerConnecter {
+private:
+	bool company_info;
+
 public:
-	TCPQueryConnecter(const ServerAddress &address) : TCPServerConnecter(address) {}
+	TCPQueryConnecter(const ServerAddress &address, bool company_info) : TCPServerConnecter(address), company_info(company_info) {}
 
 	void OnFailure() override
 	{
@@ -606,48 +609,53 @@ public:
 	{
 		_networking = true;
 		new ClientNetworkGameSocketHandler(s);
-		MyClient::SendCompanyInformationQuery();
+		MyClient::SendInformationQuery(company_info);
 	}
 };
 
-/* Query a server to fetch his game-info
- *  If game_info is true, only the gameinfo is fetched,
- *   else only the client_info is fetched */
-void NetworkTCPQueryServer(ServerAddress address)
+/**
+ * Query a server to fetch his game-info.
+ * @param company_info If true, also company info is fetch.
+ */
+void NetworkTCPQueryServer(ServerAddress address, bool company_info)
 {
 	if (!_network_available) return;
 
 	NetworkDisconnect();
 	NetworkInitialize();
 
-	new TCPQueryConnecter(address);
+	new TCPQueryConnecter(address, company_info);
 }
 
-/* Validates an address entered as a string and adds the server to
+/**
+ * Validates an address entered as a string and adds the server to
  * the list. If you use this function, the games will be marked
- * as manually added. */
+ * as manually added.
+ * @param b the server to add.
+ */
 void NetworkAddServer(const char *b)
 {
-	if (*b != '\0') {
-		const char *port = nullptr;
-		const char *company = nullptr;
-		const char *join_key = nullptr;
-		char host[NETWORK_HOSTNAME_LENGTH];
-		uint16 rport;
+	if (*b == '\0') return;
 
-		strecpy(host, b, lastof(host));
+	const char *port = nullptr;
+	const char *company = nullptr;
+	const char *join_key = nullptr;
+	char host[NETWORK_HOSTNAME_LENGTH];
+	uint16 rport;
 
-		strecpy(_settings_client.network.connect_to_ip, b, lastof(_settings_client.network.connect_to_ip));
-		rport = NETWORK_DEFAULT_PORT;
+	strecpy(host, b, lastof(host));
 
-		ParseGameConnectionString(&join_key, &company, &port, host);
-		if (port != nullptr) rport = atoi(port);
+	strecpy(_settings_client.network.connect_to_ip, b, lastof(_settings_client.network.connect_to_ip));
+	rport = NETWORK_DEFAULT_PORT;
 
-		// TODO -- What to do when someone adds a join-key? It cannot be persistent, so temporary add it?
+	ParseGameConnectionString(&join_key, &company, &port, host);
+	if (port != nullptr) rport = atoi(port);
 
-		// TODO -- Replace this with a query via TCP
-		//NetworkUDPQueryServer(NetworkAddress(host, rport), true);
-	}
+	ServerAddress server_address = join_key != nullptr ? ServerAddress(join_key) : ServerAddress(host, rport);
+
+	NetworkGameList *ngl = NetworkGameListAddItem(server_address);
+	ngl->manually = true;
+	NetworkTCPQueryServer(ngl->address, false);
 }
 
 /**
@@ -676,6 +684,7 @@ void NetworkRebuildHostList()
 
 	for (NetworkGameList *item = _network_game_list; item != nullptr; item = item->next) {
 		/* Do not store servers based on join-key, as they are temporary keys. */
+		// TODO -- Reconsider this
 		if (!item->address.IsDirectAddress()) continue;
 
 		if (item->manually) _network_host_list.emplace_back(item->address.direct_address.GetAddressAsString(false));
@@ -1115,7 +1124,7 @@ extern "C" {
 
 void CDECL em_openttd_add_server(const char *host, int port)
 {
-	NetworkUDPQueryServer(NetworkAddress(host, port), true);
+	NetworkTCPQueryServer(ServerAddress(host, port), false);
 }
 
 }

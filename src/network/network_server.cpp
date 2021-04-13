@@ -363,6 +363,19 @@ NetworkRecvStatus ServerNetworkGameSocketHandler::SendClientInfo(NetworkClientIn
 	return NETWORK_RECV_STATUS_OKAY;
 }
 
+NetworkRecvStatus ServerNetworkGameSocketHandler::SendServerInfo()
+{
+	NetworkGameInfo ngi;
+	FillNetworkGameInfo(ngi);
+
+	Packet *p = new Packet(PACKET_SERVER_SERVER_INFO);
+	SendNetworkGameInfo(p, &ngi);
+
+	this->SendPacket(p);
+
+	return NETWORK_RECV_STATUS_OKAY;
+}
+
 /** Send the client information about the companies. */
 NetworkRecvStatus ServerNetworkGameSocketHandler::SendCompanyInfo()
 {
@@ -874,6 +887,11 @@ NetworkRecvStatus ServerNetworkGameSocketHandler::SendConfigUpdate()
  * Receiving functions
  *   DEF_SERVER_RECEIVE_COMMAND has parameter: NetworkClientSocket *cs, Packet *p
  ************/
+
+NetworkRecvStatus ServerNetworkGameSocketHandler::Receive_CLIENT_SERVER_INFO(Packet *p)
+{
+	return this->SendServerInfo();
+}
 
 NetworkRecvStatus ServerNetworkGameSocketHandler::Receive_CLIENT_COMPANY_INFO(Packet *p)
 {

@@ -117,7 +117,7 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_LISTING(Packet *p)
 		ClearGRFConfigList(&item->info.grfconfig);
 		/* Copy the new NetworkGameInfo info. */
 		memcpy(&item->info, &ngi, sizeof(item->info));
-		/* Check for compatability witht he client. */
+		/* Check for compatability with the client. */
 		CheckGameCompatability(item);
 	}
 

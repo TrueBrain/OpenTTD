@@ -14,6 +14,7 @@
 #include "../economy_type.h"
 #include "../window_type.h"
 #include "network_type.h"
+#include "network_gamelist.h"
 
 void ShowNetworkNeedPassword(NetworkPasswordType npt);
 void ShowNetworkChatQueryWindow(DestType type, int dest);
@@ -36,5 +37,6 @@ struct NetworkCompanyInfo : NetworkCompanyStats {
 };
 
 NetworkCompanyInfo *GetLobbyCompanyInfo(CompanyID company);
+NetworkGameList *GetLobbyGameInfo();
 
 #endif /* NETWORK_GUI_H */
