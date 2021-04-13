@@ -12,10 +12,15 @@
 #include "../../stdafx.h"
 #include "game_info.h"
 #include "../../core/bitmath_func.hpp"
+#include "../../company_base.h"
 #include "../../date_func.h"
 #include "../../debug.h"
+#include "../../map_func.h"
+#include "../../settings_type.h"
 #include "../../string_func.h"
 #include "../../rev.h"
+#include "../network_func.h"
+#include "../network.h"
 #include "packet.h"
 
 #include "../../safeguards.h"
@@ -90,9 +95,9 @@ void ReceiveNetworkGameInfo(Packet *p, NetworkGameInfo *info)
 {
 	static const Date MAX_DATE = ConvertYMDToDate(MAX_YEAR, 11, 31); // December is month 11
 
-	uint8 game_info_version = p->Recv_uint8();
+	info->game_info_version = p->Recv_uint8();
 	// TODO -- Support reading older versions too or mark them as "old"
-	if (game_info_version != NETWORK_GAME_INFO_VERSION) return;
+	if (info->game_info_version != NETWORK_GAME_INFO_VERSION) return;
 
 	p->Recv_string(info->join_key, sizeof(info->join_key));
 
@@ -129,6 +134,10 @@ void ReceiveNetworkGameInfo(Packet *p, NetworkGameInfo *info)
 	info->map_set = p->Recv_uint8();
 
 	if (info->map_set >= NETWORK_NUM_LANDSCAPES) info->map_set = 0;
+
+	info->version_compatible = false;
+	info->compatible = false;
+	info->server_lang = 0;
 }
 
 /**
@@ -180,6 +189,31 @@ void SendNetworkGameInfo(Packet *p, const NetworkGameInfo *info)
 	p->Send_uint16(info->map_width);
 	p->Send_uint16(info->map_height);
 	p->Send_uint8 (info->map_set);
+}
+
+void FillNetworkGameInfo(NetworkGameInfo &ngi)
+{
+	/* Update some game_info */
+	ngi.clients_on     = _network_game_info.clients_on;
+	ngi.start_date     = ConvertYMDToDate(_settings_game.game_creation.starting_year, 0, 1);
+
+	ngi.server_lang    = _settings_client.network.server_lang;
+	ngi.use_password   = !StrEmpty(_settings_client.network.server_password);
+	ngi.clients_max    = _settings_client.network.max_clients;
+	ngi.companies_on   = (byte)Company::GetNumItems();
+	ngi.companies_max  = _settings_client.network.max_companies;
+	ngi.spectators_on  = NetworkSpectatorCount();
+	ngi.spectators_max = _settings_client.network.max_spectators;
+	ngi.game_date      = _date;
+	ngi.map_width      = MapSizeX();
+	ngi.map_height     = MapSizeY();
+	ngi.map_set        = _settings_game.game_creation.landscape;
+	ngi.dedicated      = _network_dedicated;
+	ngi.grfconfig      = _grfconfig;
+
+	strecpy(ngi.join_key, _network_game_info.join_key, lastof(ngi.join_key));
+	strecpy(ngi.server_name, _settings_client.network.server_name, lastof(ngi.server_name));
+	strecpy(ngi.server_revision, GetNetworkRevisionString(), lastof(ngi.server_revision));
 }
 
 /**

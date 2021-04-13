@@ -53,7 +53,6 @@
  * be sent to the clients.
  */
 struct NetworkServerGameInfo {
-	char map_name[NETWORK_NAME_LENGTH];             ///< Map which is played ["random" for a randomized map]
 	char join_key[NETWORK_JOIN_KEY_LENGTH];         ///< Join key
 	byte clients_on;                                ///< Current count of clients on server
 };
@@ -70,7 +69,6 @@ struct NetworkGameInfo : NetworkServerGameInfo {
 	char server_name[NETWORK_NAME_LENGTH];          ///< Server name
 	char hostname[NETWORK_HOSTNAME_LENGTH];         ///< Hostname of the server (if any)
 	char server_revision[NETWORK_REVISION_LENGTH];  ///< The version number the server is using (e.g.: 'r304' or 0.5.0)
-	char join_key[NETWORK_JOIN_KEY_LENGTH];         ///< Join key
 	bool dedicated;                                 ///< Is this a dedicated server?
 	bool version_compatible;                        ///< Can we connect to this server or not? (based on server_revision)
 	bool compatible;                                ///< Can we connect to this server or not? (based on server_revision _and_ grf_match
@@ -87,6 +85,8 @@ struct NetworkGameInfo : NetworkServerGameInfo {
 
 const char *GetNetworkRevisionString();
 bool IsNetworkCompatibleVersion(const char *other);
+
+void FillNetworkGameInfo(NetworkGameInfo &ngi);
 
 void ReceiveGRFIdentifier(Packet *p, GRFIdentifier *grf);
 void SendGRFIdentifier(Packet *p, const GRFIdentifier *grf);

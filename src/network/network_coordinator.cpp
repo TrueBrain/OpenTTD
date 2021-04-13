@@ -250,29 +250,7 @@ void ClientNetworkCoordinatorSocketHandler::StunFailed(const char *token)
 void ClientNetworkCoordinatorSocketHandler::SendServerUpdate()
 {
 	NetworkGameInfo ngi;
-
-	/* Update some game_info */
-	ngi.clients_on     = _network_game_info.clients_on;
-	ngi.start_date     = ConvertYMDToDate(_settings_game.game_creation.starting_year, 0, 1);
-
-	ngi.server_lang    = _settings_client.network.server_lang;
-	ngi.use_password   = !StrEmpty(_settings_client.network.server_password);
-	ngi.clients_max    = _settings_client.network.max_clients;
-	ngi.companies_on   = (byte)Company::GetNumItems();
-	ngi.companies_max  = _settings_client.network.max_companies;
-	ngi.spectators_on  = NetworkSpectatorCount();
-	ngi.spectators_max = _settings_client.network.max_spectators;
-	ngi.game_date      = _date;
-	ngi.map_width      = MapSizeX();
-	ngi.map_height     = MapSizeY();
-	ngi.map_set        = _settings_game.game_creation.landscape;
-	ngi.dedicated      = _network_dedicated;
-	ngi.grfconfig      = _grfconfig;
-
-	strecpy(ngi.map_name, _network_game_info.map_name, lastof(ngi.map_name));
-	strecpy(ngi.server_name, _settings_client.network.server_name, lastof(ngi.server_name));
-	strecpy(ngi.join_key, _network_game_info.join_key, lastof(ngi.join_key));
-	strecpy(ngi.server_revision, GetNetworkRevisionString(), lastof(ngi.server_revision));
+	FillNetworkGameInfo(ngi);
 
 	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_UPDATE);
 	p->Send_uint8(NETWORK_GAME_COORDINATOR_VERSION);
