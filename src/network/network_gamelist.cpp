@@ -21,6 +21,7 @@
 #include "../safeguards.h"
 
 NetworkGameList *_network_game_list = nullptr;
+int _network_game_list_version = 0;
 
 /**
  * Add a new item to the linked gamelist. If the IP and Port match
@@ -52,6 +53,7 @@ NetworkGameList *NetworkGameListAddItem(ServerAddress address)
 	item = CallocT<NetworkGameList>(1);
 	item->next = nullptr;
 	item->address = address;
+	item->version = _network_game_list_version;
 
 	if (prev_item == nullptr) {
 		_network_game_list = item;
@@ -175,4 +177,34 @@ void NetworkAfterNewGRFScan()
 	}
 
 	InvalidateWindowClassesData(WC_NETWORK_WINDOW);
+}
+
+void NetworkGameListRemoveExpired()
+{
+	DEBUG(misc, 0, "Expired check with %d", _network_game_list_version);
+
+	NetworkGameList *prev_item = nullptr;
+	for (NetworkGameList *item = _network_game_list; item != nullptr;) {
+		DEBUG(misc, 0, "%d : %d < %d", item->manually, item->version, _network_game_list_version);
+		if (!item->manually && item->version < _network_game_list_version) {
+			NetworkGameList *remove = item;
+			item = item->next;
+
+			if (prev_item == nullptr) {
+				_network_game_list = item;
+			} else {
+				prev_item->next = item;
+			}
+
+			/* Remove GRFConfig information */
+			ClearGRFConfigList(&remove->info.grfconfig);
+			free(remove);
+		} else {
+			prev_item = item;
+			item = item->next;
+		}
+	}
+
+	NetworkRebuildHostList();
+	UpdateNetworkGameWindow();
 }

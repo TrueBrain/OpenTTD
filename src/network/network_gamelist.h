@@ -20,13 +20,16 @@ struct NetworkGameList {
 	bool online;            ///< False if the server did not respond (default status)
 	bool manually;          ///< True if the server was added manually
 	NetworkGameList *next;  ///< Next pointer to make a linked game list
+	int version;            ///< Used to see which servers are no longer available on the Game Coordinator and can be removed
 };
 
 /** Game list of this client */
 extern NetworkGameList *_network_game_list;
+extern int _network_game_list_version;
 
 NetworkGameList *NetworkGameListAddItem(ServerAddress address);
 void NetworkGameListRemoveItem(NetworkGameList *remove);
+void NetworkGameListRemoveExpired();
 void CheckGameCompatability(NetworkGameList *item);
 
 #endif /* NETWORK_GAMELIST_H */

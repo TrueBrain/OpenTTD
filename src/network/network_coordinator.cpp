@@ -105,6 +105,14 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_LISTING(Packet *p)
 {
 	uint8 servers = p->Recv_uint16();
 
+	/* End of list; we can now remove all expired items fromt the list. */
+	if (servers == 0) {
+		NetworkGameListRemoveExpired();
+		UpdateNetworkGameWindow();
+
+		return true;
+	}
+
 	for (; servers > 0; servers--) {
 		/* Read the NetworkGameInfo from the packet. */
 		NetworkGameInfo ngi;
@@ -222,6 +230,8 @@ void ClientNetworkCoordinatorSocketHandler::ConnectToPeer(const char *join_key, 
 void ClientNetworkCoordinatorSocketHandler::GetListing()
 {
 	if (this->sock == INVALID_SOCKET) this->Connect();
+
+	_network_game_list_version++;
 
 	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_LISTING);
 	p->Send_uint8(NETWORK_GAME_COORDINATOR_VERSION);
