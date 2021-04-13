@@ -43,8 +43,8 @@ public:
 
 	void OnConnect(SOCKET s) override
 	{
-        assert(_network_stun_client.sock == INVALID_SOCKET);
-        _network_stun_client.sock = s;
+		assert(_network_stun_client.sock == INVALID_SOCKET);
+		_network_stun_client.sock = s;
 
 		/* Store the local address so other sockets can reuse it.
 		 * This is needed for STUN to be successful. */
@@ -57,7 +57,7 @@ public:
 
 void ClientNetworkStunSocketHandler::Connect()
 {
-    new NetworkStunConnecter(NetworkAddress(NETWORK_STUN_SERVER_HOST, NETWORK_STUN_SERVER_PORT, AF_UNSPEC));
+	new NetworkStunConnecter(NetworkAddress(NETWORK_STUN_SERVER_HOST, NETWORK_STUN_SERVER_PORT, AF_UNSPEC));
 }
 
 void ClientNetworkStunSocketHandler::Stun(const char *token)

@@ -14,31 +14,31 @@
 
 class ClientNetworkCoordinatorSocketHandler : public NetworkCoordinatorSocketHandler {
 private:
-    TCPServerConnecter *connecter;
+	TCPServerConnecter *connecter;
 
 protected:
-    bool Receive_SERVER_REGISTER_ACK(Packet *p) override;
-    bool Receive_SERVER_STUN_REQUEST(Packet *p) override;
-    bool Receive_SERVER_STUN_PEER(Packet *p) override;
-    bool Receive_SERVER_LISTING(Packet *p) override;
+	bool Receive_SERVER_REGISTER_ACK(Packet *p) override;
+	bool Receive_SERVER_STUN_REQUEST(Packet *p) override;
+	bool Receive_SERVER_STUN_PEER(Packet *p) override;
+	bool Receive_SERVER_LISTING(Packet *p) override;
 
 public:
-    bool connecting;
+	bool connecting;
 
-    ClientNetworkCoordinatorSocketHandler() : connecter(nullptr), connecting(false) {}
+	ClientNetworkCoordinatorSocketHandler() : connecter(nullptr), connecting(false) {}
 
-    NetworkRecvStatus CloseConnection(bool error = true) override;
+	NetworkRecvStatus CloseConnection(bool error = true) override;
 
-    void Connect();
-    void SendReceive();
+	void Connect();
+	void SendReceive();
 
-    void Register();
-    void SendServerUpdate();
+	void Register();
+	void SendServerUpdate();
 
-    void ConnectToPeer(const char *join_key, TCPServerConnecter *connecter);
-    void GetListing();
+	void ConnectToPeer(const char *join_key, TCPServerConnecter *connecter);
+	void GetListing();
 
-    void StunFailed(const char *token);
+	void StunFailed(const char *token);
 };
 
 extern ClientNetworkCoordinatorSocketHandler _network_coordinator_client;

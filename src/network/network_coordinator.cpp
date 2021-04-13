@@ -85,9 +85,9 @@ public:
 
 	void OnConnect(SOCKET s) override
 	{
-        assert(_network_coordinator_client.sock == INVALID_SOCKET);
+		assert(_network_coordinator_client.sock == INVALID_SOCKET);
 
-        _network_coordinator_client.sock = s;
+		_network_coordinator_client.sock = s;
 		_network_coordinator_client.connecting = false;
 	}
 };
@@ -176,7 +176,7 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_STUN_PEER(Packet *p)
 void ClientNetworkCoordinatorSocketHandler::Connect()
 {
 	this->connecting = true;
-    new NetworkCoordinatorConnecter(NetworkAddress(NETWORK_COORDINATOR_SERVER_HOST, NETWORK_COORDINATOR_SERVER_PORT, AF_UNSPEC));
+	new NetworkCoordinatorConnecter(NetworkAddress(NETWORK_COORDINATOR_SERVER_HOST, NETWORK_COORDINATOR_SERVER_PORT, AF_UNSPEC));
 }
 
 NetworkRecvStatus ClientNetworkCoordinatorSocketHandler::CloseConnection(bool error)
