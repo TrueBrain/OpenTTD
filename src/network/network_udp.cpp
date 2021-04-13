@@ -88,14 +88,11 @@ static UDPSocket _udp_master("Master"); ///< udp master socket
  */
 static void DoNetworkUDPQueryServer(NetworkAddress &address, bool needs_mutex, bool manually)
 {
-	// TODO -- figure this out
-	return;
-
 	/* Clear item in gamelist */
 	NetworkGameList *item = CallocT<NetworkGameList>(1);
 	address.GetAddressAsString(item->info.server_name, lastof(item->info.server_name));
 	strecpy(item->info.hostname, address.GetHostname(), lastof(item->info.hostname));
-	//item->address = address;
+	item->address = ServerAddress(address);
 	item->manually = manually;
 	NetworkGameListAddItemDelayed(item);
 
@@ -198,7 +195,7 @@ void ServerNetworkUDPSocketHandler::Receive_CLIENT_FIND_SERVER(Packet *p, Networ
 	strecpy(ngi.server_revision, GetNetworkRevisionString(), lastof(ngi.server_revision));
 
 	Packet packet(PACKET_UDP_SERVER_RESPONSE);
-	this->SendNetworkGameInfo(&packet, &ngi);
+	SendNetworkGameInfo(&packet, &ngi);
 
 	/* Let the client know that we are here */
 	this->SendPacket(&packet, client_addr);
@@ -289,7 +286,7 @@ void ServerNetworkUDPSocketHandler::Receive_CLIENT_GET_NEWGRFS(Packet *p, Networ
 		GRFIdentifier c;
 		const GRFConfig *f;
 
-		this->ReceiveGRFIdentifier(p, &c);
+		ReceiveGRFIdentifier(p, &c);
 
 		/* Find the matching GRF file */
 		f = FindGRFConfig(c.grfid, FGCM_EXACT, c.md5sum);
@@ -316,7 +313,7 @@ void ServerNetworkUDPSocketHandler::Receive_CLIENT_GET_NEWGRFS(Packet *p, Networ
 
 		/* The name could be an empty string, if so take the filename */
 		strecpy(name, in_reply[i]->GetName(), lastof(name));
-		this->SendGRFIdentifier(&packet, &in_reply[i]->ident);
+		SendGRFIdentifier(&packet, &in_reply[i]->ident);
 		packet.Send_string(name);
 	}
 
@@ -331,7 +328,6 @@ protected:
 	void Receive_SERVER_RESPONSE(Packet *p, NetworkAddress *client_addr) override;
 	void Receive_MASTER_RESPONSE_LIST(Packet *p, NetworkAddress *client_addr) override;
 	void Receive_SERVER_NEWGRFS(Packet *p, NetworkAddress *client_addr) override;
-	void HandleIncomingNetworkGameInfoGRFConfig(GRFConfig *config) override;
 public:
 	virtual ~ClientNetworkUDPSocketHandler() {}
 };
@@ -349,7 +345,7 @@ void ClientNetworkUDPSocketHandler::Receive_SERVER_RESPONSE(Packet *p, NetworkAd
 	item = NetworkGameListAddItem(ServerAddress(*client_addr));
 
 	ClearGRFConfigList(&item->info.grfconfig);
-	this->ReceiveNetworkGameInfo(p, &item->info);
+	ReceiveNetworkGameInfo(p, &item->info);
 
 	CheckGameCompatability(item);
 
@@ -414,7 +410,7 @@ void ClientNetworkUDPSocketHandler::Receive_SERVER_NEWGRFS(Packet *p, NetworkAdd
 		char name[NETWORK_GRF_NAME_LENGTH];
 		GRFIdentifier c;
 
-		this->ReceiveGRFIdentifier(p, &c);
+		ReceiveGRFIdentifier(p, &c);
 		p->Recv_string(name, sizeof(name));
 
 		/* An empty name is not possible under normal circumstances
@@ -429,25 +425,6 @@ void ClientNetworkUDPSocketHandler::Receive_SERVER_NEWGRFS(Packet *p, NetworkAdd
 			AddGRFTextToList(unknown_name, name);
 		}
 	}
-}
-
-void ClientNetworkUDPSocketHandler::HandleIncomingNetworkGameInfoGRFConfig(GRFConfig *config)
-{
-	/* Find the matching GRF file */
-	const GRFConfig *f = FindGRFConfig(config->ident.grfid, FGCM_EXACT, config->ident.md5sum);
-	if (f == nullptr) {
-		/* Don't know the GRF, so mark game incompatible and the (possibly)
-		 * already resolved name for this GRF (another server has sent the
-		 * name of the GRF already */
-		config->name = FindUnknownGRFName(config->ident.grfid, config->ident.md5sum, true);
-		config->status = GCS_NOT_FOUND;
-	} else {
-		config->filename = f->filename;
-		config->name = f->name;
-		config->info = f->info;
-		config->url = f->url;
-	}
-	SetBit(config->flags, GCF_COPY);
 }
 
 /** Broadcast to all ips */

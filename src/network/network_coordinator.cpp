@@ -106,15 +106,18 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_LISTING(Packet *p)
 	uint8 servers = p->Recv_uint16();
 
 	for (; servers > 0; servers--) {
-		char join_key[NETWORK_JOIN_KEY_LENGTH];
-		p->Recv_string(join_key, lengthof(join_key));
+		/* Read the NetworkGameInfo from the packet. */
+		NetworkGameInfo ngi;
+		ReceiveNetworkGameInfo(p, &ngi);
 
-		NetworkGameList *item = NetworkGameListAddItem(ServerAddress(join_key));
+		/* Now we know the join-key, we can add it to our list. */
+		NetworkGameList *item = NetworkGameListAddItem(ServerAddress(ngi.join_key));
 
+		/* Clear any existing GRFConfig chain. */
 		ClearGRFConfigList(&item->info.grfconfig);
-		strecpy(item->info.join_key, join_key, lastof(item->info.join_key));
-		this->ReceiveNetworkGameInfo(p, &item->info);
-
+		/* Copy the new NetworkGameInfo info. */
+		memcpy(&item->info, &ngi, sizeof(item->info));
+		/* Check for compatability witht he client. */
 		CheckGameCompatability(item);
 	}
 
@@ -272,7 +275,8 @@ void ClientNetworkCoordinatorSocketHandler::SendServerUpdate()
 	strecpy(ngi.server_revision, GetNetworkRevisionString(), lastof(ngi.server_revision));
 
 	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_UPDATE);
-	this->SendNetworkGameInfo(p, &ngi);
+	p->Send_uint8(NETWORK_GAME_COORDINATOR_VERSION);
+	SendNetworkGameInfo(p, &ngi);
 
 	this->SendPacket(p);
 }

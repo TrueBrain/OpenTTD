@@ -6,16 +6,47 @@
  */
 
 /**
- * @file game.h Information about a game that is sent between a
- *              game server, game client and masterserver.
+ * @file game_info.h Convert NetworkGameInfo to Packet and back.
  */
 
-#ifndef NETWORK_CORE_GAME_H
-#define NETWORK_CORE_GAME_H
+#ifndef NETWORK_CORE_GAME_INFO_H
+#define NETWORK_CORE_GAME_INFO_H
 
+#include "core.h"
 #include "config.h"
 #include "../../newgrf_config.h"
 #include "../../date_type.h"
+
+/**
+ * Game Info Protocol v5
+ * ---------------------
+ *
+ *  uint8   Game Info version.
+ *  string  Join key of the server
+ *  uint8   Number of GRFs attached (n)
+ *  For each GRF:
+ *    uint32     GRF ID
+ *    bytes[16]  MD5 checksum of the GRF
+ *
+ *  uint32  Current game date in days since 1-1-0 (DMY)
+ *  uint32  Game introduction date in days since 1-1-0 (DMY)
+ *
+ *  uint8   Maximum number of companies allowed on the server
+ *  uint8   Number of companies on the server
+ *  uint8   Maximum number of clients allowed on the server
+ *  uint8   Number of clients on the server
+ *  uint8   Maximum number of spectators allowed on the server
+ *  uint8   Number of spectators on the server
+ *
+ *  string  Name of the server
+ *  string  Revision of the server
+ *  uint8   Whether the server uses a password (0 = no, 1 = yes)
+ *  uint8   Whether the server is dedicated (0 = no, 1 = yes)
+ *
+ *  uint16  Width of the map in tiles
+ *  uint16  Height of the map in tiles
+ *  uint8   Type of map (0 = temperate, 1 = arctic, 2 = desert, 3 = toyland)
+ */
 
 /**
  * The game information that is not generated on-the-fly and has to
@@ -54,6 +85,13 @@ struct NetworkGameInfo : NetworkServerGameInfo {
 	byte map_set;                                   ///< Graphical set
 };
 
-const char * GetNetworkRevisionString();
+const char *GetNetworkRevisionString();
+bool IsNetworkCompatibleVersion(const char *other);
 
-#endif /* NETWORK_CORE_GAME_H */
+void ReceiveGRFIdentifier(Packet *p, GRFIdentifier *grf);
+void SendGRFIdentifier(Packet *p, const GRFIdentifier *grf);
+
+void ReceiveNetworkGameInfo(Packet *p, NetworkGameInfo *info);
+void SendNetworkGameInfo(Packet *p, const NetworkGameInfo *info);
+
+#endif /* NETWORK_CORE_GAME_INFO_H */

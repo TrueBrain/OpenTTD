@@ -15,7 +15,7 @@
 #include "os_abstraction.h"
 #include "tcp.h"
 #include "packet.h"
-#include "game.h"
+#include "game_info.h"
 #include "../../debug.h"
 
 /** Enum with all types of TCP Game Coordinator packets. The order MUST not be changed **/
@@ -61,30 +61,7 @@ protected:
 	/**
 	 * Send an update of the current state of the server to the Game Coordinator.
 	 *  uint8   Game Coordinator protocol version.
-	 *  string  Join key of the server
-	 *  uint8   Number of GRFs attached (n)
-	 *  For each GRF:
-	 *    uint32     GRF ID
-	 *    bytes[16]  MD5 checksum of the GRF
-	 *
-	 *  uint32  Current game date in days since 1-1-0 (DMY)
-	 *  uint32  Game introduction date in days since 1-1-0 (DMY)
-	 *
-	 *  uint8   Maximum number of companies allowed on the server
-	 *  uint8   Number of companies on the server
-	 *  uint8   Maximum number of clients allowed on the server
-	 *  uint8   Number of clients on the server
-	 *  uint8   Maximum number of spectators allowed on the server
-	 *  uint8   Number of spectators on the server
-	 *
-	 *  string  Name of the server
-	 *  string  Revision of the server
-	 *  uint8   Whether the server uses a password (0 = no, 1 = yes)
-	 *  uint8   Whether the server is dedicated (0 = no, 1 = yes)
-	 *
-	 *  uint16  Width of the map in tiles
-	 *  uint16  Height of the map in tiles
-	 *  uint8   Type of map (0 = temperate, 1 = arctic, 2 = desert, 3 = toyland)
+	 *  Serialized NetworkGameInfo. See game_info.hpp for details.
 	 * @param p The packet that was just received.
 	 * @return True upon success, otherwise false.
 	 */
@@ -104,7 +81,7 @@ protected:
 	 * send over. Last packet will have server count of 0.
 	 *  uint16  Amount of public servers in this packet
 	 *  For each server:
-	 *    same structure as CLIENT_UPDATE
+	 *    Serialized NetworkGameInfo. See game_info.hpp for details.
 	 * @param p The packet that was just received.
 	 * @return True upon success, otherwise false.
 	 */
@@ -155,9 +132,6 @@ protected:
 	virtual bool Receive_CLIENT_STUN_FAILED(Packet *p);
 
 	bool HandlePacket(Packet *p);
-	void ReceiveNetworkGameInfo(Packet *p, NetworkGameInfo *info);
-	void SendNetworkGameInfo(Packet *p, const NetworkGameInfo *info);
-	void HandleIncomingNetworkGameInfoGRFConfig(GRFConfig *config);
 public:
 	/**
 	 * Create a new cs socket handler for a given cs
