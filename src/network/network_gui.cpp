@@ -492,7 +492,7 @@ public:
 		this->server = this->last_joined;
 		if (this->last_joined != nullptr) NetworkTCPQueryServer(this->last_joined->address, false);
 
-		this->requery_timer.SetInterval(MILLISECONDS_PER_TICK);
+		this->requery_timer.SetInterval(60 * 1000); // TODO -- Put this in a variable
 
 		this->servers.SetListing(this->last_sorting);
 		this->servers.SetSortFuncs(this->sorter_funcs);
@@ -926,9 +926,9 @@ public:
 	void OnRealtimeTick(uint delta_ms) override
 	{
 		if (!this->requery_timer.Elapsed(delta_ms)) return;
-		this->requery_timer.SetInterval(MILLISECONDS_PER_TICK);
+		this->requery_timer.SetInterval(60 * 1000);
 
-		NetworkGameListRequery();
+		_network_coordinator_client.GetListing();
 	}
 };
 
@@ -1084,7 +1084,8 @@ struct NetworkStartServerWindow : public Window {
 	{
 		switch (widget) {
 			case WID_NSS_CONNTYPE_BTN:
-				SetDParam(0, _connection_types_dropdown[_settings_client.network.server_advertise]);
+				// TODO -- Private / public (friends-only) / public
+				SetDParam(0, _connection_types_dropdown[1]);
 				break;
 
 			case WID_NSS_CLIENTS_TXT:
@@ -1139,7 +1140,8 @@ struct NetworkStartServerWindow : public Window {
 				break;
 
 			case WID_NSS_CONNTYPE_BTN: // Connection type
-				ShowDropDownMenu(this, _connection_types_dropdown, _settings_client.network.server_advertise, WID_NSS_CONNTYPE_BTN, 0, 0); // do it for widget WID_NSS_CONNTYPE_BTN
+				// TODO
+				//ShowDropDownMenu(this, _connection_types_dropdown, _settings_client.network.server_advertise, WID_NSS_CONNTYPE_BTN, 0, 0); // do it for widget WID_NSS_CONNTYPE_BTN
 				break;
 
 			case WID_NSS_CLIENTS_BTND:    case WID_NSS_CLIENTS_BTNU:    // Click on up/down button for number of clients
@@ -1225,7 +1227,7 @@ struct NetworkStartServerWindow : public Window {
 	{
 		switch (widget) {
 			case WID_NSS_CONNTYPE_BTN:
-				_settings_client.network.server_advertise = (index != 0);
+				// TODO
 				break;
 			case WID_NSS_LANGUAGE_BTN:
 				_settings_client.network.server_lang = _language_dropdown[index] - STR_NETWORK_LANG_ANY;

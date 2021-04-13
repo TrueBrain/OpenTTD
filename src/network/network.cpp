@@ -830,8 +830,6 @@ void NetworkDisconnect(bool blocking, bool close_admins)
 		}
 	}
 
-	if (_settings_client.network.server_advertise) NetworkUDPRemoveAdvertise(blocking);
-
 	DeleteWindowById(WC_NETWORK_STATUS_WINDOW, WN_NETWORK_STATUS_WINDOW_JOIN);
 
 	NetworkClose(close_admins);
@@ -1094,7 +1092,6 @@ void NetworkStartUp()
 	/* Network is available */
 	_network_available = NetworkCoreInitialize();
 	_network_dedicated = false;
-	_network_need_advertise = true;
 
 	/* Generate an server id when there is none yet */
 	if (StrEmpty(_settings_client.network.network_id)) NetworkGenerateServerId();

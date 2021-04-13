@@ -19,17 +19,14 @@ struct NetworkGameList {
 	ServerAddress address;  ///< The connection info of the game server
 	bool online;            ///< False if the server did not respond (default status)
 	bool manually;          ///< True if the server was added manually
-	uint8 retries;          ///< Number of retries (to stop requerying)
 	NetworkGameList *next;  ///< Next pointer to make a linked game list
 };
 
 /** Game list of this client */
 extern NetworkGameList *_network_game_list;
 
-void NetworkGameListAddItemDelayed(NetworkGameList *item);
 NetworkGameList *NetworkGameListAddItem(ServerAddress address);
 void NetworkGameListRemoveItem(NetworkGameList *remove);
-void NetworkGameListRequery();
 void CheckGameCompatability(NetworkGameList *item);
 
 #endif /* NETWORK_GAMELIST_H */

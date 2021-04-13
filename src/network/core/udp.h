@@ -21,14 +21,8 @@ enum PacketUDPType {
 	PACKET_UDP_SERVER_RESPONSE,      ///< Reply of the game server with game information
 	PACKET_UDP_CLIENT_DETAIL_INFO,   ///< Queries a game server about details of the game, such as companies
 	PACKET_UDP_SERVER_DETAIL_INFO,   ///< Reply of the game server about details of the game, such as companies
-	PACKET_UDP_SERVER_REGISTER,      ///< Packet to register itself to the master server
-	PACKET_UDP_MASTER_ACK_REGISTER,  ///< Packet indicating registration has succeeded
-	PACKET_UDP_CLIENT_GET_LIST,      ///< Request for serverlist from master server
-	PACKET_UDP_MASTER_RESPONSE_LIST, ///< Response from master server with server ip's + port's
-	PACKET_UDP_SERVER_UNREGISTER,    ///< Request to be removed from the server-list
 	PACKET_UDP_CLIENT_GET_NEWGRFS,   ///< Requests the name for a list of GRFs (GRF_ID and MD5)
 	PACKET_UDP_SERVER_NEWGRFS,       ///< Sends the list of NewGRF's requested.
-	PACKET_UDP_MASTER_SESSION_KEY,   ///< Sends a fresh session key to the client
 	PACKET_UDP_END,                  ///< Must ALWAYS be on the end of this list!! (period)
 };
 
@@ -105,53 +99,6 @@ protected:
 	virtual void Receive_SERVER_DETAIL_INFO(Packet *p, NetworkAddress *client_addr);
 
 	/**
-	 * Registers the server to the master server.
-	 * string  The "welcome" message to root out other binary packets.
-	 * uint8   Version of the protocol.
-	 * uint16  The port to unregister.
-	 * uint64  The session key.
-	 * @param p           The received packet.
-	 * @param client_addr The origin of the packet.
-	 */
-	virtual void Receive_SERVER_REGISTER(Packet *p, NetworkAddress *client_addr);
-
-	/**
-	 * The master server acknowledges the registration.
-	 * @param p           The received packet.
-	 * @param client_addr The origin of the packet.
-	 */
-	virtual void Receive_MASTER_ACK_REGISTER(Packet *p, NetworkAddress *client_addr);
-
-	/**
-	 * The client requests a list of servers.
-	 * uint8   The protocol version.
-	 * uint8   The type of server to look for: IPv4, IPv6 or based on the received packet.
-	 * @param p           The received packet.
-	 * @param client_addr The origin of the packet.
-	 */
-	virtual void Receive_CLIENT_GET_LIST(Packet *p, NetworkAddress *client_addr);
-
-	/**
-	 * The server sends a list of servers.
-	 * uint8   The protocol version.
-	 * For each server:
-	 *   4 or 16 bytes of IPv4 or IPv6 address.
-	 *   uint8   The port.
-	 * @param p           The received packet.
-	 * @param client_addr The origin of the packet.
-	 */
-	virtual void Receive_MASTER_RESPONSE_LIST(Packet *p, NetworkAddress *client_addr);
-
-	/**
-	 * A server unregisters itself at the master server.
-	 * uint8   Version of the protocol.
-	 * uint16  The port to unregister.
-	 * @param p           The received packet.
-	 * @param client_addr The origin of the packet.
-	 */
-	virtual void Receive_SERVER_UNREGISTER(Packet *p, NetworkAddress *client_addr);
-
-	/**
 	 * The client requests information about some NewGRFs.
 	 * uint8   The number of NewGRFs information is requested about.
 	 * For each NewGRF:
@@ -173,14 +120,6 @@ protected:
 	 * @param client_addr The origin of the packet.
 	 */
 	virtual void Receive_SERVER_NEWGRFS(Packet *p, NetworkAddress *client_addr);
-
-	/**
-	 * The master server sends us a session key.
-	 * uint64  The session key.
-	 * @param p           The received packet.
-	 * @param client_addr The origin of the packet.
-	 */
-	virtual void Receive_MASTER_SESSION_KEY(Packet *p, NetworkAddress *client_addr);
 
 	void HandleUDPPacket(Packet *p, NetworkAddress *client_addr);
 

@@ -2433,7 +2433,8 @@ void IConsoleStdLibRegister()
 	IConsoleAliasRegister("name",                  "setting client_name %+");
 	IConsoleAliasRegister("server_name",           "setting server_name %+");
 	IConsoleAliasRegister("server_port",           "setting server_port %+");
-	IConsoleAliasRegister("server_advertise",      "setting server_advertise %+");
+	// TODO -- Replace with private/friend-only/public
+	//IConsoleAliasRegister("server_advertise",      "setting server_advertise %+");
 	IConsoleAliasRegister("max_clients",           "setting max_clients %+");
 	IConsoleAliasRegister("max_companies",         "setting max_companies %+");
 	IConsoleAliasRegister("max_spectators",        "setting max_spectators %+");
