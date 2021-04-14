@@ -95,6 +95,11 @@ public:
 bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_REGISTER_ACK(Packet *p)
 {
 	p->Recv_string(_network_game_info.join_key, lengthof(_network_game_info.join_key));
+	ConnectionType connection_type = (ConnectionType)p->Recv_uint8();
+
+	if (connection_type == CONNECTION_TYPE_ISOLATED) {
+		// TODO -- Warn user nobody will be able to connect
+	}
 
 	DEBUG(net, 5, "Game Coordinator registered our server with join-key '%s'", _network_game_info.join_key);
 
@@ -201,6 +206,7 @@ void ClientNetworkCoordinatorSocketHandler::Register()
 	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_REGISTER);
 	p->Send_uint8(NETWORK_GAME_COORDINATOR_VERSION);
 	p->Send_uint8(0); // TODO -- Make this into a type
+	p->Send_uint16(_settings_client.network.server_port);
 	p->Send_string(_openttd_revision);
 
 	this->SendPacket(p);

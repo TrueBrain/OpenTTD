@@ -32,6 +32,12 @@ enum PacketCoordinatorType {
 	PACKET_COORDINATOR_END,                 ///< Must ALWAYS be on the end of this list!! (period)
 };
 
+enum ConnectionType {
+	CONNECTION_TYPE_ISOLATED, ///< The Game Coordinator failed to find a way to connect to your server. Nobody will be able to join.
+	CONNECTION_TYPE_DIRECT,   ///< The Game Coordinator can directly connect to your server.
+	CONNECTION_TYPE_STUN,     ///< The Game Coordinator can connect to your server via a STUN request.
+};
+
 /** Base socket handler for all Game Coordinator TCP sockets */
 class NetworkCoordinatorSocketHandler : public NetworkTCPSocketHandler {
 protected:
@@ -44,6 +50,7 @@ protected:
 	 * Game Coordinator know.
 	 *  uint8   Game Coordinator protocol version.
 	 *  uint8   Type of game (0 = friends-only, 1 = public).
+	 *  uint16  Port the local server is binded on.
 	 *  string  OpenTTD version the client is running.
 	 * @param p The packet that was just received.
 	 * @return True upon success, otherwise false.
@@ -53,6 +60,7 @@ protected:
 	/**
 	 * Game Coordinator acknowledges the registration.
 	 *  string  Join-key that can be used to join this server.
+	 *  uint8   Type of connection was detected (see ConnectionType).
 	 * @param p The packet that was just received.
 	 * @return True upon success, otherwise false.
 	 */
