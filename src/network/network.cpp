@@ -871,7 +871,6 @@ static void NetworkSend()
 void NetworkBackgroundLoop()
 {
 	_network_content_client.SendReceive();
-	_network_stun_client.SendReceive();
 	_network_coordinator_client.SendReceive();
 	TCPConnecter::CheckCallbacks();
 	NetworkHTTPSocketHandler::HTTPReceive();

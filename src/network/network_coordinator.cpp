@@ -44,7 +44,7 @@ public:
 	void OnFailure() override
 	{
 		/* Close the STUN connection as we now have another TCP stream on the same local address. */
-		_network_stun_client.Close();
+		_network_coordinator_client.CloseStunHandler(token);
 
 		_network_coordinator_client.StunFailed(token.c_str());
 
@@ -56,7 +56,7 @@ public:
 	void OnConnect(SOCKET s) override
 	{
 		/* Close the STUN connection as we now have another TCP stream on the same local address. */
-		_network_stun_client.Close();
+		_network_coordinator_client.CloseStunHandler(token);
 
 		if (_network_server) {
 			if (!ServerNetworkGameSocketHandler::ValidateClient(s, address)) return;
@@ -145,7 +145,8 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_STUN_REQUEST(Packet *
 
 	p->Recv_string(token, lengthof(token));
 
-	_network_stun_client.Stun(token);
+	// TODO -- Implement for IPv6
+	this->stun_handlers[token] = ClientNetworkStunSocketHandler::Stun(token, AF_INET);
 	return true;
 }
 
@@ -160,13 +161,13 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_STUN_PEER(Packet *p)
 	uint16 port = p->Recv_uint16();
 
 	NetworkAddress address = NetworkAddress(host, port);
-	address.SetConnectBindAddress(_network_stun_client.local_addr);
+	address.SetConnectBindAddress(this->stun_handlers[token]->local_addr);
 
 	/* We already mark the connection as close, but we do not really close the
 	 * socket yet. We do this when the TCPStunConnector is connected. This
 	 * prevents any NAT to already remove the route while we create the second
 	 * connection. */
-	_network_stun_client.CloseConnection(false);
+	this->stun_handlers[token]->CloseConnection(false);
 
 	/* Connect to our peer from the same local address as we use for the
 	 * STUN server. This means that if there is any NAT in the local network,
@@ -275,6 +276,12 @@ void ClientNetworkCoordinatorSocketHandler::SendServerUpdate()
 	this->SendPacket(p);
 }
 
+void ClientNetworkCoordinatorSocketHandler::CloseStunHandler(std::string token)
+{
+	this->stun_handlers[token]->Close();
+	this->stun_handlers.erase(token);
+}
+
 /**
  * Check whether we received/can send some data from/to the Game Coordinator server and
  * when that's the case handle it appropriately
@@ -282,6 +289,10 @@ void ClientNetworkCoordinatorSocketHandler::SendServerUpdate()
 void ClientNetworkCoordinatorSocketHandler::SendReceive()
 {
 	static std::chrono::steady_clock::time_point last_update = {};
+
+	for (const auto &[token, stun_handler] : this->stun_handlers) {
+		stun_handler->SendReceive();
+	}
 
 	if (this->sock == INVALID_SOCKET) {
 		if (!this->connecting && _network_server) {

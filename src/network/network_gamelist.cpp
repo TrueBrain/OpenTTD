@@ -181,11 +181,8 @@ void NetworkAfterNewGRFScan()
 
 void NetworkGameListRemoveExpired()
 {
-	DEBUG(misc, 0, "Expired check with %d", _network_game_list_version);
-
 	NetworkGameList *prev_item = nullptr;
 	for (NetworkGameList *item = _network_game_list; item != nullptr;) {
-		DEBUG(misc, 0, "%d : %d < %d", item->manually, item->version, _network_game_list_version);
 		if (!item->manually && item->version < _network_game_list_version) {
 			NetworkGameList *remove = item;
 			item = item->next;

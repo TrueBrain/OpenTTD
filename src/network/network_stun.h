@@ -16,12 +16,10 @@ class ClientNetworkStunSocketHandler : public NetworkStunSocketHandler {
 public:
 	NetworkAddress local_addr;
 
-	void Connect();
+	void Connect(int family);
 	void SendReceive();
 
-	void Stun(const char *token);
+	static ClientNetworkStunSocketHandler *Stun(const char *token, int family);
 };
-
-extern ClientNetworkStunSocketHandler _network_stun_client;
 
 #endif /* NETWORK_STUN_H */

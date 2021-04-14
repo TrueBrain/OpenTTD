@@ -24,53 +24,59 @@
 
 #include "table/strings.h"
 
-ClientNetworkStunSocketHandler _network_stun_client;
-
 /** Connect to the STUN server. */
 class NetworkStunConnecter : TCPConnecter {
+private:
+	ClientNetworkStunSocketHandler *stun_handler;
+
 public:
 	/**
 	 * Initiate the connecting.
 	 * @param address The address of the server.
 	 */
-	NetworkStunConnecter(const NetworkAddress &address) : TCPConnecter(address) {}
+	NetworkStunConnecter(ClientNetworkStunSocketHandler *stun_handler, const NetworkAddress &address) : TCPConnecter(address), stun_handler(stun_handler) {}
 
 	void OnFailure() override
 	{
-		// TODO -- Handle graceful
-		_network_stun_client.CloseConnection(true);
+		/* Connection to STUN server failed; that is a bit weird, as the connection to the GC did work. */
+		// TODO -- Figure out what to do in these cases. Record it as a failure to GC? Retry?
+		this->stun_handler->CloseConnection(true);
 	}
 
 	void OnConnect(SOCKET s) override
 	{
-		assert(_network_stun_client.sock == INVALID_SOCKET);
-		_network_stun_client.sock = s;
+		assert(this->stun_handler->sock == INVALID_SOCKET);
+		this->stun_handler->sock = s;
 
 		/* Store the local address so other sockets can reuse it.
 		 * This is needed for STUN to be successful. */
 		sockaddr_storage address = {};
 		socklen_t len = sizeof(address);
 		getsockname(s, (sockaddr *)&address, &len);
-		_network_stun_client.local_addr = NetworkAddress(address, len);
+		this->stun_handler->local_addr = NetworkAddress(address, len);
 	}
 };
 
-void ClientNetworkStunSocketHandler::Connect()
+void ClientNetworkStunSocketHandler::Connect(int family)
 {
-	new NetworkStunConnecter(NetworkAddress(NETWORK_STUN_SERVER_HOST, NETWORK_STUN_SERVER_PORT, AF_UNSPEC));
+	new NetworkStunConnecter(this, NetworkAddress(NETWORK_STUN_SERVER_HOST, NETWORK_STUN_SERVER_PORT, family));
 }
 
-void ClientNetworkStunSocketHandler::Stun(const char *token)
+ClientNetworkStunSocketHandler *ClientNetworkStunSocketHandler::Stun(const char *token, int family)
 {
-	assert(this->sock == INVALID_SOCKET);
+	ClientNetworkStunSocketHandler *stun_handler = new ClientNetworkStunSocketHandler();
 
-	this->Connect();
+	assert(stun_handler->sock == INVALID_SOCKET);
+
+	stun_handler->Connect(family);
 
 	Packet *p = new Packet(PACKET_STUN_CLIENT_STUN);
-	p->Send_uint8(0); // TODO -- Record which interface this is
+	p->Send_uint8(family);
 	p->Send_string(token);
 
-	this->SendPacket(p);
+	stun_handler->SendPacket(p);
+
+	return stun_handler;
 }
 
 /**

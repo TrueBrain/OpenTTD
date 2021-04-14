@@ -11,10 +11,12 @@
 #define NETWORK_COORDINATOR_H
 
 #include "core/tcp_coordinator.h"
+#include <map>
 
 class ClientNetworkCoordinatorSocketHandler : public NetworkCoordinatorSocketHandler {
 private:
 	TCPServerConnecter *connecter;
+	std::map<std::string, class ClientNetworkStunSocketHandler *> stun_handlers;
 
 protected:
 	bool Receive_SERVER_REGISTER_ACK(Packet *p) override;
@@ -31,6 +33,7 @@ public:
 
 	void Connect();
 	void SendReceive();
+	void CloseStunHandler(std::string token);
 
 	void Register();
 	void SendServerUpdate();
