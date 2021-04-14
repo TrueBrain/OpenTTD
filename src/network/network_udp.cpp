@@ -24,7 +24,6 @@
 #include "../company_base.h"
 #include "../thread.h"
 #include "../rev.h"
-#include "../newgrf_text.h"
 #include "../strings_func.h"
 #include "table/strings.h"
 #include <mutex>
@@ -77,8 +76,6 @@ static UDPSocket _udp_server("Server"); ///< udp server socket
 class ServerNetworkUDPSocketHandler : public NetworkUDPSocketHandler {
 protected:
 	void Receive_CLIENT_FIND_SERVER(Packet *p, NetworkAddress *client_addr) override;
-	void Receive_CLIENT_DETAIL_INFO(Packet *p, NetworkAddress *client_addr) override;
-	void Receive_CLIENT_GET_NEWGRFS(Packet *p, NetworkAddress *client_addr) override;
 public:
 	/**
 	 * Create the socket.
@@ -107,130 +104,12 @@ void ServerNetworkUDPSocketHandler::Receive_CLIENT_FIND_SERVER(Packet *p, Networ
 	DEBUG(net, 2, "[udp] queried from %s", client_addr->GetHostname());
 }
 
-void ServerNetworkUDPSocketHandler::Receive_CLIENT_DETAIL_INFO(Packet *p, NetworkAddress *client_addr)
-{
-	/* Just a fail-safe.. should never happen */
-	if (!_network_udp_server) return;
-
-	Packet packet(PACKET_UDP_SERVER_DETAIL_INFO);
-
-	/* Send the amount of active companies */
-	packet.Send_uint8 (NETWORK_COMPANY_INFO_VERSION);
-	packet.Send_uint8 ((uint8)Company::GetNumItems());
-
-	/* Fetch the latest version of the stats */
-	NetworkCompanyStats company_stats[MAX_COMPANIES];
-	NetworkPopulateCompanyStats(company_stats);
-
-	/* The minimum company information "blob" size. */
-	static const uint MIN_CI_SIZE = 54;
-	uint max_cname_length = NETWORK_COMPANY_NAME_LENGTH;
-
-	if (Company::GetNumItems() * (MIN_CI_SIZE + NETWORK_COMPANY_NAME_LENGTH) >= (uint)SEND_MTU - packet.size) {
-		/* Assume we can at least put the company information in the packets. */
-		assert(Company::GetNumItems() * MIN_CI_SIZE < (uint)SEND_MTU - packet.size);
-
-		/* At this moment the company names might not fit in the
-		 * packet. Check whether that is really the case. */
-
-		for (;;) {
-			int free = SEND_MTU - packet.size;
-			for (const Company *company : Company::Iterate()) {
-				char company_name[NETWORK_COMPANY_NAME_LENGTH];
-				SetDParam(0, company->index);
-				GetString(company_name, STR_COMPANY_NAME, company_name + max_cname_length - 1);
-				free -= MIN_CI_SIZE;
-				free -= (int)strlen(company_name);
-			}
-			if (free >= 0) break;
-
-			/* Try again, with slightly shorter strings. */
-			assert(max_cname_length > 0);
-			max_cname_length--;
-		}
-	}
-
-	/* Go through all the companies */
-	for (const Company *company : Company::Iterate()) {
-		/* Send the information */
-		this->SendCompanyInformation(&packet, company, &company_stats[company->index], max_cname_length);
-	}
-
-	this->SendPacket(&packet, client_addr);
-}
-
-/**
- * A client has requested the names of some NewGRFs.
- *
- * Replying this can be tricky as we have a limit of SEND_MTU bytes
- * in the reply packet and we can send up to 100 bytes per NewGRF
- * (GRF ID, MD5sum and NETWORK_GRF_NAME_LENGTH bytes for the name).
- * As SEND_MTU is _much_ less than 100 * NETWORK_MAX_GRF_COUNT, it
- * could be that a packet overflows. To stop this we only reply
- * with the first N NewGRFs so that if the first N + 1 NewGRFs
- * would be sent, the packet overflows.
- * in_reply and in_reply_count are used to keep a list of GRFs to
- * send in the reply.
- */
-void ServerNetworkUDPSocketHandler::Receive_CLIENT_GET_NEWGRFS(Packet *p, NetworkAddress *client_addr)
-{
-	uint8 num_grfs;
-	uint i;
-
-	const GRFConfig *in_reply[NETWORK_MAX_GRF_COUNT];
-	uint8 in_reply_count = 0;
-	size_t packet_len = 0;
-
-	DEBUG(net, 6, "[udp] newgrf data request from %s", client_addr->GetAddressAsString().c_str());
-
-	num_grfs = p->Recv_uint8 ();
-	if (num_grfs > NETWORK_MAX_GRF_COUNT) return;
-
-	for (i = 0; i < num_grfs; i++) {
-		GRFIdentifier c;
-		const GRFConfig *f;
-
-		ReceiveGRFIdentifier(p, &c);
-
-		/* Find the matching GRF file */
-		f = FindGRFConfig(c.grfid, FGCM_EXACT, c.md5sum);
-		if (f == nullptr) continue; // The GRF is unknown to this server
-
-		/* If the reply might exceed the size of the packet, only reply
-		 * the current list and do not send the other data.
-		 * The name could be an empty string, if so take the filename. */
-		packet_len += sizeof(c.grfid) + sizeof(c.md5sum) +
-				std::min(strlen(f->GetName()) + 1, (size_t)NETWORK_GRF_NAME_LENGTH);
-		if (packet_len > SEND_MTU - 4) { // 4 is 3 byte header + grf count in reply
-			break;
-		}
-		in_reply[in_reply_count] = f;
-		in_reply_count++;
-	}
-
-	if (in_reply_count == 0) return;
-
-	Packet packet(PACKET_UDP_SERVER_NEWGRFS);
-	packet.Send_uint8(in_reply_count);
-	for (i = 0; i < in_reply_count; i++) {
-		char name[NETWORK_GRF_NAME_LENGTH];
-
-		/* The name could be an empty string, if so take the filename */
-		strecpy(name, in_reply[i]->GetName(), lastof(name));
-		SendGRFIdentifier(&packet, &in_reply[i]->ident);
-		packet.Send_string(name);
-	}
-
-	this->SendPacket(&packet, client_addr);
-}
-
 ///*** Communication with servers (we are client) ***/
 
 /** Helper class for handling all client side communication. */
 class ClientNetworkUDPSocketHandler : public NetworkUDPSocketHandler {
 protected:
 	void Receive_SERVER_RESPONSE(Packet *p, NetworkAddress *client_addr) override;
-	void Receive_SERVER_NEWGRFS(Packet *p, NetworkAddress *client_addr) override;
 public:
 	virtual ~ClientNetworkUDPSocketHandler() {}
 };
@@ -257,38 +136,6 @@ void ClientNetworkUDPSocketHandler::Receive_SERVER_RESPONSE(Packet *p, NetworkAd
 	}
 
 	UpdateNetworkGameWindow();
-}
-
-/** The return of the client's request of the names of some NewGRFs */
-void ClientNetworkUDPSocketHandler::Receive_SERVER_NEWGRFS(Packet *p, NetworkAddress *client_addr)
-{
-	uint8 num_grfs;
-	uint i;
-
-	DEBUG(net, 6, "[udp] newgrf data reply from %s", client_addr->GetAddressAsString().c_str());
-
-	num_grfs = p->Recv_uint8 ();
-	if (num_grfs > NETWORK_MAX_GRF_COUNT) return;
-
-	for (i = 0; i < num_grfs; i++) {
-		char name[NETWORK_GRF_NAME_LENGTH];
-		GRFIdentifier c;
-
-		ReceiveGRFIdentifier(p, &c);
-		p->Recv_string(name, sizeof(name));
-
-		/* An empty name is not possible under normal circumstances
-		 * and causes problems when showing the NewGRF list. */
-		if (StrEmpty(name)) continue;
-
-		/* Try to find the GRFTextWrapper for the name of this GRF ID and MD5sum tuple.
-		 * If it exists and not resolved yet, then name of the fake GRF is
-		 * overwritten with the name from the reply. */
-		GRFTextWrapper unknown_name = FindUnknownGRFName(c.grfid, c.md5sum, false);
-		if (unknown_name && strcmp(GetGRFStringFromGRFText(unknown_name), UNKNOWN_GRF_NAME_PLACEHOLDER) == 0) {
-			AddGRFTextToList(unknown_name, name);
-		}
-	}
 }
 
 /** Broadcast to all ips */
