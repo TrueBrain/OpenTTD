@@ -17,8 +17,8 @@
 
 /** Enum with all types of UDP packets. The order MUST not be changed **/
 enum PacketUDPType {
-	PACKET_UDP_CLIENT_FIND_SERVER,   ///< Queries a game server for game information
-	PACKET_UDP_SERVER_RESPONSE,      ///< Reply of the game server with game information
+	PACKET_UDP_CLIENT_FIND_SERVER,   ///< Broadcast packet to see which servers are alive.
+	PACKET_UDP_SERVER_RESPONSE,      ///< Reply this server exists.
 	PACKET_UDP_END,                  ///< Must ALWAYS be on the end of this list!! (period)
 };
 
@@ -35,15 +35,14 @@ protected:
 	void ReceiveInvalidPacket(PacketUDPType, NetworkAddress *client_addr);
 
 	/**
-	 * Queries to the server for information about the game.
+	 * Broadcast packet to see which servers are alive.
 	 * @param p           The received packet.
 	 * @param client_addr The origin of the packet.
 	 */
 	virtual void Receive_CLIENT_FIND_SERVER(Packet *p, NetworkAddress *client_addr);
 
 	/**
-	 * Return of server information to the client.
-	 *  Serialized NetworkGameInfo. See game_info.hpp for details.
+	 * Reply this server exists.
 	 * @param p           The received packet.
 	 * @param client_addr The origin of the packet.
 	 */

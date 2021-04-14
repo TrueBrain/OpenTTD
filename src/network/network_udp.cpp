@@ -88,17 +88,9 @@ public:
 void ServerNetworkUDPSocketHandler::Receive_CLIENT_FIND_SERVER(Packet *p, NetworkAddress *client_addr)
 {
 	/* Just a fail-safe.. should never happen */
-	if (!_network_udp_server) {
-		return;
-	}
-
-	NetworkGameInfo ngi;
-	FillNetworkGameInfo(ngi);
+	if (!_network_udp_server) return;
 
 	Packet packet(PACKET_UDP_SERVER_RESPONSE);
-	SendNetworkGameInfo(&packet, &ngi);
-
-	/* Let the client know that we are here */
 	this->SendPacket(&packet, client_addr);
 
 	DEBUG(net, 2, "[udp] queried from %s", client_addr->GetHostname());
@@ -116,25 +108,13 @@ public:
 
 void ClientNetworkUDPSocketHandler::Receive_SERVER_RESPONSE(Packet *p, NetworkAddress *client_addr)
 {
-	NetworkGameList *item;
-
 	/* Just a fail-safe.. should never happen */
 	if (_network_udp_server) return;
 
 	DEBUG(net, 4, "[udp] server response from %s", client_addr->GetAddressAsString().c_str());
 
-	/* Find next item */
-	item = NetworkGameListAddItem(ServerAddress(*client_addr));
-
-	ClearGRFConfigList(&item->info.grfconfig);
-	ReceiveNetworkGameInfo(p, &item->info);
-
-	CheckGameCompatability(item);
-	item->online = true;
-
-	if (client_addr->GetAddress()->ss_family == AF_INET6) {
-		strecat(item->info.server_name, " (IPv6)", lastof(item->info.server_name));
-	}
+	NetworkGameList *ngl = NetworkGameListAddItem(ServerAddress(*client_addr));
+	NetworkTCPQueryServer(ngl->address, false);
 
 	UpdateNetworkGameWindow();
 }
@@ -143,10 +123,9 @@ void ClientNetworkUDPSocketHandler::Receive_SERVER_RESPONSE(Packet *p, NetworkAd
 static void NetworkUDPBroadCast(NetworkUDPSocketHandler *socket)
 {
 	for (NetworkAddress &addr : _broadcast_list) {
-		Packet p(PACKET_UDP_CLIENT_FIND_SERVER);
-
 		DEBUG(net, 4, "[udp] broadcasting to %s", addr.GetHostname());
 
+		Packet p(PACKET_UDP_CLIENT_FIND_SERVER);
 		socket->SendPacket(&p, &addr, true, true);
 	}
 }
