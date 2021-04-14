@@ -181,6 +181,8 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_STUN_PEER(Packet *p)
 
 void ClientNetworkCoordinatorSocketHandler::Connect()
 {
+	this->Reopen();
+
 	this->connecting = true;
 	new NetworkCoordinatorConnecter(NetworkAddress(NETWORK_COORDINATOR_SERVER_HOST, NETWORK_COORDINATOR_SERVER_PORT, AF_UNSPEC));
 }
@@ -188,6 +190,8 @@ void ClientNetworkCoordinatorSocketHandler::Connect()
 NetworkRecvStatus ClientNetworkCoordinatorSocketHandler::CloseConnection(bool error)
 {
 	NetworkCoordinatorSocketHandler::CloseConnection(error);
+
+	DEBUG(net, 1, "[tcp/coordinator] closed connection");
 
 	if (this->sock != INVALID_SOCKET) closesocket(this->sock);
 	this->sock = INVALID_SOCKET;
@@ -206,7 +210,7 @@ void ClientNetworkCoordinatorSocketHandler::Register()
 
 	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_REGISTER);
 	p->Send_uint8(NETWORK_GAME_COORDINATOR_VERSION);
-	p->Send_uint8(0); // TODO -- Make this into a type
+	p->Send_uint8(_settings_client.network.server_game_type);
 	p->Send_uint16(_settings_client.network.server_port);
 	p->Send_string(_openttd_revision);
 
@@ -279,6 +283,8 @@ void ClientNetworkCoordinatorSocketHandler::SendServerUpdate()
 void ClientNetworkCoordinatorSocketHandler::CloseStunHandler(std::string token)
 {
 	this->stun_handlers[token]->Close();
+
+	delete this->stun_handlers[token];
 	this->stun_handlers.erase(token);
 }
 
@@ -288,6 +294,14 @@ void ClientNetworkCoordinatorSocketHandler::CloseStunHandler(std::string token)
  */
 void ClientNetworkCoordinatorSocketHandler::SendReceive()
 {
+	/* Private games are not listed via the Game Coordinator. */
+	if (_settings_client.network.server_game_type == SERVER_GAME_TYPE_PRIVATE) {
+		if (this->sock != INVALID_SOCKET) {
+			this->Close();
+		}
+		return;
+	}
+
 	static std::chrono::steady_clock::time_point last_update = {};
 
 	for (const auto &[token, stun_handler] : this->stun_handlers) {
@@ -302,7 +316,6 @@ void ClientNetworkCoordinatorSocketHandler::SendReceive()
 				last_attempt = std::chrono::steady_clock::now();
 
 				DEBUG(net, 0, "[tcp/coordinator] Connection with Game Coordinator lost; reconnecting ...");
-				this->Reopen();
 				this->Register();
 				last_update = std::chrono::steady_clock::now() - std::chrono::seconds(30);
 			}

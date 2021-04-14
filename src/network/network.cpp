@@ -562,6 +562,8 @@ void NetworkClose(bool close_admins)
 		}
 		ServerNetworkGameSocketHandler::CloseListeners();
 		ServerNetworkAdminSocketHandler::CloseListeners();
+
+		_network_coordinator_client.CloseConnection(true);
 	} else if (MyClient::my_client != nullptr) {
 		MyClient::SendQuit();
 		MyClient::my_client->CloseConnection(NETWORK_RECV_STATUS_CONN_LOST);
@@ -775,7 +777,9 @@ bool NetworkServerStart()
 
 	NetworkInitGameInfo();
 
-	_network_coordinator_client.Register();
+	if (_settings_client.network.server_game_type != SERVER_GAME_TYPE_PRIVATE) {
+		_network_coordinator_client.Register();
+	}
 
 	/* execute server initialization script */
 	IConsoleCmdExec("exec scripts/on_server.scr 0");

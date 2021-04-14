@@ -35,6 +35,15 @@ enum NetworkVehicleType {
 	NETWORK_VEH_END
 };
 
+/**
+ * Game type the server can be using.
+ */
+enum ServerGameType {
+	SERVER_GAME_TYPE_PRIVATE,
+	SERVER_GAME_TYPE_FRIENDS_ONLY,
+	SERVER_GAME_TYPE_PUBLIC,
+};
+
 /** 'Unique' identifier to be given to clients */
 enum ClientID : uint32 {
 	INVALID_CLIENT_ID = 0, ///< Client is not part of anything

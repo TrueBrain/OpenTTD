@@ -15,6 +15,7 @@
 #include "town_type.h"
 #include "transport_type.h"
 #include "network/core/config.h"
+#include "network/network_type.h"
 #include "company_type.h"
 #include "cargotype.h"
 #include "linkgraph/linkgraph_type.h"
@@ -284,6 +285,7 @@ struct NetworkSettings {
 	char   last_host[NETWORK_HOSTNAME_LENGTH];            ///< IP address of the last joined server
 	uint16 last_port;                                     ///< port of the last joined server
 	bool   no_http_content_downloads;                     ///< do not do content downloads over HTTP
+	ServerGameType server_game_type;                      ///< server type: private / friends-only / server
 };
 
 /** Settings related to the creation of games. */

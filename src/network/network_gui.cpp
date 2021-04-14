@@ -49,11 +49,12 @@ static void ShowNetworkStartServerWindow();
 static void ShowNetworkLobbyWindow(NetworkGameList *ngl);
 
 /**
- * Advertisement options in the start server window
+ * Game type options in the start server window.
  */
-static const StringID _connection_types_dropdown[] = {
-	STR_NETWORK_START_SERVER_UNADVERTISED,
-	STR_NETWORK_START_SERVER_ADVERTISED,
+static const StringID _game_types_dropdown[] = {
+	STR_NETWORK_START_SERVER_GAME_TYPE_PRIVATE,
+	STR_NETWORK_START_SERVER_GAME_TYPE_FRIENDS_ONLY,
+	STR_NETWORK_START_SERVER_GAME_TYPE_PUBLIC,
 	INVALID_STRING_ID
 };
 
@@ -1083,9 +1084,8 @@ struct NetworkStartServerWindow : public Window {
 	void SetStringParameters(int widget) const override
 	{
 		switch (widget) {
-			case WID_NSS_CONNTYPE_BTN:
-				// TODO -- Private / public (friends-only) / public
-				SetDParam(0, _connection_types_dropdown[1]);
+			case WID_NSS_GAMETYPE_BTN:
+				SetDParam(0, _game_types_dropdown[_settings_client.network.server_game_type]);
 				break;
 
 			case WID_NSS_CLIENTS_TXT:
@@ -1109,8 +1109,8 @@ struct NetworkStartServerWindow : public Window {
 	void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize) override
 	{
 		switch (widget) {
-			case WID_NSS_CONNTYPE_BTN:
-				*size = maxdim(GetStringBoundingBox(_connection_types_dropdown[0]), GetStringBoundingBox(_connection_types_dropdown[1]));
+			case WID_NSS_GAMETYPE_BTN:
+				*size = maxdim(maxdim(GetStringBoundingBox(_game_types_dropdown[0]), GetStringBoundingBox(_game_types_dropdown[1])), GetStringBoundingBox(_game_types_dropdown[2]));
 				size->width += padding.width;
 				size->height += padding.height;
 				break;
@@ -1139,9 +1139,8 @@ struct NetworkStartServerWindow : public Window {
 				ShowQueryString(STR_JUST_RAW_STRING, STR_NETWORK_START_SERVER_SET_PASSWORD, 20, this, CS_ALPHANUMERAL, QSF_NONE);
 				break;
 
-			case WID_NSS_CONNTYPE_BTN: // Connection type
-				// TODO
-				//ShowDropDownMenu(this, _connection_types_dropdown, _settings_client.network.server_advertise, WID_NSS_CONNTYPE_BTN, 0, 0); // do it for widget WID_NSS_CONNTYPE_BTN
+			case WID_NSS_GAMETYPE_BTN: // Game type
+				ShowDropDownMenu(this, _game_types_dropdown, _settings_client.network.server_game_type, WID_NSS_GAMETYPE_BTN, 0, 0);
 				break;
 
 			case WID_NSS_CLIENTS_BTND:    case WID_NSS_CLIENTS_BTNU:    // Click on up/down button for number of clients
@@ -1226,8 +1225,8 @@ struct NetworkStartServerWindow : public Window {
 	void OnDropdownSelect(int widget, int index) override
 	{
 		switch (widget) {
-			case WID_NSS_CONNTYPE_BTN:
-				// TODO
+			case WID_NSS_GAMETYPE_BTN:
+				_settings_client.network.server_game_type = (ServerGameType)index;
 				break;
 			case WID_NSS_LANGUAGE_BTN:
 				_settings_client.network.server_lang = _language_dropdown[index] - STR_NETWORK_LANG_ANY;
@@ -1295,8 +1294,8 @@ static const NWidgetPart _nested_network_start_server_window_widgets[] = {
 
 			NWidget(NWID_HORIZONTAL, NC_EQUALSIZE), SetPIP(10, 6, 10),
 				NWidget(NWID_VERTICAL), SetPIP(0, 1, 0),
-					NWidget(WWT_TEXT, COLOUR_LIGHT_BLUE, WID_NSS_CONNTYPE_LABEL), SetFill(1, 0), SetDataTip(STR_NETWORK_START_SERVER_ADVERTISED_LABEL, STR_NULL),
-					NWidget(WWT_DROPDOWN, COLOUR_LIGHT_BLUE, WID_NSS_CONNTYPE_BTN), SetFill(1, 0), SetDataTip(STR_BLACK_STRING, STR_NETWORK_START_SERVER_ADVERTISED_TOOLTIP),
+					NWidget(WWT_TEXT, COLOUR_LIGHT_BLUE, WID_NSS_GAMETYPE_LABEL), SetFill(1, 0), SetDataTip(STR_NETWORK_START_SERVER_GAME_TYPE_LABEL, STR_NULL),
+					NWidget(WWT_DROPDOWN, COLOUR_LIGHT_BLUE, WID_NSS_GAMETYPE_BTN), SetFill(1, 0), SetDataTip(STR_BLACK_STRING, STR_NETWORK_START_SERVER_GAME_TYPE_TOOLTIP),
 				EndContainer(),
 				NWidget(NWID_VERTICAL), SetPIP(0, 1, 0),
 					NWidget(WWT_TEXT, COLOUR_LIGHT_BLUE, WID_NSS_LANGUAGE_LABEL), SetFill(1, 0), SetDataTip(STR_NETWORK_START_SERVER_LANGUAGE_SPOKEN, STR_NULL),

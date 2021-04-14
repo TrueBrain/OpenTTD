@@ -57,8 +57,8 @@ enum NetworkStartServerWidgets {
 	WID_NSS_GAMENAME_LABEL,    ///< Label for the game name.
 	WID_NSS_GAMENAME,          ///< Background for editbox to set game name.
 	WID_NSS_SETPWD,            ///< 'Set password' button.
-	WID_NSS_CONNTYPE_LABEL,    ///< Label for 'connection type'.
-	WID_NSS_CONNTYPE_BTN,      ///< 'Connection type' droplist button.
+	WID_NSS_GAMETYPE_LABEL,    ///< Label for 'game type'.
+	WID_NSS_GAMETYPE_BTN,      ///< 'Game type' droplist button.
 	WID_NSS_CLIENTS_LABEL,     ///< Label for 'max clients'.
 	WID_NSS_CLIENTS_BTND,      ///< 'Max clients' downarrow.
 	WID_NSS_CLIENTS_TXT,       ///< 'Max clients' text.
