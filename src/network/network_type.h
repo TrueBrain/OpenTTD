@@ -38,7 +38,7 @@ enum NetworkVehicleType {
 /**
  * Game type the server can be using.
  */
-enum ServerGameType {
+enum ServerGameType : uint8 {
 	SERVER_GAME_TYPE_PRIVATE,
 	SERVER_GAME_TYPE_FRIENDS_ONLY,
 	SERVER_GAME_TYPE_PUBLIC,
