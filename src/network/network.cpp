@@ -60,7 +60,6 @@ NetworkServerGameInfo _network_game_info; ///< Information about our game.
 NetworkCompanyState *_network_company_states = nullptr; ///< Statistics about some companies.
 ClientID _network_own_client_id;      ///< Our client identifier.
 ClientID _redirect_console_to_client; ///< If not invalid, redirect the console output to a client.
-bool _network_need_advertise;         ///< Whether we need to advertise.
 StringList _network_bind_list;        ///< The addresses to bind on.
 StringList _network_host_list;        ///< The servers we know.
 StringList _network_ban_list;         ///< The banned clients.
