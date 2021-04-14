@@ -34,30 +34,35 @@ static const uint GITHASH_SUFFIX_LEN = 12;
 
 /**
  * Serializes the GRFIdentifier (GRF ID and MD5 checksum) to the packet
- * @param p   the packet to write the data to
- * @param grf the GRFIdentifier to serialize
+ * @param p    the packet to write the data to.
+ * @param grf  the GRFIdentifier to serialize.
+ * @param name the name of the GRF identified by grf.
  */
-void SendGRFIdentifier(Packet *p, const GRFIdentifier *grf)
+void SendGRFIdentifier(Packet *p, const GRFIdentifier *grf, const char *name)
 {
 	uint j;
 	p->Send_uint32(grf->grfid);
 	for (j = 0; j < sizeof(grf->md5sum); j++) {
-		p->Send_uint8 (grf->md5sum[j]);
+		p->Send_uint8(grf->md5sum[j]);
 	}
+	p->Send_string(name);
 }
 
 /**
  * Deserializes the GRFIdentifier (GRF ID and MD5 checksum) from the packet
- * @param p   the packet to read the data from
- * @param grf the GRFIdentifier to deserialize
+ * @param p    the packet to read the data from.
+ * @param grf  the GRFIdentifier to deserialize.
+ * @param name the name of the GRF identified by grf.
+ * @param size the size of the buffer holding name.
  */
-void ReceiveGRFIdentifier(Packet *p, GRFIdentifier *grf)
+void ReceiveGRFIdentifier(Packet *p, GRFIdentifier *grf, char *name, int size)
 {
 	uint j;
 	grf->grfid = p->Recv_uint32();
 	for (j = 0; j < sizeof(grf->md5sum); j++) {
 		grf->md5sum[j] = p->Recv_uint8();
 	}
+	p->Recv_string(name, size);
 }
 
 /**
@@ -65,17 +70,17 @@ void ReceiveGRFIdentifier(Packet *p, GRFIdentifier *grf)
  * a NetworkGameInfo. Only grfid and md5sum are set, the rest is zero. This
  * function must set all appropriate fields. This GRF is later appended to
  * the grfconfig list of the NetworkGameInfo.
- * @param config the GRF to handle
+ * @param config the GRF to handle.
+ * @param name the name of the GRF as given by the server.
  */
-static void HandleIncomingNetworkGameInfoGRFConfig(GRFConfig *config)
+static void HandleIncomingNetworkGameInfoGRFConfig(GRFConfig *config, const char *name)
 {
 	/* Find the matching GRF file */
 	const GRFConfig *f = FindGRFConfig(config->ident.grfid, FGCM_EXACT, config->ident.md5sum);
 	if (f == nullptr) {
-		/* Don't know the GRF, so mark game incompatible and the (possibly)
-		 * already resolved name for this GRF (another server has sent the
-		 * name of the GRF already). */
-		config->name = FindUnknownGRFName(config->ident.grfid, config->ident.md5sum, true);
+		/* Don't know the GRF, so mark game incompatible and set the name as
+		 * given by the server. */
+		AddGRFTextToList(config->name, name);
 		config->status = GCS_NOT_FOUND;
 	} else {
 		config->filename = f->filename;
@@ -105,9 +110,10 @@ void ReceiveNetworkGameInfo(Packet *p, NetworkGameInfo *info)
 
 	GRFConfig **dst = &info->grfconfig;
 	for (; newgrf_count > 0; newgrf_count--) {
+		char name[NETWORK_GRF_NAME_LENGTH];
 		GRFConfig *c = new GRFConfig();
-		ReceiveGRFIdentifier(p, &c->ident);
-		HandleIncomingNetworkGameInfoGRFConfig(c);
+		ReceiveGRFIdentifier(p, &c->ident, name, sizeof(name));
+		HandleIncomingNetworkGameInfoGRFConfig(c, name);
 
 		/* Append GRFConfig to the list */
 		*dst = c;
@@ -167,7 +173,7 @@ void SendNetworkGameInfo(Packet *p, const NetworkGameInfo *info)
 
 		/* Send actual GRF Identifications */
 		for (c = info->grfconfig; c != nullptr; c = c->next) {
-			if (!HasBit(c->flags, GCF_STATIC)) SendGRFIdentifier(p, &c->ident);
+			if (!HasBit(c->flags, GCF_STATIC)) SendGRFIdentifier(p, &c->ident, c->GetName());
 		}
 	}
 

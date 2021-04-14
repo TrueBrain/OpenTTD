@@ -501,7 +501,7 @@ NetworkRecvStatus ServerNetworkGameSocketHandler::SendNewGRFCheck()
 
 	p->Send_uint8 (grf_count);
 	for (c = _grfconfig; c != nullptr; c = c->next) {
-		if (!HasBit(c->flags, GCF_STATIC)) SendGRFIdentifier(p, &c->ident);
+		if (!HasBit(c->flags, GCF_STATIC)) SendGRFIdentifier(p, &c->ident, c->GetName());
 	}
 
 	this->SendPacket(p);

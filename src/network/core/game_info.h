@@ -87,8 +87,8 @@ bool IsNetworkCompatibleVersion(const char *other);
 
 void FillNetworkGameInfo(NetworkGameInfo &ngi);
 
-void ReceiveGRFIdentifier(Packet *p, GRFIdentifier *grf);
-void SendGRFIdentifier(Packet *p, const GRFIdentifier *grf);
+void ReceiveGRFIdentifier(Packet *p, GRFIdentifier *grf, char *name, int size);
+void SendGRFIdentifier(Packet *p, const GRFIdentifier *grf, const char *name);
 
 void ReceiveNetworkGameInfo(Packet *p, NetworkGameInfo *info);
 void SendNetworkGameInfo(Packet *p, const NetworkGameInfo *info);

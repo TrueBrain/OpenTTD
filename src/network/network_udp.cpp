@@ -130,6 +130,7 @@ void ClientNetworkUDPSocketHandler::Receive_SERVER_RESPONSE(Packet *p, NetworkAd
 	ReceiveNetworkGameInfo(p, &item->info);
 
 	CheckGameCompatability(item);
+	item->online = true;
 
 	if (client_addr->GetAddress()->ss_family == AF_INET6) {
 		strecat(item->info.server_name, " (IPv6)", lastof(item->info.server_name));

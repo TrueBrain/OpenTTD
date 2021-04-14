@@ -132,6 +132,8 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_LISTING(Packet *p)
 		memcpy(&item->info, &ngi, sizeof(item->info));
 		/* Check for compatability with the client. */
 		CheckGameCompatability(item);
+		/* Mark server as online. */
+		item->online = true;
 	}
 
 	UpdateNetworkGameWindow();

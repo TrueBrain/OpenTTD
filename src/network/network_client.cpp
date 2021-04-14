@@ -602,6 +602,8 @@ NetworkRecvStatus ClientNetworkGameSocketHandler::Receive_SERVER_SERVER_INFO(Pac
 	memcpy(&item->info, &ngi, sizeof(item->info));
 	/* Check for compatability with the client. */
 	CheckGameCompatability(item);
+	/* Ensure we consider the server online. */
+	item->online = true;
 
 	/* It could be either window, but only one is open, so redraw both. */
 	SetWindowDirty(WC_NETWORK_WINDOW, WN_NETWORK_WINDOW_GAME);
@@ -766,8 +768,9 @@ NetworkRecvStatus ClientNetworkGameSocketHandler::Receive_SERVER_CHECK_NEWGRFS(P
 
 	/* Check all GRFs */
 	for (; grf_count > 0; grf_count--) {
+		char name[NETWORK_GRF_NAME_LENGTH];
 		GRFIdentifier c;
-		ReceiveGRFIdentifier(p, &c);
+		ReceiveGRFIdentifier(p, &c, name, sizeof(name));
 
 		/* Check whether we know this GRF */
 		const GRFConfig *f = FindGRFConfig(c.grfid, FGCM_EXACT, c.md5sum);
@@ -775,7 +778,7 @@ NetworkRecvStatus ClientNetworkGameSocketHandler::Receive_SERVER_CHECK_NEWGRFS(P
 			/* We do not know this GRF, bail out of initialization */
 			char buf[sizeof(c.md5sum) * 2 + 1];
 			md5sumToString(buf, lastof(buf), c.md5sum);
-			DEBUG(grf, 0, "NewGRF %08X not found; checksum %s", BSWAP32(c.grfid), buf);
+			DEBUG(grf, 0, "NewGRF %08X not found; checksum %s, name %s", BSWAP32(c.grfid), buf, name);
 			ret = NETWORK_RECV_STATUS_NEWGRF_MISMATCH;
 		}
 	}
