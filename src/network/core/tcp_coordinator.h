@@ -51,7 +51,7 @@ protected:
 	 *  uint8   Game Coordinator protocol version.
 	 *  uint8   Type of game (0 = friends-only, 1 = public).
 	 *  uint16  Port the local server is binded on.
-	 *  string  OpenTTD version the client is running.
+	 *  Serialized NetworkGameInfo. See game_info.hpp for details.
 	 * @param p The packet that was just received.
 	 * @return True upon success, otherwise false.
 	 */
@@ -69,7 +69,7 @@ protected:
 	/**
 	 * Send an update of the current state of the server to the Game Coordinator.
 	 *  uint8   Game Coordinator protocol version.
-	 *  Serialized NetworkGameInfo. See game_info.hpp for details.
+	 *  Serialized NetworkShortGameInfo. See game_info.hpp for details.
 	 * @param p The packet that was just received.
 	 * @return True upon success, otherwise false.
 	 */
@@ -90,6 +90,9 @@ protected:
 	 *  uint16  Amount of public servers in this packet
 	 *  For each server:
 	 *    Serialized NetworkGameInfo. See game_info.hpp for details.
+	 *    NewGRFs list doesn't have to be completely; the ones listed are
+	 *    unknown by the Game Coordinator (read: not on BaNaNaS) and should
+	 *    be locally validated.
 	 * @param p The packet that was just received.
 	 * @return True upon success, otherwise false.
 	 */

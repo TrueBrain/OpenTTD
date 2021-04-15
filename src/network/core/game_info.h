@@ -58,10 +58,9 @@ struct NetworkServerGameInfo {
 };
 
 /**
- * The game information that is sent from the server to the clients.
+ * The game information that is sent from the server to game coordinator.
  */
-struct NetworkGameInfo : NetworkServerGameInfo {
-	GRFConfig *grfconfig;                           ///< List of NewGRF files used
+struct NetworkShortGameInfo : NetworkServerGameInfo {
 	Date start_date;                                ///< When the game started
 	Date game_date;                                 ///< Current date
 	uint16 map_width;                               ///< Map width
@@ -69,8 +68,6 @@ struct NetworkGameInfo : NetworkServerGameInfo {
 	char server_name[NETWORK_NAME_LENGTH];          ///< Server name
 	char server_revision[NETWORK_REVISION_LENGTH];  ///< The version number the server is using (e.g.: 'r304' or 0.5.0)
 	bool dedicated;                                 ///< Is this a dedicated server?
-	bool version_compatible;                        ///< Can we connect to this server or not? (based on server_revision)
-	bool compatible;                                ///< Can we connect to this server or not? (based on server_revision _and_ grf_match
 	bool use_password;                              ///< Is this server passworded?
 	byte game_info_version;                         ///< Version of the game info
 	byte server_lang;                               ///< Language of the server (we should make a nice table for this)
@@ -80,6 +77,17 @@ struct NetworkGameInfo : NetworkServerGameInfo {
 	byte spectators_on;                             ///< How many spectators do we have?
 	byte spectators_max;                            ///< Max spectators allowed on server
 	byte map_set;                                   ///< Graphical set
+
+	/* These fields are never send but locally calculated. */
+	bool version_compatible;                        ///< Can we connect to this server or not? (based on server_revision)
+	bool compatible;                                ///< Can we connect to this server or not? (based on server_revision _and_ grf_match
+};
+
+/**
+ * The game information that is sent from the server to clients and from game coordinator to clients.
+ */
+struct NetworkGameInfo : NetworkShortGameInfo {
+	GRFConfig *grfconfig;                           ///< List of NewGRF files used
 };
 
 const char *GetNetworkRevisionString();
