@@ -30,6 +30,43 @@ class TCPListenHandler {
 	static SocketList sockets;
 
 public:
+	static bool ValidateClient(SOCKET s, NetworkAddress &address)
+	{
+		/* Check if the client is banned */
+		bool banned = false;
+		for (const auto &entry : _network_ban_list) {
+			banned = address.IsInNetmask(entry.c_str());
+			if (banned) {
+				Packet p(Tban_packet);
+				p.PrepareToSend();
+
+				DEBUG(net, 1, "[%s] Banned ip tried to join (%s), refused", Tsocket::GetName(), entry.c_str());
+
+				if (p.TransferOut<int>(send, s, 0) < 0) {
+					DEBUG(net, 0, "send failed with error %s", NetworkError::GetLast().AsString());
+				}
+				closesocket(s);
+				return false;
+			}
+		}
+
+		/* Can we handle a new client? */
+		if (!Tsocket::AllowConnection()) {
+			/* no more clients allowed?
+			 * Send to the client that we are full! */
+			Packet p(Tfull_packet);
+			p.PrepareToSend();
+
+			if (p.TransferOut<int>(send, s, 0) < 0) {
+				DEBUG(net, 0, "send failed with error %s", NetworkError::GetLast().AsString());
+			}
+			closesocket(s);
+			return false;
+		}
+
+		return true;
+	}
+
 	/**
 	 * Accepts clients from the sockets.
 	 * @param ls Socket to accept clients from.
@@ -53,41 +90,7 @@ public:
 
 			SetNoDelay(s); // XXX error handling?
 
-			/* Check if the client is banned */
-			bool banned = false;
-			for (const auto &entry : _network_ban_list) {
-				banned = address.IsInNetmask(entry.c_str());
-				if (banned) {
-					Packet p(Tban_packet);
-					p.PrepareToSend();
-
-					DEBUG(net, 1, "[%s] Banned ip tried to join (%s), refused", Tsocket::GetName(), entry.c_str());
-
-					if (p.TransferOut<int>(send, s, 0) < 0) {
-						DEBUG(net, 0, "send failed with error %s", NetworkError::GetLast().AsString());
-					}
-					closesocket(s);
-					break;
-				}
-			}
-			/* If this client is banned, continue with next client */
-			if (banned) continue;
-
-			/* Can we handle a new client? */
-			if (!Tsocket::AllowConnection()) {
-				/* no more clients allowed?
-				 * Send to the client that we are full! */
-				Packet p(Tfull_packet);
-				p.PrepareToSend();
-
-				if (p.TransferOut<int>(send, s, 0) < 0) {
-					DEBUG(net, 0, "send failed with error %s", NetworkError::GetLast().AsString());
-				}
-				closesocket(s);
-
-				continue;
-			}
-
+			if (!Tsocket::ValidateClient(s, address)) continue;
 			Tsocket::AcceptConnection(s, address);
 		}
 	}

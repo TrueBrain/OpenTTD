@@ -324,6 +324,8 @@ static SOCKET ConnectLoopProc(addrinfo *runp, const sockaddr *bind_address, int 
 		return INVALID_SOCKET;
 	}
 
+	if (!SetReusePort(sock)) DEBUG(net, 0, "[%s] setting reuse-port mode failed", type);
+
 	if (bind_address != nullptr && bind_address_length > 0) {
 		if (bind(sock, bind_address, bind_address_length) != 0) {
 			DEBUG(net, 1, "[%s] could not bind socket: %s", type, NetworkError::GetLast().AsString());
@@ -388,7 +390,7 @@ SOCKET NetworkAddress::Connect()
 {
 	DEBUG(net, 1, "Connecting to %s", this->GetAddressAsString().c_str());
 
-	return this->Resolve(AF_UNSPEC, SOCK_STREAM, AI_ADDRCONFIG, nullptr, [](addrinfo *runp) { return ConnectLoopProc(runp, nullptr, 0); });
+	return this->Resolve(this->address.ss_family, SOCK_STREAM, AI_ADDRCONFIG, nullptr, [](addrinfo *runp) { return ConnectLoopProc(runp, nullptr, 0); });
 }
 
 /**
@@ -403,7 +405,7 @@ SOCKET NetworkAddress::Connect(NetworkAddress &bind_address)
 	const sockaddr *bind_sockaddr = (const sockaddr *)bind_address.GetAddress();
 	int bind_sockaddr_len = bind_address.GetAddressLength();
 
-	return this->Resolve(AF_UNSPEC, SOCK_STREAM, AI_ADDRCONFIG, nullptr, [bind_sockaddr, bind_sockaddr_len](addrinfo *runp) { return ConnectLoopProc(runp, bind_sockaddr, bind_sockaddr_len); });
+	return this->Resolve(this->address.ss_family, SOCK_STREAM, AI_ADDRCONFIG, nullptr, [bind_sockaddr, bind_sockaddr_len](addrinfo *runp) { return ConnectLoopProc(runp, bind_sockaddr, bind_sockaddr_len); });
 }
 
 /**
@@ -427,13 +429,10 @@ static SOCKET ListenLoopProc(addrinfo *runp)
 		DEBUG(net, 3, "[%s] setting TCP_NODELAY failed for port %s", type, address.c_str());
 	}
 
-	int on = 1;
-	/* The (const char*) cast is needed for windows!! */
-	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const char*)&on, sizeof(on)) == -1) {
-		DEBUG(net, 3, "[%s] could not set reusable %s sockets for port %s: %s", type, family, address.c_str(), NetworkError::GetLast().AsString());
-	}
+	if (!SetReusePort(sock)) DEBUG(net, 0, "[%s] setting reuse-port mode failed for %s port %s", type, family, address.c_str());
 
 #ifndef __OS2__
+	int on = 1;
 	if (runp->ai_family == AF_INET6 &&
 			setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, (const char*)&on, sizeof(on)) == -1) {
 		DEBUG(net, 3, "[%s] could not disable IPv4 over IPv6 on port %s: %s", type, address.c_str(), NetworkError::GetLast().AsString());
