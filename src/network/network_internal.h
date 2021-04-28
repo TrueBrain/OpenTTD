@@ -120,5 +120,6 @@ bool NetworkFindName(char *new_name, const char *last);
 const char *GenerateCompanyPasswordHash(const char *password, const char *password_server_id, uint32 password_game_seed);
 
 NetworkAddress ParseConnectionString(const std::string &connection_string, int default_port);
+std::unique_ptr<ServerAddress> ParseGameConnectionString(CompanyID *company, const std::string &connection_string, int default_port);
 
 #endif /* NETWORK_INTERNAL_H */

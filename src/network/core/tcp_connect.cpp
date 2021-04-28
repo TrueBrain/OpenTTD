@@ -75,6 +75,28 @@ void TCPConnecter::BootstrapConnect(NetworkAddress address)
 	}
 }
 
+/**
+ * Create a new connecter for the server.
+ * @param connection_string The address to connect to.
+ * @param default_port If not indicated in connection_string, what port to use.
+ */
+TCPServerConnecter::TCPServerConnecter(const std::string &connection_string, uint16 default_port) :
+	TCPConnecter()
+{
+	this->server_address = ParseGameConnectionString(nullptr, connection_string, default_port);
+
+	_tcp_connecters.push_back(this);
+
+	switch (this->server_address->type) {
+		case SERVER_ADDRESS_DIRECT:
+			this->BootstrapConnect(static_cast<ServerAddressDirect *>(this->server_address.get())->address);
+			break;
+
+		default:
+			NOT_REACHED();
+	}
+}
+
 /** The actual connection function. */
 void TCPConnecter::Connect()
 {

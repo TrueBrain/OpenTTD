@@ -75,8 +75,10 @@ private:
 	static void ThreadEntry(TCPConnecter *param);
 
 	/* We do not want any other derived classes from this class being able to
-	 * access these private members, but it is okay for TCPBindConnecter. */
+	 * access these private members, but it is okay for TCPBindConnecter and
+	 * TCPServerConnecter. */
 	friend class TCPBindConnecter;
+	friend class TCPServerConnecter;
 
 protected:
 	NetworkAddress address; ///< Address we're connecting to.
@@ -110,6 +112,13 @@ protected:
 
 public:
 	TCPBindConnecter(const std::string &connection_string, uint16 default_port, NetworkAddress bind_address);
+};
+
+class TCPServerConnecter : public TCPConnecter {
+public:
+	std::unique_ptr<ServerAddress> server_address; ///< Address we are connecting to.
+
+	TCPServerConnecter(const std::string &connection_string, uint16 default_port);
 };
 
 #endif /* NETWORK_CORE_TCP_H */

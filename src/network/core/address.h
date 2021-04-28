@@ -183,4 +183,47 @@ public:
 	static const char *AddressFamilyAsString(int family);
 };
 
+/**
+ * Types of server addresses we know.
+ *
+ * Sorting will prefer entries at the top of this list above ones at the bottom.
+ */
+enum ServerAddressType {
+	SERVER_ADDRESS_DIRECT,   ///< Server-address is based on an IP:port.
+};
+
+/**
+ * Address to a game server.
+ *
+ * This generalises addresses which are based on different identifiers.
+ */
+class ServerAddress {
+public:
+	ServerAddressType type; ///< The type of this ServerAddress.
+
+	ServerAddress(ServerAddressType type) : type(type) {}
+	virtual ~ServerAddress() {}
+
+	/**
+	 * Get a string representation of the address.
+	 * @return A string representation of the address.
+	 */
+	virtual std::string GetAddressAsString() = 0;
+};
+
+/**
+ * A server address based on an IP:port.
+ */
+class ServerAddressDirect : public ServerAddress {
+public:
+	NetworkAddress address;
+
+	ServerAddressDirect(const char *hostname, uint16 port) : ServerAddress(SERVER_ADDRESS_DIRECT), address(NetworkAddress(hostname, port)) {}
+
+	std::string GetAddressAsString() override
+	{
+		return this->address.GetAddressAsString(false);
+	}
+};
+
 #endif /* NETWORK_CORE_ADDRESS_H */

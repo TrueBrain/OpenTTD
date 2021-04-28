@@ -507,15 +507,15 @@ NetworkAddress ParseConnectionString(const std::string &connection_string, int d
 
 /**
  * Convert a string containing either "hostname" or "hostname:ip" to a
- * NetworkAddress, where the string can be postfixed with "#company" to
+ * ServerAddress, where the string can be postfixed with "#company" to
  * indicate the requested company.
  *
  * @param company Pointer to the company variable to set iff indicted.
  * @param connection_string The string to parse.
  * @param default_port The default port to set port to if not in connection_string.
- * @return A valid NetworkAddress of the parsed information.
+ * @return A valid ServerAddress of the parsed information.
  */
-static NetworkAddress ParseGameConnectionString(CompanyID *company, const std::string &connection_string, int default_port)
+std::unique_ptr<ServerAddress> ParseGameConnectionString(CompanyID *company, const std::string &connection_string, int default_port)
 {
 	char internal_connection_string[NETWORK_HOSTNAME_PORT_LENGTH + 4]; // 4 extra for the "#" and company
 	strecpy(internal_connection_string, connection_string.c_str(), lastof(internal_connection_string));
@@ -524,7 +524,7 @@ static NetworkAddress ParseGameConnectionString(CompanyID *company, const std::s
 	const char *company_s = nullptr;
 	ParseFullConnectionString(&company_s, &port_s, internal_connection_string);
 
-	if (company_s != nullptr) {
+	if (company != nullptr && company_s != nullptr) {
 		uint company_value = atoi(company_s);
 
 		if (company_value != COMPANY_NEW_COMPANY && company_value != COMPANY_SPECTATOR) {
@@ -540,7 +540,7 @@ static NetworkAddress ParseGameConnectionString(CompanyID *company, const std::s
 	}
 
 	int port = port_s != nullptr ? atoi(port_s) : default_port;
-	return NetworkAddress(internal_connection_string, port);
+	return std::make_unique<ServerAddressDirect>(internal_connection_string, port);
 }
 
 /**
@@ -617,13 +617,13 @@ static void NetworkInitialize(bool close_admins = true)
 }
 
 /** Non blocking connection create to query servers */
-class TCPQueryConnecter : TCPConnecter {
+class TCPQueryConnecter : TCPServerConnecter {
 private:
 	bool request_company_info;
 	std::string connection_string;
 
 public:
-	TCPQueryConnecter(const std::string &connection_string, bool request_company_info) : TCPConnecter(connection_string, NETWORK_DEFAULT_PORT), request_company_info(request_company_info), connection_string(connection_string) {}
+	TCPQueryConnecter(const std::string &connection_string, bool request_company_info) : TCPServerConnecter(connection_string, NETWORK_DEFAULT_PORT), request_company_info(request_company_info), connection_string(connection_string) {}
 
 	void OnFailure() override
 	{
@@ -711,12 +711,12 @@ void NetworkRebuildHostList()
 }
 
 /** Non blocking connection create to actually connect to servers */
-class TCPClientConnecter : TCPConnecter {
+class TCPClientConnecter : TCPServerConnecter {
 private:
 	std::string connection_string;
 
 public:
-	TCPClientConnecter(const std::string &connection_string) : TCPConnecter(connection_string, NETWORK_DEFAULT_PORT), connection_string(connection_string) {}
+	TCPClientConnecter(const std::string &connection_string) : TCPServerConnecter(connection_string, NETWORK_DEFAULT_PORT), connection_string(connection_string) {}
 
 	void OnFailure() override
 	{
@@ -752,7 +752,7 @@ public:
 bool NetworkClientConnectGame(const std::string &connection_string, CompanyID default_company, const char *join_server_password, const char *join_company_password)
 {
 	CompanyID join_as = default_company;
-	std::string resolved_connection_string = ParseGameConnectionString(&join_as, connection_string, NETWORK_DEFAULT_PORT).GetAddressAsString(false);
+	std::string resolved_connection_string = ParseGameConnectionString(&join_as, connection_string, NETWORK_DEFAULT_PORT)->GetAddressAsString();
 
 	if (!_network_available) return false;
 	if (!NetworkValidateClientName()) return false;
