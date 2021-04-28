@@ -21,8 +21,20 @@
 static std::vector<TCPConnecter *> _tcp_connecters;
 
 /**
- * Create a new connecter for the given address
- * @param connection_string the address to connect to
+ * Create an empty connecter.
+ */
+TCPConnecter::TCPConnecter() :
+	connected(false),
+	aborted(false),
+	killed(false),
+	sock(INVALID_SOCKET)
+{
+}
+
+/**
+ * Create a new connecter for the given address.
+ * @param connection_string The address to connect to.
+ * @param default_port If not indicated in connection_string, what port to use.
  */
 TCPConnecter::TCPConnecter(const std::string &connection_string, uint16 default_port) :
 	connected(false),
@@ -30,18 +42,54 @@ TCPConnecter::TCPConnecter(const std::string &connection_string, uint16 default_
 	killed(false),
 	sock(INVALID_SOCKET)
 {
-	this->address = ParseConnectionString(connection_string, default_port);
-
 	_tcp_connecters.push_back(this);
+
+	this->BootstrapConnect(ParseConnectionString(connection_string, default_port));
+}
+
+/**
+ * Create a new connecter for the given address with a local bind address.
+ * @param connection_string The address to connect to.
+ * @param default_port If not indicated in connection_string, what port to use.
+ * @param bind_address The local bind address to use.
+ */
+TCPBindConnecter::TCPBindConnecter(const std::string &connection_string, uint16 default_port, NetworkAddress bind_address) :
+	TCPConnecter(),
+	bind_address(bind_address)
+{
+	_tcp_connecters.push_back(this);
+
+	this->BootstrapConnect(ParseConnectionString(connection_string, default_port));
+}
+
+/**
+ * Bootstrap connecting, picking either a thread or blocking.
+ * @param address The NetworkAddress to connect to.
+ */
+void TCPConnecter::BootstrapConnect(NetworkAddress address)
+{
+	this->address = address;
+
 	if (!StartNewThread(nullptr, "ottd:tcp", &TCPConnecter::ThreadEntry, this)) {
 		this->Connect();
 	}
 }
 
-/** The actual connection function */
+/** The actual connection function. */
 void TCPConnecter::Connect()
 {
 	this->sock = this->address.Connect();
+	if (this->sock == INVALID_SOCKET) {
+		this->aborted = true;
+	} else {
+		this->connected = true;
+	}
+}
+
+/** The actual connection function. */
+void TCPBindConnecter::Connect()
+{
+	this->sock = this->address.Connect(this->bind_address);
 	if (this->sock == INVALID_SOCKET) {
 		this->aborted = true;
 	} else {

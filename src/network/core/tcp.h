@@ -68,17 +68,22 @@ private:
 	bool killed;                ///< Whether we got killed
 	SOCKET sock;                ///< The socket we're connecting with
 
-	void Connect();
+	void BootstrapConnect(NetworkAddress address);
+
+	virtual void Connect();
 
 	static void ThreadEntry(TCPConnecter *param);
 
+	/* We do not want any other derived classes from this class being able to
+	 * access these private members, but it is okay for TCPBindConnecter. */
+	friend class TCPBindConnecter;
+
 protected:
-	/** Address we're connecting to */
-	NetworkAddress address;
+	NetworkAddress address; ///< Address we're connecting to.
 
 public:
+	TCPConnecter();
 	TCPConnecter(const std::string &connection_string, uint16 default_port);
-	/** Silence the warnings */
 	virtual ~TCPConnecter() {}
 
 	/**
@@ -94,6 +99,17 @@ public:
 
 	static void CheckCallbacks();
 	static void KillAll();
+};
+
+class TCPBindConnecter : public TCPConnecter {
+private:
+	void Connect() override;
+
+protected:
+	NetworkAddress bind_address; ///< Address we're binding to.
+
+public:
+	TCPBindConnecter(const std::string &connection_string, uint16 default_port, NetworkAddress bind_address);
 };
 
 #endif /* NETWORK_CORE_TCP_H */
