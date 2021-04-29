@@ -41,6 +41,11 @@ bool NetworkCoordinatorSocketHandler::HandlePacket(Packet *p)
 		case PACKET_COORDINATOR_CLIENT_UPDATE:         return this->Receive_CLIENT_UPDATE(p);
 		case PACKET_COORDINATOR_CLIENT_LISTING:        return this->Receive_CLIENT_LISTING(p);
 		case PACKET_COORDINATOR_SERVER_LISTING:        return this->Receive_SERVER_LISTING(p);
+		case PACKET_COORDINATOR_CLIENT_CONNECT:        return this->Receive_CLIENT_CONNECT(p);
+		case PACKET_COORDINATOR_SERVER_CONNECTING:     return this->Receive_SERVER_CONNECTING(p);
+		case PACKET_COORDINATOR_CLIENT_CONNECT_FAILED: return this->Receive_CLIENT_CONNECT_FAILED(p);
+		case PACKET_COORDINATOR_SERVER_CONNECT_FAILED: return this->Receive_SERVER_CONNECT_FAILED(p);
+		case PACKET_COORDINATOR_SERVER_DIRECT_CONNECT: return this->Receive_SERVER_DIRECT_CONNECT(p);
 
 		default:
 			DEBUG(net, 0, "[tcp/coordinator] received invalid packet type %d", type);
@@ -82,3 +87,8 @@ bool NetworkCoordinatorSocketHandler::Receive_SERVER_REGISTER_ACK(Packet *p) { r
 bool NetworkCoordinatorSocketHandler::Receive_CLIENT_UPDATE(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_CLIENT_UPDATE); }
 bool NetworkCoordinatorSocketHandler::Receive_CLIENT_LISTING(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_CLIENT_LISTING); }
 bool NetworkCoordinatorSocketHandler::Receive_SERVER_LISTING(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_SERVER_LISTING); }
+bool NetworkCoordinatorSocketHandler::Receive_CLIENT_CONNECT(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_CLIENT_CONNECT); }
+bool NetworkCoordinatorSocketHandler::Receive_SERVER_CONNECTING(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_SERVER_CONNECTING); }
+bool NetworkCoordinatorSocketHandler::Receive_CLIENT_CONNECT_FAILED(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_CLIENT_CONNECT_FAILED); }
+bool NetworkCoordinatorSocketHandler::Receive_SERVER_CONNECT_FAILED(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_SERVER_CONNECT_FAILED); }
+bool NetworkCoordinatorSocketHandler::Receive_SERVER_DIRECT_CONNECT(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_SERVER_DIRECT_CONNECT); }

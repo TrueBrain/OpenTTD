@@ -518,12 +518,17 @@ NetworkAddress ParseConnectionString(const std::string &connection_string, int d
  */
 std::unique_ptr<ServerAddress> ParseGameConnectionString(CompanyID *company, const std::string &connection_string, int default_port)
 {
+	if (!connection_string.empty() && connection_string[0] == '+') {
+		// TODO -- Support "company"
+		return std::make_unique<ServerAddressJoinKey>(connection_string.substr(1));
+	}
+
 	char internal_connection_string[NETWORK_HOSTNAME_PORT_LENGTH + 4]; // 4 extra for the "#" and company
 	strecpy(internal_connection_string, connection_string.c_str(), lastof(internal_connection_string));
 
 	const char *port_s = nullptr;
 	const char *company_s = nullptr;
-	ParseFullConnectionString(&company_s, &port_s, internal_connection_string);
+	ParseFullConnectionString(company == nullptr ? nullptr : &company_s, &port_s, internal_connection_string);
 
 	if (company != nullptr && company_s != nullptr) {
 		uint company_value = atoi(company_s);

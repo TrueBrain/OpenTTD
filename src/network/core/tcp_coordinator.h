@@ -24,6 +24,11 @@ enum PacketCoordinatorType {
 	PACKET_COORDINATOR_CLIENT_UPDATE,         ///< Server sends an set intervals an update of the server.
 	PACKET_COORDINATOR_CLIENT_LISTING,        ///< Client is requesting a listing of all public servers.
 	PACKET_COORDINATOR_SERVER_LISTING,        ///< Game Coordinator returns a listing of all public servers.
+	PACKET_COORDINATOR_CLIENT_CONNECT,        ///< Client wants to connect to a server based on a join-key.
+	PACKET_COORDINATOR_SERVER_CONNECTING,     ///< Game Coordinator informs the client of the token assigned to the connection attempt.
+	PACKET_COORDINATOR_CLIENT_CONNECT_FAILED, ///< Client/server tells the Game Coordinator the current connection attempt failed.
+	PACKET_COORDINATOR_SERVER_CONNECT_FAILED, ///< Game Coordinator informs client/server it has given up on the connection attempt.
+	PACKET_COORDINATOR_SERVER_DIRECT_CONNECT, ///< Game Coordinator tells client to directly connect to the IP:host of the server.
 	PACKET_COORDINATOR_END,                   ///< Must ALWAYS be on the end of this list!! (period)
 };
 
@@ -105,6 +110,65 @@ protected:
 	 * @return True upon success, otherwise false.
 	 */
 	virtual bool Receive_SERVER_LISTING(Packet *p);
+
+	/**
+	 * Client wants to connect to a server.
+	 *
+	 *  uint8   Game Coordinator protocol version.
+	 *  string  Join-key of the server to join.
+	 *
+	 * @param p The packet that was just received.
+	 * @return True upon success, otherwise false.
+	 */
+	virtual bool Receive_CLIENT_CONNECT(Packet *p);
+
+	/**
+	 * Game Coordinator informs the client under what token it will start the
+	 * attempt to connect the server and client together.
+	 *
+	 *  string  Token to track the current connect request.
+	 *  string  Join-key of the server to join.
+	 *
+	 * @param p The packet that was just received.
+	 * @return True upon success, otherwise false.
+	 */
+	virtual bool Receive_SERVER_CONNECTING(Packet *p);
+
+	/**
+	 * Client failed to connect to the remote side.
+	 *
+	 *  uint8   Game Coordinator protocol version.
+	 *  string  Token to track the current connect request.
+	 *
+	 * @param p The packet that was just received.
+	 * @return True upon success, otherwise false.
+	 */
+	virtual bool Receive_CLIENT_CONNECT_FAILED(Packet *p);
+
+	/**
+	 * Game Coordinator informs the client that there hasn't been found any
+	 * way to connect the client to the server. Any open connections for this
+	 * token should be closed now.
+	 *
+	 *  string  Token to track the current connect request.
+	 *
+	 * @param p The packet that was just received.
+	 * @return True upon success, otherwise false.
+	 */
+	virtual bool Receive_SERVER_CONNECT_FAILED(Packet *p);
+
+	/**
+	 * Game Coordinator requests that we make a direct connection to the
+	 * indicated peer, which is a game server.
+	 *
+	 *  string  Token to track the current connect request.
+	 *  string  Host of the peer.
+	 *  uint16  Port of the peer.
+	 *
+	 * @param p The packet that was just received.
+	 * @return True upon success, otherwise false.
+	 */
+	virtual bool Receive_SERVER_DIRECT_CONNECT(Packet *p);
 
 	bool HandlePacket(Packet *p);
 public:

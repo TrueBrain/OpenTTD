@@ -24,12 +24,37 @@ static const auto NETWORK_COORDINATOR_DELAY_BETWEEN_UPDATES = std::chrono::secon
 ClientNetworkCoordinatorSocketHandler _network_coordinator_client; ///< The connection to the Game Coordinator.
 ConnectionType _network_server_connection_type = CONNECTION_TYPE_UNKNOWN; ///< What type of connection the Game Coordinator detected we are on.
 
+/** Connect to a game server by IP:port. */
+class NetworkDirectConnecter : TCPConnecter {
+private:
+	std::string token;
+
+public:
+	/**
+	 * Initiate the connecting.
+	 * @param hostname The hostname of the server.
+	 * @param port The port of the server.
+	 * @param token The connection token.
+	 */
+	NetworkDirectConnecter(const std::string &hostname, uint16 port, const std::string &token) : TCPConnecter(hostname, port), token(token) {}
+
+	void OnFailure() override
+	{
+		_network_coordinator_client.ConnectFailure(token);
+	}
+
+	void OnConnect(SOCKET s) override
+	{
+		_network_coordinator_client.ConnectSuccess(token, s);
+	}
+};
+
 /** Connect to the Game Coordinator server. */
 class NetworkCoordinatorConnecter : TCPConnecter {
 public:
 	/**
 	 * Initiate the connecting.
-	 * @param address The address of the Game Coordinator server.
+	 * @param connection_string The address of the Game Coordinator server.
 	 */
 	NetworkCoordinatorConnecter(const std::string &connection_string) : TCPConnecter(connection_string, NETWORK_COORDINATOR_SERVER_PORT) {}
 
@@ -101,6 +126,45 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_LISTING(Packet *p)
 	return true;
 }
 
+bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_CONNECTING(Packet *p)
+{
+	std::string token = p->Recv_string(NETWORK_TOKEN_LENGTH);
+	std::string join_key = p->Recv_string(NETWORK_JOIN_KEY_LENGTH);
+
+	/* Find the connecter based on the join-key. */
+	auto connecter_it = this->connecter_pre.find(join_key);
+	assert(connecter_it != this->connecter_pre.end());
+
+	/* Now store it based on the token. */
+	this->connecter_pre.erase(connecter_it);
+	this->connecter[token] = connecter_it->second;
+
+	return true;
+}
+
+bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_CONNECT_FAILED(Packet *p)
+{
+	std::string token = p->Recv_string(NETWORK_TOKEN_LENGTH);
+
+	auto connecter_it = this->connecter.find(token);
+	if (connecter_it != this->connecter.end()) {
+		connecter_it->second->SetResult(INVALID_SOCKET);
+		this->connecter.erase(connecter_it);
+	}
+
+	return true;
+}
+
+bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_DIRECT_CONNECT(Packet *p)
+{
+	std::string token = p->Recv_string(NETWORK_TOKEN_LENGTH);
+	std::string host = p->Recv_string(NETWORK_HOSTNAME_PORT_LENGTH);
+	uint16 port = p->Recv_uint16();
+
+	new NetworkDirectConnecter(host, port, token);
+	return true;
+}
+
 void ClientNetworkCoordinatorSocketHandler::Connect()
 {
 	/* We are either already connected or are trying to connect. */
@@ -125,6 +189,14 @@ NetworkRecvStatus ClientNetworkCoordinatorSocketHandler::CloseConnection(bool er
 	_network_server_connection_type = CONNECTION_TYPE_UNKNOWN;
 
 	SetWindowDirty(WC_CLIENT_LIST, 0);
+
+	/* Mark any pending connecter as failed. */
+	for (auto &[key, it] : this->connecter) {
+		it->SetResult(INVALID_SOCKET);
+	}
+	for (auto &[key, it] : this->connecter_pre) {
+		it->SetResult(INVALID_SOCKET);
+	}
 
 	return NETWORK_RECV_STATUS_OKAY;
 }
@@ -178,6 +250,67 @@ void ClientNetworkCoordinatorSocketHandler::GetListing()
 	p->Send_uint8(NETWORK_COORDINATOR_VERSION);
 
 	this->SendPacket(p);
+}
+
+/**
+ * Join a server based on a join-key.
+ */
+void ClientNetworkCoordinatorSocketHandler::ConnectToServer(const std::string &join_key, TCPServerConnecter *connecter)
+{
+	if (this->connecter_pre.find(join_key) != this->connecter_pre.end()) {
+		/* It shouldn't be possible to connect to the same server before a
+		 * token is assigned to the connection attempt. In case it does
+		 * happen, report the second attempt as failed. */
+		connecter->SetResult(INVALID_SOCKET);
+		return;
+	}
+
+	/* Initially we store based on join-key; on first reply we know the token,
+	 * and will start using that key instead. */
+	this->connecter_pre[join_key] = connecter;
+
+	this->Connect();
+
+	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_CONNECT);
+	p->Send_uint8(NETWORK_COORDINATOR_VERSION);
+	p->Send_string(join_key.c_str());
+
+	this->SendPacket(p);
+}
+
+/**
+ * Callback from a Connecter to let the Game Coordinator know the connection failed.
+ */
+void ClientNetworkCoordinatorSocketHandler::ConnectFailure(const std::string &token)
+{
+	assert(!_network_server);
+
+	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_CONNECT_FAILED);
+	p->Send_uint8(NETWORK_COORDINATOR_VERSION);
+	p->Send_string(token.c_str());
+
+	this->SendPacket(p);
+
+	auto connecter_it = this->connecter.find(token);
+	assert(connecter_it != this->connecter.end());
+
+	connecter_it->second->SetResult(INVALID_SOCKET);
+	this->connecter.erase(connecter_it);
+}
+
+/**
+ * Callback from a Connecter to let the Game Coordinator know the connection
+ * to the game server is established.
+ */
+void ClientNetworkCoordinatorSocketHandler::ConnectSuccess(const std::string &token, SOCKET sock)
+{
+	assert(!_network_server);
+
+	auto connecter_it = this->connecter.find(token);
+	assert(connecter_it != this->connecter.end());
+
+	connecter_it->second->SetResult(sock);
+	this->connecter.erase(connecter_it);
 }
 
 /**

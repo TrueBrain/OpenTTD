@@ -119,6 +119,8 @@ public:
 	std::unique_ptr<ServerAddress> server_address; ///< Address we are connecting to.
 
 	TCPServerConnecter(const std::string &connection_string, uint16 default_port);
+
+	void SetResult(SOCKET sock);
 };
 
 #endif /* NETWORK_CORE_TCP_H */

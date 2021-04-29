@@ -46,6 +46,7 @@ enum NetworkGameWidgets {
 	WID_NG_SEARCH_INTERNET,    ///< 'Search internet server' button.
 	WID_NG_SEARCH_LAN,         ///< 'Search LAN server' button.
 	WID_NG_ADD,                ///< 'Add server' button.
+	WID_NG_JOIN_KEY,           ///< 'Use invite code' button.
 	WID_NG_START,              ///< 'Start server' button.
 	WID_NG_CANCEL,             ///< 'Cancel' button.
 };

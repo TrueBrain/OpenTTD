@@ -13,6 +13,7 @@
 #include "../../thread.h"
 
 #include "tcp.h"
+#include "../network_coordinator.h"
 #include "../network_internal.h"
 
 #include "../../safeguards.h"
@@ -42,6 +43,8 @@ TCPConnecter::TCPConnecter(const std::string &connection_string, uint16 default_
 	killed(false),
 	sock(INVALID_SOCKET)
 {
+	this->address = ParseConnectionString(connection_string, default_port);
+
 	_tcp_connecters.push_back(this);
 
 	this->BootstrapConnect(ParseConnectionString(connection_string, default_port));
@@ -57,6 +60,8 @@ TCPBindConnecter::TCPBindConnecter(const std::string &connection_string, uint16 
 	TCPConnecter(),
 	bind_address(bind_address)
 {
+	this->address = ParseConnectionString(connection_string, default_port);
+
 	_tcp_connecters.push_back(this);
 
 	this->BootstrapConnect(ParseConnectionString(connection_string, default_port));
@@ -93,7 +98,7 @@ TCPServerConnecter::TCPServerConnecter(const std::string &connection_string, uin
 			break;
 
 		case SERVER_ADDRESS_JOIN_KEY:
-			// TODO - Will be introduced in next commit
+			_network_coordinator_client.ConnectToServer(static_cast<const ServerAddressJoinKey *>(this->server_address.get())->join_key, this);
 			break;
 
 		default:
@@ -130,6 +135,21 @@ void TCPBindConnecter::Connect()
 /* static */ void TCPConnecter::ThreadEntry(TCPConnecter *param)
 {
 	param->Connect();
+}
+
+/**
+ * Set the resulting socket of the connection attempt.
+ * This socket is fully setup and ready to send/recv game protocol packets.
+ * @param sock The socket, or INVALID_SOCKET if no connection could be established.
+ */
+void TCPServerConnecter::SetResult(SOCKET sock)
+{
+	this->sock = sock;
+	if (this->sock == INVALID_SOCKET) {
+		this->aborted = true;
+	} else {
+		this->connected = true;
+	}
 }
 
 /**
