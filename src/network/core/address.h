@@ -190,6 +190,7 @@ public:
  */
 enum ServerAddressType {
 	SERVER_ADDRESS_DIRECT,   ///< Server-address is based on an IP:port.
+	SERVER_ADDRESS_JOIN_KEY, ///< Server-address is based on a join-key given by the Game Coordinator.
 };
 
 /**
@@ -223,6 +224,21 @@ public:
 	std::string GetAddressAsString() override
 	{
 		return this->address.GetAddressAsString(false);
+	}
+};
+
+/**
+ * A server address based on a join-key as given by the Game Coordinator.
+ */
+class ServerAddressJoinKey : public ServerAddress {
+public:
+	std::string join_key;
+
+	ServerAddressJoinKey(std::string join_key) : ServerAddress(SERVER_ADDRESS_JOIN_KEY), join_key(join_key) {}
+
+	std::string GetAddressAsString() override
+	{
+		return "+" + this->join_key;
 	}
 };
 

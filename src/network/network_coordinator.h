@@ -20,6 +20,10 @@
  *  - GC probes server to check if it can directly connect, needs STUN, etc.
  *  - GC sends SERVER_REGISTER_ACK with type of connection.
  *  - Server sends every 30 seconds CLIENT_UPDATE.
+ *
+ * For clients (listing):
+ *  - Client sends CLIENT_LISTING.
+ *  - GC returns the full list of public servers via SERVER_LISTING (multiple packets).
  */
 
 /** Class for handling the client side of the Game Coordinator connection. */
@@ -29,6 +33,7 @@ private:
 
 protected:
 	bool Receive_SERVER_REGISTER_ACK(Packet *p) override;
+	bool Receive_SERVER_LISTING(Packet *p) override;
 
 public:
 	bool connecting; ///< Are we connecting to the Game Coordinator?
@@ -42,6 +47,7 @@ public:
 
 	void Register();
 	void SendServerUpdate();
+	void GetListing();
 };
 
 extern ClientNetworkCoordinatorSocketHandler _network_coordinator_client;

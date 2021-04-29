@@ -92,6 +92,10 @@ TCPServerConnecter::TCPServerConnecter(const std::string &connection_string, uin
 			this->BootstrapConnect(static_cast<ServerAddressDirect *>(this->server_address.get())->address);
 			break;
 
+		case SERVER_ADDRESS_JOIN_KEY:
+			// TODO - Will be introduced in next commit
+			break;
+
 		default:
 			NOT_REACHED();
 	}

@@ -16,6 +16,7 @@
 #include "network.h"
 #include "network_coordinator.h"
 #include "network_gamelist.h"
+#include "network_internal.h"
 
 #include "../safeguards.h"
 
@@ -63,6 +64,40 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_REGISTER_ACK(Packet *
 
 	DEBUG(net, 2, "Game Coordinator registered our server with join-key '%s'", _network_game_info.join_key);
 
+	return true;
+}
+
+bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_LISTING(Packet *p)
+{
+	uint8 servers = p->Recv_uint16();
+
+	/* End of list; we can now remove all expired items from the list. */
+	if (servers == 0) {
+		NetworkGameListRemoveExpired();
+		return true;
+	}
+
+	for (; servers > 0; servers--) {
+		/* Read the NetworkGameInfo from the packet. */
+		NetworkGameInfo ngi;
+		DeserializeNetworkGameInfo(p, &ngi);
+
+		/* Now we know the join-key, we can add it to our list. */
+		NetworkGameList *item = NetworkGameListAddItem("+" + std::string(ngi.join_key));
+
+		/* Clear any existing GRFConfig chain. */
+		ClearGRFConfigList(&item->info.grfconfig);
+		/* Copy the new NetworkGameInfo info. */
+		item->info = ngi;
+		/* Check for compatability with the client. */
+		CheckGameCompatibility(item->info);
+		/* Mark server as online. */
+		item->online = true;
+		/* Mark the item as up-to-date. */
+		item->version = _network_game_list_version;
+	}
+
+	UpdateNetworkGameWindow();
 	return true;
 }
 
@@ -126,6 +161,21 @@ void ClientNetworkCoordinatorSocketHandler::SendServerUpdate()
 	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_UPDATE);
 	p->Send_uint8(NETWORK_COORDINATOR_VERSION);
 	SerializeNetworkGameInfo(p, GetCurrentNetworkServerGameInfo());
+
+	this->SendPacket(p);
+}
+
+/**
+ * Request a listing of all public servers.
+ */
+void ClientNetworkCoordinatorSocketHandler::GetListing()
+{
+	this->Connect();
+
+	_network_game_list_version++;
+
+	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_LISTING);
+	p->Send_uint8(NETWORK_COORDINATOR_VERSION);
 
 	this->SendPacket(p);
 }
