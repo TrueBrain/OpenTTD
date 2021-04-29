@@ -19,6 +19,7 @@
 #include "network_udp.h"
 #include "network_gamelist.h"
 #include "network_base.h"
+#include "network_coordinator.h"
 #include "core/udp.h"
 #include "core/host.h"
 #include "network_gui.h"
@@ -586,6 +587,8 @@ void NetworkClose(bool close_admins)
 		}
 		ServerNetworkGameSocketHandler::CloseListeners();
 		ServerNetworkAdminSocketHandler::CloseListeners();
+
+		_network_coordinator_client.CloseConnection(true);
 	} else if (MyClient::my_client != nullptr) {
 		MyClient::SendQuit();
 		MyClient::my_client->CloseConnection(NETWORK_RECV_STATUS_CONN_LOST);
@@ -848,6 +851,10 @@ bool NetworkServerStart()
 
 	NetworkInitGameInfo();
 
+	if (_settings_client.network.server_advertise) {
+		_network_coordinator_client.Register();
+	}
+
 	/* execute server initialization script */
 	IConsoleCmdExec("exec scripts/on_server.scr 0");
 	/* if the server is dedicated ... add some other script */
@@ -948,6 +955,7 @@ static void NetworkSend()
 void NetworkBackgroundLoop()
 {
 	_network_content_client.SendReceive();
+	_network_coordinator_client.SendReceive();
 	TCPConnecter::CheckCallbacks();
 	NetworkHTTPSocketHandler::HTTPReceive();
 

@@ -14,6 +14,10 @@
 
 /** DNS hostname of the masterserver */
 static const char * const NETWORK_MASTER_SERVER_HOST            = "master.openttd.org";
+/** DNS hostname of the Game Coordinator server */
+static const char * const NETWORK_COORDINATOR_SERVER_HOST       = "home.truebrain.nl";
+/** DNS hostname of the STUN server */
+static const char * const NETWORK_STUN_SERVER_HOST              = "home.truebrain.nl";
 /** DNS hostname of the content server */
 static const char * const NETWORK_CONTENT_SERVER_HOST           = "content.openttd.org";
 /** DNS hostname of the HTTP-content mirror server */
@@ -23,14 +27,15 @@ static const char * const NETWORK_CONTENT_MIRROR_URL            = "/bananas";
 /** Message sent to the masterserver to 'identify' this client as OpenTTD */
 static const char * const NETWORK_MASTER_SERVER_WELCOME_MESSAGE = "OpenTTDRegister";
 
-static const uint16 NETWORK_MASTER_SERVER_PORT    = 3978;         ///< The default port of the master server (UDP)
-static const uint16 NETWORK_CONTENT_SERVER_PORT   = 3978;         ///< The default port of the content server (TCP)
-static const uint16 NETWORK_CONTENT_MIRROR_PORT   =   80;         ///< The default port of the content mirror (TCP)
-static const uint16 NETWORK_DEFAULT_PORT          = 3979;         ///< The default port of the game server (TCP & UDP)
-static const uint16 NETWORK_ADMIN_PORT            = 3977;         ///< The default port for admin network
-static const uint16 NETWORK_DEFAULT_DEBUGLOG_PORT = 3982;         ///< The default port debug-log is sent to (TCP)
+static const uint16 NETWORK_MASTER_SERVER_PORT      = 3978;       ///< The default port of the master server (UDP)
+static const uint16 NETWORK_COORDINATOR_SERVER_PORT = 12122;      ///< The default port of the Game Coordinator server (TCP)
+static const uint16 NETWORK_CONTENT_SERVER_PORT     = 3978;       ///< The default port of the content server (TCP)
+static const uint16 NETWORK_CONTENT_MIRROR_PORT     =   80;       ///< The default port of the content mirror (TCP)
+static const uint16 NETWORK_DEFAULT_PORT            = 3979;       ///< The default port of the game server (TCP & UDP)
+static const uint16 NETWORK_ADMIN_PORT              = 3977;       ///< The default port for admin network
+static const uint16 NETWORK_DEFAULT_DEBUGLOG_PORT   = 3982;       ///< The default port debug-log is sent to (TCP)
 
-static const uint16 UDP_MTU                       = 1460;         ///< Number of bytes we can pack in a single UDP packet
+static const uint16 UDP_MTU                         = 1460;       ///< Number of bytes we can pack in a single UDP packet
 /*
  * Technically a TCP packet could become 64kiB, however the high bit is kept so it becomes possible in the future
  * to go to (significantly) larger packets if needed. This would entail a strategy such as employed for UTF-8.
@@ -49,9 +54,10 @@ static const uint16 TCP_MTU                       = 32767;        ///< Number of
 static const uint16 COMPAT_MTU                    = 1460;         ///< Number of bytes we can pack in a single packet for backward compatibility
 
 static const byte NETWORK_GAME_ADMIN_VERSION      =    1;         ///< What version of the admin network do we use?
-static const byte NETWORK_GAME_INFO_VERSION       =    4;         ///< What version of game-info do we use?
+static const byte NETWORK_GAME_INFO_VERSION       =    5;         ///< What version of game-info do we use?
 static const byte NETWORK_COMPANY_INFO_VERSION    =    6;         ///< What version of company info is this?
 static const byte NETWORK_MASTER_SERVER_VERSION   =    2;         ///< What version of master-server-protocol do we use?
+static const byte NETWORK_COORDINATOR_VERSION     =    1;         ///< What version of game-coordinator-protocol do we use?
 
 static const uint NETWORK_NAME_LENGTH             =   80;         ///< The maximum length of the server name and map name, in bytes including '\0'
 static const uint NETWORK_COMPANY_NAME_LENGTH     =  128;         ///< The maximum length of the company name, in bytes including '\0'
@@ -65,6 +71,7 @@ static const uint NETWORK_CLIENT_NAME_LENGTH      =   25;         ///< The maxim
 static const uint NETWORK_RCONCOMMAND_LENGTH      =  500;         ///< The maximum length of a rconsole command, in bytes including '\0'
 static const uint NETWORK_GAMESCRIPT_JSON_LENGTH  = COMPAT_MTU-3; ///< The maximum length of a gamescript json string, in bytes including '\0'. Must not be longer than COMPAT_MTU including header (3 bytes)
 static const uint NETWORK_CHAT_LENGTH             =  900;         ///< The maximum length of a chat message, in bytes including '\0'
+static const uint NETWORK_JOIN_KEY_LENGTH         =   64;         ///< The maximum length of the join key, in bytes including '\0'
 
 static const uint NETWORK_GRF_NAME_LENGTH         =   80;         ///< Maximum length of the name of a GRF
 
