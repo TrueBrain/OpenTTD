@@ -13,6 +13,7 @@
 #include "../../thread.h"
 
 #include "tcp.h"
+#include "../network_coordinator.h"
 #include "../network_internal.h"
 
 #include <deque>
@@ -47,7 +48,7 @@ TCPServerConnecter::TCPServerConnecter(const std::string &connection_string, uin
 			break;
 
 		case SERVER_ADDRESS_INVITE_CODE:
-			// TODO -- The next commit will add this functionality.
+			_network_coordinator_client.ConnectToServer(this->server_address.connection_string, this);
 			break;
 
 		default:
