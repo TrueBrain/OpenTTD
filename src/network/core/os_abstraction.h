@@ -63,10 +63,20 @@ typedef unsigned long in_addr_t;
 #	define INVALID_SOCKET -1
 #	define ioctlsocket ioctl
 #	define closesocket close
-#	define NetworkGetLastError() (errno)
 #	define NetworkGetErrorString(error) (strerror(error))
 /* Need this for FIONREAD on solaris */
 #	define BSD_COMP
+
+/* POSIX defines that functions can either return EAGAIN or EWOULDBLOCK to
+ * indicate a non-blocking socket is being blocked. Most systems define those
+ * two enums as the same value, but some still make a distinction. Be portable
+ * and support both.
+ */
+#	if EWOULDBLOCK == EAGAIN
+#		define NetworkGetLastError() (errno)
+#	else
+#		define NetworkGetLastError() (errno == EAGAIN ? EWOULDBLOCK : errno)
+#	endif
 
 /* Includes needed for UNIX-like systems */
 #	include <unistd.h>
