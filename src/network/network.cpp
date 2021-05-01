@@ -769,11 +769,10 @@ bool NetworkClientConnectGame(NetworkAddress &address, CompanyID join_as, const 
 		/* From the menu we can immediately continue with the actual join. */
 		NetworkClientJoinGame();
 	} else {
-		/* When not in the main menu, force going to the main menu to prevent half
-		 * joined clients being in weird states. Like most of the UI still believing
-		 * they are in a network game when other parts have been disconnected.
-		 * Not going to the main menu will cause all kinds of invalid pointer dereferences.
-		 * See NetworkClientJoinGame for more information.
+		/* When already playing a game, first go back to the main menu. This
+		 * disconnects the user from the current game, meaning we can safely
+		 * load in the new. After all, there is little point in continueing to
+		 * play on a server if we are connecting to another one.
 		 */
 		_switch_mode = SM_JOIN_GAME;
 	}
@@ -782,15 +781,8 @@ bool NetworkClientConnectGame(NetworkAddress &address, CompanyID join_as, const 
 
 /**
  * Actually perform the joining to the server. Use #NetworkClientConnectGame
- * when you want to connect to a specific server/company.
- *
- * This is a helper function to be able to load the main menu before joining a
- * server to prevent all kinds of invalid pointer dereferences. The most obvious
- * set of invalid pointers are everything that has information from a network
- * "pool", like NetworkClientInfo. At NetworkDisconnect those pools get cleared
- * and nothing gets added until the client is authorized, meaning that until the
- * client has entered the right password anything dereferencing NetworkClientInfo,
- * such as receiving a chat message will be tainted.
+ * when you want to connect to a specific server/company. This function
+ * assumes _network_join is already fully set up.
  */
 void NetworkClientJoinGame()
 {
