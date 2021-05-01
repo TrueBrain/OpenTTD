@@ -760,20 +760,48 @@ bool NetworkClientConnectGame(NetworkAddress &address, CompanyID join_as, const 
 	if (!_network_available) return false;
 	if (!NetworkValidateClientName()) return false;
 
-	strecpy(_settings_client.network.last_joined, address.GetAddressAsString(false).c_str(), lastof(_settings_client.network.last_joined));
-
+	_network_join.address = address;
 	_network_join.company = join_as;
 	_network_join.server_password = join_server_password;
 	_network_join.company_password = join_company_password;
 
+	if (_game_mode == GM_MENU) {
+		/* From the menu we can immediately continue with the actual join. */
+		NetworkClientJoinGame();
+	} else {
+		/* When not in the main menu, force going to the main menu to prevent half
+		 * joined clients being in weird states. Like most of the UI still believing
+		 * they are in a network game when other parts have been disconnected.
+		 * Not going to the main menu will cause all kinds of invalid pointer dereferences.
+		 * See NetworkClientJoinGame for more information.
+		 */
+		_switch_mode = SM_JOIN_GAME;
+	}
+	return true;
+}
+
+/**
+ * Actually perform the joining to the server. Use #NetworkClientConnectGame
+ * when you want to connect to a specific server/company.
+ *
+ * This is a helper function to be able to load the main menu before joining a
+ * server to prevent all kinds of invalid pointer dereferences. The most obvious
+ * set of invalid pointers are everything that has information from a network
+ * "pool", like NetworkClientInfo. At NetworkDisconnect those pools get cleared
+ * and nothing gets added until the client is authorized, meaning that until the
+ * client has entered the right password anything dereferencing NetworkClientInfo,
+ * such as receiving a chat message will be tainted.
+ */
+void NetworkClientJoinGame()
+{
 	NetworkDisconnect();
 	NetworkInitialize();
 
+	strecpy(_settings_client.network.last_joined, _network_join.address.GetAddressAsString(false).c_str(), lastof(_settings_client.network.last_joined));
 	_network_join_status = NETWORK_JOIN_STATUS_CONNECTING;
 	ShowJoinStatusWindow();
 
-	new TCPClientConnecter(address);
-	return true;
+	new TCPClientConnecter(_network_join.address);
 }
 
 static void NetworkInitGameInfo()

@@ -1068,6 +1068,14 @@ void SwitchToMode(SwitchMode new_mode)
 			break;
 		}
 
+		case SM_JOIN_GAME:
+			/* Used in case a (re)connect is triggered from inside a (network) game to prevent
+			 * invalid pointer dereferences. See #NetworkClientJoinGame for more information.
+			 * Loads the main  menu and then starts the actual join process. */
+			LoadIntroGame();
+			NetworkClientJoinGame();
+			break;
+
 		case SM_MENU: // Switch to game intro menu
 			LoadIntroGame();
 			if (BaseSounds::ini_set.empty() && BaseSounds::GetUsedSet()->fallback && SoundDriver::GetInstance()->HasOutput()) {
