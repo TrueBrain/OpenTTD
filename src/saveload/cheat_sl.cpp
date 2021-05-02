@@ -48,6 +48,8 @@ static void Load_CHTS()
 }
 
 /** Chunk handlers related to cheats. */
-extern const ChunkHandler _cheat_chunk_handlers[] = {
-	{ 'CHTS', Save_CHTS, Load_CHTS, nullptr, nullptr, CH_RIFF | CH_LAST},
+static const ChunkHandler __cheat_chunk_handlers[] = {
+	{ 'CHTS', Save_CHTS, Load_CHTS, nullptr, nullptr, CH_RIFF },
 };
+
+extern const ChunkHandlerTable _cheat_chunk_handlers(__cheat_chunk_handlers);

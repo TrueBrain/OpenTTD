@@ -66,7 +66,9 @@ static void Load_OBID()
 	Load_NewGRFMapping(_object_mngr);
 }
 
-extern const ChunkHandler _object_chunk_handlers[] = {
+static const ChunkHandler __object_chunk_handlers[] = {
 	{ 'OBID', Save_OBID, Load_OBID, nullptr,   nullptr, CH_ARRAY },
-	{ 'OBJS', Save_OBJS, Load_OBJS, Ptrs_OBJS, nullptr, CH_ARRAY | CH_LAST},
+	{ 'OBJS', Save_OBJS, Load_OBJS, Ptrs_OBJS, nullptr, CH_ARRAY },
 };
+
+extern const ChunkHandlerTable _object_chunk_handlers(__object_chunk_handlers);

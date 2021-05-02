@@ -40,6 +40,8 @@ static void Load_GOAL()
 	}
 }
 
-extern const ChunkHandler _goal_chunk_handlers[] = {
-	{ 'GOAL', Save_GOAL, Load_GOAL, nullptr, nullptr, CH_ARRAY | CH_LAST},
+static const ChunkHandler __goal_chunk_handlers[] = {
+	{ 'GOAL', Save_GOAL, Load_GOAL, nullptr, nullptr, CH_ARRAY },
 };
+
+extern const ChunkHandlerTable _goal_chunk_handlers(__goal_chunk_handlers);
