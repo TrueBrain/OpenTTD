@@ -660,7 +660,7 @@ void NetworkTCPQueryServer(const std::string &connection_string, bool request_co
  * @param connection_string The IP:port of the server to add.
  * @return The entry on the game list.
  */
-NetworkGameList *NetworkAddServer(const std::string &connection_string)
+NetworkGameList *NetworkAddServer(const std::string &connection_string, bool manually)
 {
 	if (connection_string.empty()) return nullptr;
 
@@ -669,13 +669,14 @@ NetworkGameList *NetworkAddServer(const std::string &connection_string)
 	if (StrEmpty(item->info.server_name)) {
 		ClearGRFConfigList(&item->info.grfconfig);
 		strecpy(item->info.server_name, connection_string.c_str(), lastof(item->info.server_name));
-		item->manually = true;
 
 		NetworkRebuildHostList();
 		UpdateNetworkGameWindow();
+
+		NetworkTCPQueryServer(connection_string);
 	}
 
-	NetworkTCPQueryServer(connection_string);
+	if (manually) item->manually = true;
 
 	return item;
 }
@@ -1198,7 +1199,7 @@ extern "C" {
 
 void CDECL em_openttd_add_server(const char *connection_string)
 {
-	NetworkAddServer(connection_string);
+	NetworkAddServer(connection_string, false);
 }
 
 }
