@@ -189,6 +189,7 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_GC_REGISTER_ACK(Packet *p)
 			case CONNECTION_TYPE_ISOLATED: connection_type = "Remote players can't connect"; break;
 			case CONNECTION_TYPE_DIRECT:   connection_type = "Public"; break;
 			case CONNECTION_TYPE_STUN:     connection_type = "Behind NAT"; break;
+			case CONNECTION_TYPE_TURN:     connection_type = "Via relay"; break;
 
 			case CONNECTION_TYPE_UNKNOWN: // Never returned from Game Coordinator.
 			default: connection_type = "Unknown"; break; // Should never happen, but don't fail if it does.
@@ -344,6 +345,23 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_GC_STUN_CONNECT(Packet *p)
 	 * the public ip:port is still pointing to the local address, and as such
 	 * a connection can be established. */
 	this->game_connecter = new NetworkReuseStunConnecter(host, port, family_it->second->local_addr, token, tracking_number, family);
+	return true;
+}
+
+bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_TURN_CONNECT(Packet *p)
+{
+	std::string token = p->Recv_string(NETWORK_TOKEN_LENGTH);
+	uint8 tracking_number = p->Recv_uint8();
+	std::string host = p->Recv_string(NETWORK_HOSTNAME_LENGTH);
+	uint16 port = p->Recv_uint16();
+
+	/* Ensure all other pending connection attempts are killed. */
+	if (this->game_connecter != nullptr) {
+		this->game_connecter->Kill();
+		this->game_connecter = nullptr;
+	}
+
+	this->turn_handler = ClientNetworkTurnSocketHandler::Turn(token, tracking_number, host, port);
 	return true;
 }
 
@@ -561,6 +579,17 @@ void ClientNetworkCoordinatorSocketHandler::CloseStunHandler(const std::string &
 	}
 }
 
+void ClientNetworkCoordinatorSocketHandler::CloseTurnHandler(const std::string &token)
+{
+	if (this->turn_handler.get() != nullptr) {
+		this->turn_handler->CloseConnection();
+		this->turn_handler->CloseSocket();
+		/* We don't set turn_handler to nullptr here, as we can be called from
+		 * within a turn_handler instance. Instead, we check later if the
+		 * connection is closed, and free the object then. */
+	}
+}
+
 /**
  * Close everything related to this connection token.
  * @param token The connection token to close.
@@ -573,8 +602,9 @@ void ClientNetworkCoordinatorSocketHandler::CloseToken(const std::string &token)
 		this->game_connecter = nullptr;
 	}
 
-	/* Close all remaining STUN connections. */
+	/* Close all remaining STUN / TURN connections. */
 	this->CloseStunHandler(token);
+	this->CloseTurnHandler(token);
 
 	/* Close the caller of the connection attempt. */
 	auto connecter_it = this->connecter.find(token);
@@ -603,6 +633,7 @@ void ClientNetworkCoordinatorSocketHandler::CloseAllTokens()
 	/* Mark any pending connecters as failed. */
 	for (auto &[token, it] : this->connecter) {
 		this->CloseStunHandler(token);
+		this->CloseTurnHandler(token);
 		it->SetFailure();
 	}
 	for (auto &[invite_code, it] : this->connecter_pre) {
@@ -682,6 +713,15 @@ void ClientNetworkCoordinatorSocketHandler::SendReceive()
 	for (const auto &[token, families] : this->stun_handlers) {
 		for (const auto &[family, stun_handler] : families) {
 			stun_handler->SendReceive();
+		}
+	}
+
+	if (turn_handler.get() != nullptr) {
+		if (turn_handler->connecter == nullptr && !turn_handler->IsConnected()) {
+			/* We are not connecting nor connected. Destroy our object. */
+			turn_handler = nullptr;
+		} else {
+			turn_handler->SendReceive();
 		}
 	}
 }
