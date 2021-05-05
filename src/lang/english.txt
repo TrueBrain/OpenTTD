@@ -1992,6 +1992,7 @@ STR_FACE_EARRING                                                :Earring:
 STR_FACE_TIE_EARRING_TOOLTIP                                    :{BLACK}Change tie or earring
 
 STR_NETWORK_SERVER_VISIBILITY_PRIVATE                           :Private
+STR_NETWORK_SERVER_VISIBILITY_FRIENDS_ONLY                      :Friends-only
 STR_NETWORK_SERVER_VISIBILITY_PUBLIC                            :Public
 
 # Network server list

@@ -296,7 +296,7 @@ void ClientNetworkCoordinatorSocketHandler::Register()
 
 	Packet *p = new Packet(PACKET_COORDINATOR_CLIENT_REGISTER);
 	p->Send_uint8(NETWORK_COORDINATOR_VERSION);
-	p->Send_uint8(SERVER_GAME_TYPE_PUBLIC);
+	p->Send_uint8(_settings_client.network.server_game_type);
 	p->Send_uint16(_settings_client.network.server_port);
 	p->Send_string(_openttd_revision);
 
@@ -421,7 +421,7 @@ void ClientNetworkCoordinatorSocketHandler::CloseStunHandler(std::string token, 
 void ClientNetworkCoordinatorSocketHandler::SendReceive()
 {
 	/* Private games are not listed via the Game Coordinator. */
-	if (!_settings_client.network.server_advertise) {
+	if (_settings_client.network.server_game_type == SERVER_GAME_TYPE_PRIVATE) {
 		if (this->sock != INVALID_SOCKET) {
 			this->Close();
 		}

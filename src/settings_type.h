@@ -15,6 +15,7 @@
 #include "town_type.h"
 #include "transport_type.h"
 #include "network/core/config.h"
+#include "network/network_type.h"
 #include "company_type.h"
 #include "cargotype.h"
 #include "linkgraph/linkgraph_type.h"
@@ -266,7 +267,6 @@ struct NetworkSettings {
 	char   server_password[NETWORK_PASSWORD_LENGTH];      ///< password for joining this server
 	char   rcon_password[NETWORK_PASSWORD_LENGTH];        ///< password for rconsole (server side)
 	char   admin_password[NETWORK_PASSWORD_LENGTH];       ///< password for the admin network
-	bool   server_advertise;                              ///< advertise the server to the masterserver
 	char   client_name[NETWORK_CLIENT_NAME_LENGTH];       ///< name of the player (as client)
 	char   default_company_pass[NETWORK_PASSWORD_LENGTH]; ///< default password for new companies in encrypted form
 	char   connect_to_ip[NETWORK_HOSTNAME_PORT_LENGTH];   ///< default for the "Add server" query
@@ -283,6 +283,7 @@ struct NetworkSettings {
 	bool   reload_cfg;                                    ///< reload the config file before restarting
 	char   last_joined[NETWORK_HOSTNAME_PORT_LENGTH];     ///< Last joined server
 	bool   no_http_content_downloads;                     ///< do not do content downloads over HTTP
+	ServerGameType server_game_type;                      ///< server type: private / friends-only / server
 };
 
 /** Settings related to the creation of games. */

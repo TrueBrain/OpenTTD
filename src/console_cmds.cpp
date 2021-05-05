@@ -2408,7 +2408,8 @@ void IConsoleStdLibRegister()
 	IConsole::AliasRegister("name",                  "setting client_name %+");
 	IConsole::AliasRegister("server_name",           "setting server_name %+");
 	IConsole::AliasRegister("server_port",           "setting server_port %+");
-	IConsole::AliasRegister("server_advertise",      "setting server_advertise %+");
+	// TODO -- Replace with server_game_type
+	//IConsole::AliasRegister("server_advertise",      "setting server_advertise %+");
 	IConsole::AliasRegister("max_clients",           "setting max_clients %+");
 	IConsole::AliasRegister("max_companies",         "setting max_companies %+");
 	IConsole::AliasRegister("max_spectators",        "setting max_spectators %+");

@@ -66,6 +66,7 @@ static CompanyID _admin_company_id = INVALID_COMPANY; ///< For what company a co
  */
 static const StringID _server_visibility_dropdown[] = {
 	STR_NETWORK_SERVER_VISIBILITY_PRIVATE,
+	STR_NETWORK_SERVER_VISIBILITY_FRIENDS_ONLY,
 	STR_NETWORK_SERVER_VISIBILITY_PUBLIC,
 	INVALID_STRING_ID
 };
@@ -1037,7 +1038,7 @@ struct NetworkStartServerWindow : public Window {
 	{
 		switch (widget) {
 			case WID_NSS_CONNTYPE_BTN:
-				SetDParam(0, _server_visibility_dropdown[_settings_client.network.server_advertise]);
+				SetDParam(0, _server_visibility_dropdown[_settings_client.network.server_game_type]);
 				break;
 
 			case WID_NSS_CLIENTS_TXT:
@@ -1088,7 +1089,7 @@ struct NetworkStartServerWindow : public Window {
 				break;
 
 			case WID_NSS_CONNTYPE_BTN: // Connection type
-				ShowDropDownMenu(this, _server_visibility_dropdown, _settings_client.network.server_advertise, WID_NSS_CONNTYPE_BTN, 0, 0); // do it for widget WID_NSS_CONNTYPE_BTN
+				ShowDropDownMenu(this, _server_visibility_dropdown, _settings_client.network.server_game_type, WID_NSS_CONNTYPE_BTN, 0, 0); // do it for widget WID_NSS_CONNTYPE_BTN
 				break;
 
 			case WID_NSS_CLIENTS_BTND:    case WID_NSS_CLIENTS_BTNU:    // Click on up/down button for number of clients
@@ -1162,7 +1163,7 @@ struct NetworkStartServerWindow : public Window {
 	{
 		switch (widget) {
 			case WID_NSS_CONNTYPE_BTN:
-				_settings_client.network.server_advertise = (index != 0);
+				_settings_client.network.server_game_type = (ServerGameType)index;
 				break;
 			default:
 				NOT_REACHED();
@@ -2086,7 +2087,7 @@ public:
 				break;
 
 			case WID_CL_SERVER_VISIBILITY:
-				SetDParam(0, _server_visibility_dropdown[_settings_client.network.server_advertise]);
+				SetDParam(0, _server_visibility_dropdown[_settings_client.network.server_game_type]);
 				break;
 
 			case WID_CL_SERVER_JOIN_KEY:
@@ -2123,7 +2124,7 @@ public:
 			case WID_CL_SERVER_VISIBILITY:
 				if (!_network_server) break;
 
-				ShowDropDownMenu(this, _server_visibility_dropdown, _settings_client.network.server_advertise, WID_CL_SERVER_VISIBILITY, 0, 0);
+				ShowDropDownMenu(this, _server_visibility_dropdown, _settings_client.network.server_game_type, WID_CL_SERVER_VISIBILITY, 0, 0);
 				break;
 
 			case WID_CL_MATRIX: {
@@ -2189,7 +2190,7 @@ public:
 			case WID_CL_SERVER_VISIBILITY:
 				if (!_network_server) break;
 
-				_settings_client.network.server_advertise = (index != 0);
+				_settings_client.network.server_game_type = (ServerGameType)index;
 				break;
 
 			case WID_CL_MATRIX: {

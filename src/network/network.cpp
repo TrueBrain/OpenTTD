@@ -855,7 +855,7 @@ bool NetworkServerStart()
 
 	NetworkInitGameInfo();
 
-	if (_settings_client.network.server_advertise) {
+	if (_settings_client.network.server_game_type != SERVER_GAME_TYPE_PRIVATE) {
 		_network_coordinator_client.Register();
 	}
 
