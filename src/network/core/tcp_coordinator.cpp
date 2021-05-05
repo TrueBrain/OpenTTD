@@ -48,6 +48,7 @@ bool NetworkCoordinatorSocketHandler::HandlePacket(Packet *p)
 		case PACKET_COORDINATOR_SERVER_DIRECT_CONNECT: return this->Receive_SERVER_DIRECT_CONNECT(p);
 		case PACKET_COORDINATOR_SERVER_STUN_REQUEST:   return this->Receive_SERVER_STUN_REQUEST(p);
 		case PACKET_COORDINATOR_SERVER_STUN_CONNECT:   return this->Receive_SERVER_STUN_CONNECT(p);
+		case PACKET_COORDINATOR_SERVER_TURN_CONNECT:   return this->Receive_SERVER_TURN_CONNECT(p);
 
 		default:
 			DEBUG(net, 0, "[tcp/coordinator] received invalid packet type %d", type);
@@ -96,3 +97,4 @@ bool NetworkCoordinatorSocketHandler::Receive_SERVER_CONNECT_FAILED(Packet *p) {
 bool NetworkCoordinatorSocketHandler::Receive_SERVER_DIRECT_CONNECT(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_SERVER_DIRECT_CONNECT); }
 bool NetworkCoordinatorSocketHandler::Receive_SERVER_STUN_REQUEST(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_SERVER_STUN_REQUEST); }
 bool NetworkCoordinatorSocketHandler::Receive_SERVER_STUN_CONNECT(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_SERVER_STUN_CONNECT); }
+bool NetworkCoordinatorSocketHandler::Receive_SERVER_TURN_CONNECT(Packet *p) { return this->ReceiveInvalidPacket(PACKET_COORDINATOR_SERVER_TURN_CONNECT); }

@@ -246,6 +246,13 @@ bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_STUN_CONNECT(Packet *
 	return true;
 }
 
+bool ClientNetworkCoordinatorSocketHandler::Receive_SERVER_TURN_CONNECT(Packet *p)
+{
+	// TODO
+
+	return true;
+}
+
 void ClientNetworkCoordinatorSocketHandler::Connect()
 {
 	/* We are either already connected or are trying to connect. */

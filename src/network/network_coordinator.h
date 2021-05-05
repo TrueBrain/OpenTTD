@@ -40,6 +40,10 @@
  *        - a) Server/client connect, client closes GC connection.
  *        - b) Server/client connect fails, connecting side sends CLIENT_CONNECT_FAILED to GC.
  *        - GC tries other combination if available.
+ *    3) TURN?
+ *        - GC sends SERVER_TURN_CONNECT to server/client.
+ *        - a) Server/client connect, client closes GC connection.
+ *        - b) Server/client connect fails, both send CLIENT_CONNECT_FAILED to GC.
  *  - If all fails, GC sends SERVER_CONNECT_FAILED to indicate no connection was possible.
  */
 
@@ -59,6 +63,7 @@ protected:
 	bool Receive_SERVER_DIRECT_CONNECT(Packet *p) override;
 	bool Receive_SERVER_STUN_REQUEST(Packet *p) override;
 	bool Receive_SERVER_STUN_CONNECT(Packet *p) override;
+	bool Receive_SERVER_TURN_CONNECT(Packet *p) override;
 
 public:
 	bool connecting; ///< Are we connecting to the Game Coordinator?
