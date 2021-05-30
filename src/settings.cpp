@@ -66,6 +66,8 @@
 #include "strings_func.h"
 #include "vehicle_func.h"
 
+#include "saveload/compat/settings_sl_compat.h"
+
 #include "void_map.h"
 #include "station_base.h"
 
@@ -2023,17 +2025,21 @@ static std::vector<SaveLoad> GetSettingsDesc(const SettingTable &settings, bool 
 		if (sd->flags & SF_NOT_IN_SAVE) continue;
 
 		if (is_loading && (sd->flags & SF_NO_NETWORK_SYNC) && _networking && !_network_server) {
-			/* We don't want to read this setting, so we do need to skip over it. */
-			saveloads.push_back({sd->name, sd->save.cmd, GetVarFileType(sd->save.conv) | SLE_VAR_NULL, sd->save.length, sd->save.version_from, sd->save.version_to, 0, nullptr, 0, nullptr});
+			if (IsSavegameVersionBefore(SLV_SETTINGS_BY_NAME)) {
+				/* We don't want to read this setting, so we do need to skip over it. */
+				saveloads.push_back({sd->name, sd->save.cmd, GetVarFileType(sd->save.conv) | SLE_VAR_NULL, sd->save.length, sd->save.version_from, sd->save.version_to, 0, nullptr, 0, nullptr});
+			}
 			continue;
 		}
 
-		saveloads.push_back(sd->save);
+		SaveLoad sv = sd->save;
+		/* Replace the name with the actual name of the setting. */
+		if (!sd->name.empty()) sv.name = sd->name;
+		saveloads.push_back(sv);
 	}
 
 	return saveloads;
 }
-
 
 /**
  * Save and load handler for settings
@@ -2041,9 +2047,9 @@ static std::vector<SaveLoad> GetSettingsDesc(const SettingTable &settings, bool 
  * @param object can be either nullptr in which case we load global variables or
  * a pointer to a struct which is getting saved
  */
-static void LoadSettings(const SettingTable &settings, void *object)
+static void LoadSettings(const SettingTable &settings, void *object, const SaveLoadCompatTable &slct)
 {
-	const std::vector<SaveLoad> slt = GetSettingsDesc(settings, true);
+	const std::vector<SaveLoad> slt = SlCompatTableHeader(GetSettingsDesc(settings, true), slct, SLV_SETTINGS_BY_NAME);
 
 	if (!IsSavegameVersionBefore(SLV_RIFF_TO_ARRAY) && SlIterateArray() == -1) return;
 	SlObject(object, slt);
@@ -2072,6 +2078,8 @@ static void SaveSettings(const SettingTable &settings, void *object)
 {
 	const std::vector<SaveLoad> slt = GetSettingsDesc(settings, false);
 
+	SlTableHeader(slt);
+
 	SlSetArrayIndex(0);
 	SlObject(object, slt);
 }
@@ -2082,7 +2090,7 @@ static void Load_OPTS()
 	 * a networking environment. This ensures for example that the local
 	 * autosave-frequency stays when joining a network-server */
 	PrepareOldDiffCustom();
-	LoadSettings(_gameopt_settings, &_settings_game);
+	LoadSettings(_gameopt_settings, &_settings_game, _gameopt_sl_compat);
 	HandleOldDiffCustom(true);
 }
 
@@ -2091,12 +2099,12 @@ static void Load_PATS()
 	/* Copy over default setting since some might not get loaded in
 	 * a networking environment. This ensures for example that the local
 	 * currency setting stays when joining a network-server */
-	LoadSettings(_settings, &_settings_game);
+	LoadSettings(_settings, &_settings_game, _settings_sl_compat);
 }
 
 static void Check_PATS()
 {
-	LoadSettings(_settings, &_load_check_data.settings);
+	LoadSettings(_settings, &_load_check_data.settings, _settings_sl_compat);
 }
 
 static void Save_PATS()

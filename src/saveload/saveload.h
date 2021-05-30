@@ -333,6 +333,8 @@ enum SaveLoadVersion : uint16 {
 	SLV_SAVELOAD_LIST_LENGTH,               ///< 293  PR#???? Consistency in list length with SL_STRUCT / SL_STRUCTLIST / SL_DEQUE / SL_REFLIST.
 	SLV_RIFF_TO_ARRAY,                      ///< 294  PR#9322 Changed many CH_RIFF chunks to CH_ARRAY chunks.
 
+	SLV_SETTINGS_BY_NAME,                   ///< 295  PR#9322 Load/store based on setting-name (instead of index).
+
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
 
