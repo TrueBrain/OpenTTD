@@ -8,39 +8,55 @@
 /** @file map_sl.cpp Code handling saving and loading of map */
 
 #include "../stdafx.h"
+
+#include "saveload.h"
+#include "compat/map_sl_compat.h"
+
 #include "../map_func.h"
 #include "../core/bitmath_func.hpp"
 #include "../fios.h"
 #include <array>
-
-#include "saveload.h"
 
 #include "../safeguards.h"
 
 static uint32 _map_dim_x;
 static uint32 _map_dim_y;
 
-static const SaveLoad _map_dimensions[] = {
+static const SaveLoad _map_desc[] = {
 	SLEG_CONDVAR("dim_x", _map_dim_x, SLE_UINT32, SLV_6, SL_MAX_VERSION),
 	SLEG_CONDVAR("dim_y", _map_dim_y, SLE_UINT32, SLV_6, SL_MAX_VERSION),
 };
 
 static void Save_MAPS()
 {
+	SlTableHeader(_map_desc);
+
 	_map_dim_x = MapSizeX();
 	_map_dim_y = MapSizeY();
-	SlGlobList(_map_dimensions);
+
+	SlSetArrayIndex(0);
+	SlGlobList(_map_desc);
 }
 
 static void Load_MAPS()
 {
-	SlGlobList(_map_dimensions);
+	const std::vector<SaveLoad> slt = SlCompatTableHeader(_map_desc, _map_sl_compat);
+
+	if (!IsSavegameVersionBefore(SLV_RIFF_TO_ARRAY) && SlIterateArray() == -1) return;
+	SlGlobList(slt);
+	if (!IsSavegameVersionBefore(SLV_RIFF_TO_ARRAY) && SlIterateArray() != -1) SlErrorCorrupt("Too many MAPS entries");
+
 	AllocateMap(_map_dim_x, _map_dim_y);
 }
 
 static void Check_MAPS()
 {
-	SlGlobList(_map_dimensions);
+	const std::vector<SaveLoad> slt = SlCompatTableHeader(_map_desc, _map_sl_compat);
+
+	if (!IsSavegameVersionBefore(SLV_RIFF_TO_ARRAY) && SlIterateArray() == -1) return;
+	SlGlobList(slt);
+	if (!IsSavegameVersionBefore(SLV_RIFF_TO_ARRAY) && SlIterateArray() != -1) SlErrorCorrupt("Too many MAPS entries");
+
 	_load_check_data.map_size_x = _map_dim_x;
 	_load_check_data.map_size_y = _map_dim_y;
 }
@@ -295,7 +311,7 @@ static void Save_MAP8()
 
 
 static const ChunkHandler map_chunk_handlers[] = {
-	{ 'MAPS', Save_MAPS, Load_MAPS, nullptr, Check_MAPS, CH_RIFF },
+	{ 'MAPS', Save_MAPS, Load_MAPS, nullptr, Check_MAPS, CH_TABLE },
 	{ 'MAPT', Save_MAPT, Load_MAPT, nullptr, nullptr,    CH_RIFF },
 	{ 'MAPH', Save_MAPH, Load_MAPH, nullptr, nullptr,    CH_RIFF },
 	{ 'MAPO', Save_MAP1, Load_MAP1, nullptr, nullptr,    CH_RIFF },

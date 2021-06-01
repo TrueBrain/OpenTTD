@@ -334,6 +334,7 @@ enum SaveLoadVersion : uint16 {
 	SLV_RIFF_TO_ARRAY,                      ///< 294  PR#9322 Changed many CH_RIFF chunks to CH_ARRAY chunks.
 
 	SLV_SETTINGS_BY_NAME,                   ///< 295  PR#9322 Load/store based on setting-name (instead of index).
+	SLV_TABLE_CHUNKS,                       ///< 296  PR#9322 Introduction of CH_TABLE and CH_SPARSE_TABLE.
 
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
@@ -390,6 +391,8 @@ enum ChunkType {
 	CH_RIFF = 0,
 	CH_ARRAY = 1,
 	CH_SPARSE_ARRAY = 2,
+	CH_TABLE = 3,
+	CH_SPARSE_TABLE = 4,
 
 	CH_TYPE_MASK = 0xf, ///< All ChunkType values have to be within this mask.
 };
@@ -1088,7 +1091,7 @@ void SlWriteByte(byte b);
 void SlGlobList(const SaveLoadTable &slt);
 void SlCopy(void *object, size_t length, VarType conv);
 std::vector<SaveLoad> SlTableHeader(const SaveLoadTable &slt);
-std::vector<SaveLoad> SlCompatTableHeader(const SaveLoadTable &slt, const SaveLoadCompatTable &slct, SaveLoadVersion slv_header_introduced = SL_MIN_VERSION);
+std::vector<SaveLoad> SlCompatTableHeader(const SaveLoadTable &slt, const SaveLoadCompatTable &slct);
 void SlObject(void *object, const SaveLoadTable &slt);
 void NORETURN SlError(StringID string, const char *extra_msg = nullptr);
 void NORETURN SlErrorCorrupt(const char *msg);

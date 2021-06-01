@@ -2025,7 +2025,7 @@ static std::vector<SaveLoad> GetSettingsDesc(const SettingTable &settings, bool 
 		if (sd->flags & SF_NOT_IN_SAVE) continue;
 
 		if (is_loading && (sd->flags & SF_NO_NETWORK_SYNC) && _networking && !_network_server) {
-			if (IsSavegameVersionBefore(SLV_SETTINGS_BY_NAME)) {
+			if (IsSavegameVersionBefore(SLV_TABLE_CHUNKS)) {
 				/* We don't want to read this setting, so we do need to skip over it. */
 				saveloads.push_back({sd->name, sd->save.cmd, GetVarFileType(sd->save.conv) | SLE_VAR_NULL, sd->save.length, sd->save.version_from, sd->save.version_to, 0, nullptr, 0, nullptr});
 			}
@@ -2049,7 +2049,7 @@ static std::vector<SaveLoad> GetSettingsDesc(const SettingTable &settings, bool 
  */
 static void LoadSettings(const SettingTable &settings, void *object, const SaveLoadCompatTable &slct)
 {
-	const std::vector<SaveLoad> slt = SlCompatTableHeader(GetSettingsDesc(settings, true), slct, SLV_SETTINGS_BY_NAME);
+	const std::vector<SaveLoad> slt = SlCompatTableHeader(GetSettingsDesc(settings, true), slct);
 
 	if (!IsSavegameVersionBefore(SLV_RIFF_TO_ARRAY) && SlIterateArray() == -1) return;
 	SlObject(object, slt);
@@ -2114,7 +2114,7 @@ static void Save_PATS()
 
 static const ChunkHandler setting_chunk_handlers[] = {
 	{ 'OPTS', nullptr,   Load_OPTS, nullptr, nullptr,    CH_RIFF  },
-	{ 'PATS', Save_PATS, Load_PATS, nullptr, Check_PATS, CH_ARRAY },
+	{ 'PATS', Save_PATS, Load_PATS, nullptr, Check_PATS, CH_TABLE },
 };
 
 extern const ChunkHandlerTable _setting_chunk_handlers(setting_chunk_handlers);
