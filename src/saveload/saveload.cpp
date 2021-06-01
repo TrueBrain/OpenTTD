@@ -214,12 +214,12 @@ struct SaveLoadParams {
 
 static SaveLoadParams _sl; ///< Parameters used for/at saveload.
 
-struct ChunkHandlers : std::vector<const ChunkHandler *> {
-	ChunkHandlers(std::initializer_list<const ChunkHandlerTable> l)
+struct ChunkHandlers : std::vector<ChunkHandler> {
+	ChunkHandlers(const span<const ChunkHandlerTable> &chunk_handler_tables)
 	{
-		for (auto &cht : l) {
-			for (auto &ch : cht) {
-				this->push_back(&ch);
+		for (auto &chunk_handler_table : chunk_handler_tables) {
+			for (auto &chunk_handler : chunk_handler_table) {
+				this->push_back(chunk_handler);
 			}
 		}
 	}
@@ -262,7 +262,7 @@ struct ChunkHandlers : std::vector<const ChunkHandler *> {
 		extern const ChunkHandlerTable _persistent_storage_chunk_handlers;
 
 		/** List of all chunks in a savegame. */
-		static const ChunkHandlers _chunk_handlers = {
+		static const ChunkHandlerTable _chunk_handler_tables[] = {
 			_gamelog_chunk_handlers,
 			_map_chunk_handlers,
 			_misc_chunk_handlers,
@@ -297,6 +297,7 @@ struct ChunkHandlers : std::vector<const ChunkHandler *> {
 			_object_chunk_handlers,
 			_persistent_storage_chunk_handlers,
 		};
+		static const ChunkHandlers _chunk_handlers(_chunk_handler_tables);
 
 		return _chunk_handlers;
 	}
@@ -312,10 +313,10 @@ static void SlNullPointers()
 	 * pointers from other pools. */
 	_sl_version = SAVEGAME_VERSION;
 
-	for (const ChunkHandler *ch : ChunkHandlers::Handlers()) {
-		if (ch->ptrs_proc != nullptr) {
-			DEBUG(sl, 3, "Nulling pointers for %c%c%c%c", ch->id >> 24, ch->id >> 16, ch->id >> 8, ch->id);
-			ch->ptrs_proc();
+	for (auto &ch : ChunkHandlers::Handlers()) {
+		if (ch.ptrs_proc != nullptr) {
+			DEBUG(sl, 3, "Nulling pointers for %c%c%c%c", ch.id >> 24, ch.id >> 16, ch.id >> 8, ch.id);
+			ch.ptrs_proc();
 		}
 	}
 
@@ -1667,7 +1668,7 @@ void SlAutolength(AutolengthProc *proc, void *arg)
  * Load a chunk of data (eg vehicles, stations, etc.)
  * @param ch The chunkhandler that will be used for the operation
  */
-static void SlLoadChunk(const ChunkHandler *ch)
+static void SlLoadChunk(const ChunkHandler &ch)
 {
 	byte m = SlReadByte();
 	size_t len;
@@ -1679,11 +1680,11 @@ static void SlLoadChunk(const ChunkHandler *ch)
 	switch (m) {
 		case CH_ARRAY:
 			_sl.array_index = 0;
-			ch->load_proc();
+			ch.load_proc();
 			if (_next_offs != 0) SlErrorCorrupt("Invalid array length");
 			break;
 		case CH_SPARSE_ARRAY:
-			ch->load_proc();
+			ch.load_proc();
 			if (_next_offs != 0) SlErrorCorrupt("Invalid array length");
 			break;
 		default:
@@ -1693,7 +1694,7 @@ static void SlLoadChunk(const ChunkHandler *ch)
 				len += SlReadUint16();
 				_sl.obj_len = len;
 				endoffs = _sl.reader->GetSize() + len;
-				ch->load_proc();
+				ch.load_proc();
 				if (_sl.reader->GetSize() != endoffs) SlErrorCorrupt("Invalid chunk size");
 			} else {
 				SlErrorCorrupt("Invalid chunk type");
@@ -1707,7 +1708,7 @@ static void SlLoadChunk(const ChunkHandler *ch)
  * If the chunkhandler is nullptr, the chunk is skipped.
  * @param ch The chunkhandler that will be used for the operation
  */
-static void SlLoadCheckChunk(const ChunkHandler *ch)
+static void SlLoadCheckChunk(const ChunkHandler &ch)
 {
 	byte m = SlReadByte();
 	size_t len;
@@ -1719,15 +1720,15 @@ static void SlLoadCheckChunk(const ChunkHandler *ch)
 	switch (m) {
 		case CH_ARRAY:
 			_sl.array_index = 0;
-			if (ch->load_check_proc) {
-				ch->load_check_proc();
+			if (ch.load_check_proc) {
+				ch.load_check_proc();
 			} else {
 				SlSkipArray();
 			}
 			break;
 		case CH_SPARSE_ARRAY:
-			if (ch->load_check_proc) {
-				ch->load_check_proc();
+			if (ch.load_check_proc) {
+				ch.load_check_proc();
 			} else {
 				SlSkipArray();
 			}
@@ -1739,8 +1740,8 @@ static void SlLoadCheckChunk(const ChunkHandler *ch)
 				len += SlReadUint16();
 				_sl.obj_len = len;
 				endoffs = _sl.reader->GetSize() + len;
-				if (ch->load_check_proc) {
-					ch->load_check_proc();
+				if (ch.load_check_proc) {
+					ch.load_check_proc();
 				} else {
 					SlSkipBytes(len);
 				}
@@ -1757,18 +1758,18 @@ static void SlLoadCheckChunk(const ChunkHandler *ch)
  * prefixed by an ID identifying it, followed by data, and terminator where appropriate
  * @param ch The chunkhandler that will be used for the operation
  */
-static void SlSaveChunk(const ChunkHandler *ch)
+static void SlSaveChunk(const ChunkHandler &ch)
 {
-	ChunkSaveLoadProc *proc = ch->save_proc;
+	ChunkSaveLoadProc *proc = ch.save_proc;
 
 	/* Don't save any chunk information if there is no save handler. */
 	if (proc == nullptr) return;
 
-	SlWriteUint32(ch->id);
-	DEBUG(sl, 2, "Saving chunk %c%c%c%c", ch->id >> 24, ch->id >> 16, ch->id >> 8, ch->id);
+	SlWriteUint32(ch.id);
+	DEBUG(sl, 2, "Saving chunk %c%c%c%c", ch.id >> 24, ch.id >> 16, ch.id >> 8, ch.id);
 
-	_sl.block_mode = ch->type;
-	switch (ch->type) {
+	_sl.block_mode = ch.type;
+	switch (ch.type) {
 		case CH_RIFF:
 			_sl.need_length = NL_WANTLENGTH;
 			proc();
@@ -1791,7 +1792,7 @@ static void SlSaveChunk(const ChunkHandler *ch)
 /** Save all chunks */
 static void SlSaveChunks()
 {
-	for (const ChunkHandler *ch : ChunkHandlers::Handlers()) {
+	for (auto &ch : ChunkHandlers::Handlers()) {
 		SlSaveChunk(ch);
 	}
 
@@ -1807,7 +1808,7 @@ static void SlSaveChunks()
  */
 static const ChunkHandler *SlFindChunkHandler(uint32 id)
 {
-	for (const ChunkHandler *ch : ChunkHandlers::Handlers()) if (ch->id == id) return ch;
+	for (auto &ch : ChunkHandlers::Handlers()) if (ch.id == id) return &ch;
 	return nullptr;
 }
 
@@ -1822,7 +1823,7 @@ static void SlLoadChunks()
 
 		ch = SlFindChunkHandler(id);
 		if (ch == nullptr) SlErrorCorrupt("Unknown chunk type");
-		SlLoadChunk(ch);
+		SlLoadChunk(*ch);
 	}
 }
 
@@ -1837,7 +1838,7 @@ static void SlLoadCheckChunks()
 
 		ch = SlFindChunkHandler(id);
 		if (ch == nullptr) SlErrorCorrupt("Unknown chunk type");
-		SlLoadCheckChunk(ch);
+		SlLoadCheckChunk(*ch);
 	}
 }
 
@@ -1846,10 +1847,10 @@ static void SlFixPointers()
 {
 	_sl.action = SLA_PTRS;
 
-	for (const ChunkHandler *ch : ChunkHandlers::Handlers()) {
-		if (ch->ptrs_proc != nullptr) {
-			DEBUG(sl, 3, "Fixing pointers for %c%c%c%c", ch->id >> 24, ch->id >> 16, ch->id >> 8, ch->id);
-			ch->ptrs_proc();
+	for (auto &ch : ChunkHandlers::Handlers()) {
+		if (ch.ptrs_proc != nullptr) {
+			DEBUG(sl, 3, "Fixing pointers for %c%c%c%c", ch.id >> 24, ch.id >> 16, ch.id >> 8, ch.id);
+			ch.ptrs_proc();
 		}
 	}
 
