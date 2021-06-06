@@ -331,6 +331,7 @@ enum SaveLoadVersion : uint16 {
 	SLV_GROUP_REPLACE_WAGON_REMOVAL,        ///< 291  PR#7441 Per-group wagon removal flag.
 	SLV_CUSTOM_SUBSIDY_DURATION,            ///< 292  PR#9081 Configurable subsidy duration.
 	SLV_SAVELOAD_LIST_LENGTH,               ///< 293  PR#???? Consistency in list length with SL_STRUCT / SL_STRUCTLIST / SL_DEQUE / SL_REFLIST.
+	SLV_RIFF_TO_ARRAY,                      ///< 294  PR#9322 Changed many CH_RIFF chunks to CH_ARRAY chunks.
 
 	SL_MAX_VERSION,                         ///< Highest possible saveload version
 };
@@ -560,14 +561,18 @@ typedef uint32 VarType;
 enum SaveLoadType : byte {
 	SL_VAR         =  0, ///< Save/load a variable.
 	SL_REF         =  1, ///< Save/load a reference.
-	SL_ARR         =  2, ///< Save/load a fixed-size array of #SL_VAR elements.
+	SL_STRUCT      =  2, ///< Save/load a struct.
+
 	SL_STR         =  3, ///< Save/load a string.
-	SL_REFLIST     =  4, ///< Save/load a list of #SL_REF elements.
-	SL_DEQUE       =  5, ///< Save/load a deque of #SL_VAR elements.
-	SL_STDSTR      =  6, ///< Save/load a \c std::string.
-	SL_STRUCT      =  7, ///< Save/load a struct.
-	SL_STRUCTLIST  =  8, ///< Save/load a list of structs.
-	SL_SAVEBYTE    =  9, ///< Save (but not load) a byte.
+	SL_STDSTR      =  4, ///< Save/load a \c std::string.
+
+	SL_ARR         =  5, ///< Save/load a fixed-size array of #SL_VAR elements.
+	SL_DEQUE       =  6, ///< Save/load a deque of #SL_VAR elements.
+	SL_VECTOR      =  7, ///< Save/load a vector of #SL_VAR elements.
+	SL_REFLIST     =  8, ///< Save/load a list of #SL_REF elements.
+	SL_STRUCTLIST  =  9, ///< Save/load a list of structs.
+
+	SL_SAVEBYTE    = 10, ///< Save (but not load) a byte.
 };
 
 typedef void *SaveLoadAddrProc(void *base, size_t extra);
@@ -823,6 +828,15 @@ struct SaveLoad {
 #define SLEG_CONDREFLIST(variable, type, from, to) SLEG_GENERAL(SL_REFLIST, variable, type, 0, from, to, 0)
 
 /**
+ * Storage of a global vector of #SL_VAR elements in some savegame versions.
+ * @param variable Name of the global variable.
+ * @param type     Storage of the data in memory and in the savegame.
+ * @param from     First savegame version that has the list.
+ * @param to       Last savegame version that has the list.
+ */
+#define SLEG_CONDVECTOR(variable, type, from, to) SLEG_GENERAL(SL_VECTOR, variable, type, 0, from, to, 0)
+
+/**
  * Storage of a list of structs in some savegame versions.
  * @param handler  SaveLoadHandler for the list of structs.
  * @param from     First savegame version that has the list.
@@ -877,6 +891,13 @@ struct SaveLoad {
  * @param type     Storage of the data in memory and in the savegame.
  */
 #define SLEG_REFLIST(variable, type) SLEG_CONDREFLIST(variable, type, SL_MIN_VERSION, SL_MAX_VERSION)
+
+/**
+ * Storage of a global vector of #SL_VAR elements in every savegame version.
+ * @param variable Name of the global variable.
+ * @param type     Storage of the data in memory and in the savegame.
+ */
+#define SLEG_VECTOR(variable, type) SLEG_CONDVECTOR(variable, type, SL_MIN_VERSION, SL_MAX_VERSION)
 
 /**
  * Storage of a list of structs in every savegame version.
