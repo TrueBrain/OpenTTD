@@ -124,6 +124,7 @@ public:
 
 	void Save(Town *t) const override
 	{
+		SlSetStructListLength(NUM_CARGO);
 		for (CargoID i = 0; i < NUM_CARGO; i++) {
 			SlObject(&t->supplied[i], this->GetDescription());
 		}
@@ -131,7 +132,7 @@ public:
 
 	void Load(Town *t) const override
 	{
-		uint num_cargo = IsSavegameVersionBefore(SLV_EXTEND_CARGOTYPES) ? 32 : NUM_CARGO;
+		size_t num_cargo = IsSavegameVersionBefore(SLV_SAVELOAD_LIST_LENGTH) ? (IsSavegameVersionBefore(SLV_EXTEND_CARGOTYPES) ? 32 : NUM_CARGO) : SlGetStructListLength(NUM_CARGO);
 		for (CargoID i = 0; i < num_cargo; i++) {
 			SlObject(&t->supplied[i], this->GetDescription());
 		}
@@ -149,14 +150,16 @@ public:
 
 	void Save(Town *t) const override
 	{
-		for (int i = TE_BEGIN; i < TE_END; i++) {
+		SlSetStructListLength(NUM_TE);
+		for (size_t i = TE_BEGIN; i < TE_END; i++) {
 			SlObject(&t->received[i], this->GetDescription());
 		}
 	}
 
 	void Load(Town *t) const override
 	{
-		for (int i = TE_BEGIN; i < TE_END; i++) {
+		size_t length = IsSavegameVersionBefore(SLV_SAVELOAD_LIST_LENGTH) ? (size_t)TE_END : SlGetStructListLength(TE_END);
+		for (size_t i = 0; i < length; i++) {
 			SlObject(&t->received[i], this->GetDescription());
 		}
 	}
