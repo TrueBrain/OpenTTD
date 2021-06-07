@@ -593,10 +593,21 @@ static uint8 GetSavegameFileType(const SaveLoad &sld)
 		case SL_STDSTR:
 		case SL_ARR:
 		case SL_VECTOR:
+		case SL_DEQUE:
 			return GetVarFileType(sld.conv) | SLE_FILE_HAS_LENGTH_FIELD; break;
 
 		case SL_REF:
 			return IsSavegameVersionBefore(SLV_69) ? SLE_FILE_U16 : SLE_FILE_U32;
+
+		case SL_REFLIST:
+			return (IsSavegameVersionBefore(SLV_69) ? SLE_FILE_U16 : SLE_FILE_U32) | SLE_FILE_HAS_LENGTH_FIELD;
+
+		case SL_SAVEBYTE:
+			return SLE_FILE_U8;
+
+		case SL_STRUCT:
+		case SL_STRUCTLIST:
+			return SLE_FILE_STRUCT | SLE_FILE_HAS_LENGTH_FIELD;
 
 		default: NOT_REACHED();
 	}
@@ -1549,6 +1560,14 @@ static size_t SlCalcTableHeader(const SaveLoadTable &slt)
 	}
 
 	length += SlCalcConvFileLen(SLE_UINT8);
+
+	for (auto &sld : slt) {
+		if (!SlIsObjectValidInSavegame(sld)) continue;
+		if (sld.cmd == SL_STRUCTLIST || sld.cmd == SL_STRUCT) {
+			length += SlCalcTableHeader(sld.handler->GetDescription());
+		}
+	}
+
 	return length;
 }
 
@@ -1854,10 +1873,13 @@ std::vector<SaveLoad> SlTableHeader(const SaveLoadTable &slt)
 				if (sld_it == key_lookup.end()) {
 					Debug(sl, 2, "Field {} not found, skipping", key);
 
-					// TODO -- This only works for fields with length 1, so no lists of any type
+					if (type & SLE_FILE_HAS_LENGTH_FIELD) {
+						// TODO
+						SlErrorCorrupt("Cannot skip lists yet");
+					}
 
 					/* We don't know this field, so read to nothing. */
-					saveloads.push_back({{}, type == SLE_FILE_STRING ? SL_STR : SL_ARR, (type & 0xfu) | SLE_VAR_NULL, 1, SL_MIN_VERSION, SL_MAX_VERSION, 0, nullptr, 0, nullptr});
+					saveloads.push_back({{}, type == SLE_FILE_STRING ? SL_STR : SL_ARR, ((VarType)type & SLE_FILE_TYPE_MASK) | SLE_VAR_NULL, 1, SL_MIN_VERSION, SL_MAX_VERSION, 0, nullptr, 0, nullptr});
 					continue;
 				}
 
@@ -1872,6 +1894,12 @@ std::vector<SaveLoad> SlTableHeader(const SaveLoadTable &slt)
 					SlErrorCorrupt("Field type is different than expected");
 				}
 				saveloads.push_back(*sld_it->second);
+			}
+
+			for (auto &sld : saveloads) {
+				if (sld.cmd == SL_STRUCTLIST || sld.cmd == SL_STRUCT) {
+					sld.handler->load_description = SlTableHeader(sld.handler->GetDescription());
+				}
 			}
 
 			return saveloads;
@@ -1899,6 +1927,20 @@ std::vector<SaveLoad> SlTableHeader(const SaveLoadTable &slt)
 			/* Add an end-of-header marker. */
 			uint8 type = SLE_FILE_END;
 			SlSaveLoadConv(&type, SLE_UINT8);
+
+			/* After the table, write down any sub-tables we might have. */
+			for (auto &sld : slt) {
+				if (!SlIsObjectValidInSavegame(sld)) continue;
+				if (sld.cmd == SL_STRUCTLIST || sld.cmd == SL_STRUCT) {
+					/* SlCalcTableHeader already looks in sub-lists, so avoid the length being added twice. */
+					NeedLength old_need_length = _sl.need_length;
+					_sl.need_length = NL_NONE;
+
+					SlTableHeader(sld.handler->GetDescription());
+
+					_sl.need_length = old_need_length;
+				}
+			}
 
 			break;
 		}
@@ -1951,6 +1993,13 @@ std::vector<SaveLoad> SlCompatTableHeader(const SaveLoadTable &slt, const SaveLo
 			for (auto &sld : sld_it->second) {
 				saveloads.push_back(*sld);
 			}
+		}
+	}
+
+	for (auto &sld : saveloads) {
+		if (!SlIsObjectValidInSavegame(sld)) continue;
+		if (sld.cmd == SL_STRUCTLIST || sld.cmd == SL_STRUCT) {
+			sld.handler->load_description = SlCompatTableHeader(sld.handler->GetDescription(), sld.handler->GetCompatDescription());
 		}
 	}
 
@@ -3288,4 +3337,10 @@ void FileToSaveLoad::SetName(const char *name)
 void FileToSaveLoad::SetTitle(const char *title)
 {
 	strecpy(this->title, title, lastof(this->title));
+}
+
+SaveLoadTable SaveLoadHandler::GetLoadDescription() const
+{
+	assert(this->load_description.has_value());
+	return *this->load_description;
 }

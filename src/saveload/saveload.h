@@ -13,6 +13,7 @@
 #include "../fileio_type.h"
 #include "../strings_type.h"
 #include "../core/span_type.hpp"
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -413,9 +414,14 @@ using ChunkHandlerTable = span<const ChunkHandler>;
 /** A table of SaveLoad entries. */
 using SaveLoadTable = span<const struct SaveLoad>;
 
+/** A table of SaveLoadCompat entries. */
+using SaveLoadCompatTable = span<const struct SaveLoadCompat>;
+
 /** Handler for saving/loading an object to/from disk. */
 class SaveLoadHandler {
 public:
+	std::optional<std::vector<SaveLoad>> load_description;
+
 	virtual ~SaveLoadHandler() {}
 
 	/**
@@ -446,6 +452,18 @@ public:
 	 * Get the description of the fields in the savegame.
 	 */
 	virtual SaveLoadTable GetDescription() const = 0;
+
+	/**
+	 * Get the pre-header description of the fields in the savegame.
+	 */
+	virtual SaveLoadCompatTable GetCompatDescription() const = 0;
+
+	/**
+	 * Get the description for how to load the chunk. Depending on the
+	 * savegame version this can either use the headers in the savegame or
+	 * fall back to backwards compatibility and uses hard-coded headers.
+	 */
+	SaveLoadTable GetLoadDescription() const;
 };
 
 /**
@@ -458,6 +476,7 @@ template <class TOwn, class TObject>
 class DefaultSaveLoadHandler : public SaveLoadHandler {
 public:
 	SaveLoadTable GetDescription() const override { return static_cast<const TOwn *>(this)->description; }
+	SaveLoadCompatTable GetCompatDescription() const override { return static_cast<const TOwn *>(this)->compat_description; }
 
 	virtual void Save(TObject *object) const {}
 	void Save(void *object) const override { this->Save(static_cast<TObject *>(object)); }
@@ -510,8 +529,10 @@ enum VarTypes {
 	SLE_FILE_U64      =  8,
 	SLE_FILE_STRINGID =  9, ///< StringID offset into strings-array
 	SLE_FILE_STRING   = 10,
-	/* 5 more possible file-primitives */
+	SLE_FILE_STRUCT   = 11,
+	/* 4 more possible file-primitives */
 
+	SLE_FILE_TYPE_MASK = 0xf, ///< Mask to get the file-type (and not any flags).
 	SLE_FILE_HAS_LENGTH_FIELD = 1 << 4, ///< Bit stored in savegame to indicate field has a length field for each entry.
 
 	/* 4 bits allocated a maximum of 16 types for NumberType */
@@ -616,9 +637,6 @@ struct SaveLoadCompat {
 	SaveLoadVersion version_from; ///< Save/load the variable starting from this savegame version.
 	SaveLoadVersion version_to;   ///< Save/load the variable until this savegame version.
 };
-
-/** A table of SaveLoadCompat entries. */
-using SaveLoadCompatTable = span<const SaveLoadCompat>;
 
 /**
  * Storage of simple variables, references (pointers), and arrays.
