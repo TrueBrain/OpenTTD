@@ -30,7 +30,7 @@ SaveLoadTable GetLinkGraphDesc()
 {
 	static const SaveLoad link_graph_desc[] = {
 		 SLE_VAR(LinkGraph, last_compression, SLE_INT32),
-		SLEG_VAR(_num_nodes,                  SLE_UINT16),
+		SLEG_VAR("num_nodes", _num_nodes,     SLE_UINT16),
 		 SLE_VAR(LinkGraph, cargo,            SLE_UINT8),
 	};
 	return link_graph_desc;

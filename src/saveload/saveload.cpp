@@ -580,6 +580,27 @@ static inline uint SlGetArrayLength(size_t length)
 }
 
 /**
+ * Return the type as saved/loaded inside the savegame.
+ */
+static uint8 GetSavegameFileType(const SaveLoad &sld)
+{
+	switch (sld.cmd) {
+		case SL_VAR:
+			return GetVarFileType(sld.conv); break;
+
+		case SL_STR:
+		case SL_STDSTR:
+		case SL_ARR:
+			return GetVarFileType(sld.conv) | SLE_FILE_HAS_LENGTH_FIELD; break;
+
+		case SL_REF:
+			return IsSavegameVersionBefore(SLV_69) ? SLE_FILE_U16 : SLE_FILE_U32;
+
+		default: NOT_REACHED();
+	}
+}
+
+/**
  * Return the size in bytes of a certain type of normal/atomic variable
  * as it appears in memory. See VarTypes
  * @param conv VarType type of variable that is used for calculating the size
@@ -587,7 +608,7 @@ static inline uint SlGetArrayLength(size_t length)
  */
 static inline uint SlCalcConvMemLen(VarType conv)
 {
-	static const byte conv_mem_size[] = {1, 1, 1, 2, 2, 4, 4, 8, 8, 0};
+	static const byte conv_mem_size[] = {0, 1, 1, 1, 2, 2, 4, 4, 8, 8, 0};
 
 	switch (GetVarMemType(conv)) {
 		case SLE_VAR_STRB:
@@ -610,7 +631,7 @@ static inline uint SlCalcConvMemLen(VarType conv)
  */
 static inline byte SlCalcConvFileLen(VarType conv)
 {
-	static const byte conv_file_size[] = {1, 1, 2, 2, 4, 4, 8, 8, 2};
+	static const byte conv_file_size[] = {0, 1, 1, 2, 2, 4, 4, 8, 8, 2};
 
 	uint8 type = GetVarFileType(conv);
 	assert(type < lengthof(conv_file_size));
@@ -1494,6 +1515,27 @@ static inline bool SlIsObjectValidInSavegame(const SaveLoad &sld)
 }
 
 /**
+ * Calculate the size of the table header.
+ * @param slt The SaveLoad table with objects to save/load.
+ * @return size of given object.
+ */
+static size_t SlCalcTableHeader(const SaveLoadTable &slt)
+{
+	size_t length = 0;
+
+	for (auto &sld : slt) {
+		if (!SlIsObjectValidInSavegame(sld)) continue;
+
+		length += SlCalcConvFileLen(SLE_UINT8);
+		length += SlCalcStdStringLen(&sld.name);
+	}
+
+	length += SlCalcConvFileLen(SLE_UINT8);
+
+	return length;
+}
+
+/**
  * Calculate the size of an object.
  * @param object to be measured.
  * @param slt The SaveLoad table with objects to save/load.
@@ -1758,6 +1800,144 @@ void SlObject(void *object, const SaveLoadTable &slt)
 }
 
 /**
+ * Save or Load a table header.
+ * @note a table-header can never contain more than 65535 fields.
+ * @param slt The SaveLoad table with objects to save/load.
+ * @return When loading, the ordered SaveLoad array to use; otherwise an empty list.
+ */
+std::vector<SaveLoad> SlTableHeader(const SaveLoadTable &slt)
+{
+	switch (_sl.action) {
+		case SLA_LOAD_CHECK:
+		case SLA_LOAD: {
+			std::vector<SaveLoad> saveloads;
+
+			/* Build a key lookup mapping based on the available fields. */
+			std::map<std::string, const SaveLoad *> key_lookup;
+			for (auto &sld : slt) {
+				if (!SlIsObjectValidInSavegame(sld)) continue;
+
+				/* Check that there is only one active SaveLoad for a given name. */
+				assert(key_lookup.find(sld.name) == key_lookup.end());
+				key_lookup[sld.name] = &sld;
+			}
+
+			while (true) {
+				uint8 type;
+				SlSaveLoadConv(&type, SLE_UINT8);
+				if (type == SLE_FILE_END) break;
+
+				std::string key;
+				SlStdString(&key, SLE_STR);
+
+				auto sld_it = key_lookup.find(key);
+				if (sld_it == key_lookup.end()) {
+					Debug(sl, 2, "Field {} not found, skipping", key);
+
+					// TODO -- This only works for fields with length 1, so no lists of any type
+
+					/* We don't know this field, so read to nothing. */
+					saveloads.push_back({{}, type == SLE_FILE_STRING ? SL_STR : SL_ARR, (type & 0xfu) | SLE_VAR_NULL, 1, SL_MIN_VERSION, SL_MAX_VERSION, 0, nullptr, 0, nullptr});
+					continue;
+				}
+
+				/* Validate the type of the field. If it is changed, the
+				 * savegame should have been bumped so we know how to do the
+				 * conversion. If this assert() trigger, that clearly didn't
+				 * happen and this is a friendly poke to the developer to bump
+				 * the savegame version and add conversion code. */
+				uint8 correct_type = GetSavegameFileType(*sld_it->second);
+				if (correct_type != type) {
+					Debug(sl, 1, "Field type for {} was expected to be 0x{:x} but 0x{:x} was found", key, correct_type, type);
+					SlErrorCorrupt("Field type is different than expected");
+				}
+				saveloads.push_back(*sld_it->second);
+			}
+
+			return saveloads;
+		}
+
+		case SLA_SAVE: {
+			/* Automatically calculate the length? */
+			if (_sl.need_length != NL_NONE) {
+				SlSetLength(SlCalcTableHeader(slt));
+				if (_sl.need_length == NL_CALCLENGTH) break;
+			}
+
+			for (auto &sld : slt) {
+				if (!SlIsObjectValidInSavegame(sld)) continue;
+				/* Make sure we are not storing empty keys. */
+				assert(sld.name != "");
+
+				uint8 type = GetSavegameFileType(sld);
+				assert(type != SLE_FILE_END);
+
+				SlSaveLoadConv(&type, SLE_UINT8);
+				SlStdString(const_cast<std::string *>(&sld.name), SLE_STR);
+			}
+
+			/* Add an end-of-header marker. */
+			uint8 type = SLE_FILE_END;
+			SlSaveLoadConv(&type, SLE_UINT8);
+
+			break;
+		}
+
+		default: NOT_REACHED();
+	}
+
+	return std::vector<SaveLoad>();
+}
+
+/**
+ * Load a table header in a savegame compatible way. If the savegame was made
+ * before table headers were added, it will fall back to the
+ * SaveLoadCompatTable for the order of fields while loading.
+ * @param slt The SaveLoad table with objects to save/load.
+ * @param slct The SaveLoadCompat table the original order of the fields.
+ * @param slv_header_introduced The version the header was introduced for this table.
+ * @return When loading, the ordered SaveLoad array to use; otherwise an empty list.
+ */
+std::vector<SaveLoad> SlCompatTableHeader(const SaveLoadTable &slt, const SaveLoadCompatTable &slct, SaveLoadVersion slv_header_introduced)
+{
+	assert(_sl.action == SLA_LOAD || _sl.action == SLA_LOAD_CHECK);
+	if (!IsSavegameVersionBefore(slv_header_introduced)) return SlTableHeader(slt);
+
+	std::vector<SaveLoad> saveloads;
+
+	/* Build a key lookup mapping based on the available fields. */
+	std::map<std::string, std::vector<const SaveLoad *>> key_lookup;
+	for (auto &sld : slt) {
+		/* All entries should have a name; otherwise the entry should just be removed. */
+		assert(!sld.name.empty());
+
+		key_lookup[sld.name].push_back(&sld);
+	}
+
+	for (auto &slc : slct) {
+		if (slc.name.empty()) {
+			saveloads.push_back(SLE_CONDNULL(slc.length, slc.version_from, slc.version_to));
+		} else {
+			auto sld_it = key_lookup.find(slc.name);
+			/* If this branch triggers, it means that an entry in the
+			 * SaveLoadCompat list is not mentioned in the SaveLoad list. Did
+			 * you rename a field in one and not in the other? */
+			if (sld_it == key_lookup.end()) {
+				/* This isn't an assert, as that leaves no information what
+				 * field was to blame. This way at least we have breadcrumbs. */
+				Debug(sl, 0, "internal error: saveload compatibility field '{}' not found", slc.name);
+				SlErrorCorrupt("Internal error with savegame compatibility");
+			}
+			for (auto &sld : sld_it->second) {
+				saveloads.push_back(*sld);
+			}
+		}
+	}
+
+	return saveloads;
+}
+
+/**
  * Save or Load (a list of) global variables.
  * @param slt The SaveLoad table with objects to save/load.
  */
@@ -1804,10 +1984,10 @@ static void SlLoadChunk(const ChunkHandler &ch)
 	size_t len;
 	size_t endoffs;
 
-	_sl.block_mode = m;
+	_sl.block_mode = m & CH_TYPE_MASK;
 	_sl.obj_len = 0;
 
-	switch (m) {
+	switch (_sl.block_mode) {
 		case CH_ARRAY:
 			_sl.array_index = 0;
 			ch.load_proc();
@@ -1817,18 +1997,17 @@ static void SlLoadChunk(const ChunkHandler &ch)
 			ch.load_proc();
 			if (_next_offs != 0) SlErrorCorrupt("Invalid array length");
 			break;
+		case CH_RIFF:
+			/* Read length */
+			len = (SlReadByte() << 16) | ((m >> 4) << 24);
+			len += SlReadUint16();
+			_sl.obj_len = len;
+			endoffs = _sl.reader->GetSize() + len;
+			ch.load_proc();
+			if (_sl.reader->GetSize() != endoffs) SlErrorCorrupt("Invalid chunk size");
+			break;
 		default:
-			if ((m & 0xF) == CH_RIFF) {
-				/* Read length */
-				len = (SlReadByte() << 16) | ((m >> 4) << 24);
-				len += SlReadUint16();
-				_sl.obj_len = len;
-				endoffs = _sl.reader->GetSize() + len;
-				ch.load_proc();
-				if (_sl.reader->GetSize() != endoffs) SlErrorCorrupt("Invalid chunk size");
-			} else {
-				SlErrorCorrupt("Invalid chunk type");
-			}
+			SlErrorCorrupt("Invalid chunk type");
 			break;
 	}
 }
@@ -1844,10 +2023,10 @@ static void SlLoadCheckChunk(const ChunkHandler &ch)
 	size_t len;
 	size_t endoffs;
 
-	_sl.block_mode = m;
+	_sl.block_mode = m & CH_TYPE_MASK;
 	_sl.obj_len = 0;
 
-	switch (m) {
+	switch (_sl.block_mode) {
 		case CH_ARRAY:
 			_sl.array_index = 0;
 			if (ch.load_check_proc) {
@@ -1863,22 +2042,21 @@ static void SlLoadCheckChunk(const ChunkHandler &ch)
 				SlSkipArray();
 			}
 			break;
-		default:
-			if ((m & 0xF) == CH_RIFF) {
-				/* Read length */
-				len = (SlReadByte() << 16) | ((m >> 4) << 24);
-				len += SlReadUint16();
-				_sl.obj_len = len;
-				endoffs = _sl.reader->GetSize() + len;
-				if (ch.load_check_proc) {
-					ch.load_check_proc();
-				} else {
-					SlSkipBytes(len);
-				}
-				if (_sl.reader->GetSize() != endoffs) SlErrorCorrupt("Invalid chunk size");
+		case CH_RIFF:
+			/* Read length */
+			len = (SlReadByte() << 16) | ((m >> 4) << 24);
+			len += SlReadUint16();
+			_sl.obj_len = len;
+			endoffs = _sl.reader->GetSize() + len;
+			if (ch.load_check_proc) {
+				ch.load_check_proc();
 			} else {
-				SlErrorCorrupt("Invalid chunk type");
+				SlSkipBytes(len);
 			}
+			if (_sl.reader->GetSize() != endoffs) SlErrorCorrupt("Invalid chunk size");
+			break;
+		default:
+			SlErrorCorrupt("Invalid chunk type");
 			break;
 	}
 }

@@ -26,10 +26,10 @@ static std::string _game_saveload_settings;
 static bool        _game_saveload_is_random;
 
 static const SaveLoad _game_script[] = {
-	   SLEG_SSTR(_game_saveload_name,         SLE_STR),
-	   SLEG_SSTR(_game_saveload_settings,     SLE_STR),
-	    SLEG_VAR(_game_saveload_version,   SLE_UINT32),
-	    SLEG_VAR(_game_saveload_is_random,   SLE_BOOL),
+	   SLEG_SSTR("name",      _game_saveload_name,         SLE_STR),
+	   SLEG_SSTR("settings",  _game_saveload_settings,     SLE_STR),
+	    SLEG_VAR("version",   _game_saveload_version,   SLE_UINT32),
+	    SLEG_VAR("is_random", _game_saveload_is_random,   SLE_BOOL),
 };
 
 static void SaveReal_GSDT(int *index_ptr)
@@ -114,12 +114,12 @@ static std::string _game_saveload_string;
 static uint _game_saveload_strings;
 
 static const SaveLoad _game_language_header[] = {
-	SLEG_SSTR(_game_saveload_string, SLE_STR),
-	 SLEG_VAR(_game_saveload_strings, SLE_UINT32),
+	SLEG_SSTR("string",  _game_saveload_string, SLE_STR),
+	 SLEG_VAR("strings", _game_saveload_strings, SLE_UINT32),
 };
 
 static const SaveLoad _game_language_string[] = {
-	SLEG_SSTR(_game_saveload_string, SLE_STR | SLF_ALLOW_CONTROL),
+	SLEG_SSTR("string", _game_saveload_string, SLE_STR | SLF_ALLOW_CONTROL),
 };
 
 static void SaveReal_GSTR(const LanguageStrings *ls)
