@@ -11,6 +11,7 @@ env:
 
 jobs:
   emscripten:
+    if: 0
     name: Emscripten
 
     runs-on: ubuntu-20.04
@@ -60,6 +61,7 @@ jobs:
         echo "::endgroup::"
 
   linux:
+    if: 0
     name: Linux
 
     strategy:
@@ -154,6 +156,8 @@ jobs:
         include:
         - arch: x64
           full_arch: x86_64
+        - arch: arm64
+          full_arch: arm64
 
     runs-on: macos-latest
     env:
@@ -203,6 +207,23 @@ jobs:
     - name: Install GCC problem matcher
       uses: ammaraskar/gcc-problem-matcher@master
 
+    - name: Build tools
+      run: |
+        mkdir build-host
+        cd build-host
+
+        echo "::group::CMake"
+        cmake ${GITHUB_WORKSPACE} \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+          -DOPTION_TOOLS_ONLY=ON \
+          # EOF
+        echo "::endgroup::"
+
+        echo "::group::Build tools"
+        echo "Running on $(sysctl -n hw.logicalcpu) cores"
+        cmake --build . -j $(sysctl -n hw.logicalcpu) --target tools
+        echo "::endgroup::"
+
     - name: Build
       run: |
         mkdir build
@@ -210,6 +231,8 @@ jobs:
 
         echo "::group::CMake"
         cmake ${GITHUB_WORKSPACE} \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+          -DHOST_BINARY_DIR=${GITHUB_WORKSPACE}/build-host \
           -DCMAKE_OSX_ARCHITECTURES=${{ matrix.full_arch }} \
           -DVCPKG_TARGET_TRIPLET=${{ matrix.arch }}-osx \
           -DCMAKE_TOOLCHAIN_FILE=/usr/local/share/vcpkg/scripts/buildsystems/vcpkg.cmake \
@@ -227,6 +250,7 @@ jobs:
         ctest -j $(sysctl -n hw.logicalcpu) --timeout 120
 
   windows:
+    if: 0
     name: Windows
 
     strategy:
@@ -318,6 +342,7 @@ jobs:
 
 
   msys2:
+    if: 0
     name: msys2
 
     strategy:
@@ -391,11 +416,11 @@ jobs:
   check_annotations:
     name: Check Annotations
     needs:
-    - emscripten
-    - linux
+#    - emscripten
+#    - linux
     - macos
-    - windows
-    - msys2
+#    - windows
+#    - msys2
 
     if: always() && github.event_name == 'pull_request'
 
