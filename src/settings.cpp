@@ -1539,12 +1539,20 @@ static void GRFSaveConfig(IniFile *ini, const char *grpname, const GRFConfig *li
 /* Common handler for saving/loading variables to the configuration file */
 static void HandleSettingDescs(IniFile *ini, SettingDescProc *proc, SettingDescProcList *proc_list, bool only_startup = false)
 {
-	proc(ini, _misc_settings,    "misc",  nullptr, only_startup);
-#if defined(_WIN32) && !defined(DEDICATED)
-	proc(ini, _win32_settings,   "win32", nullptr, only_startup);
-#endif /* _WIN32 */
+	proc(ini, _driver_settings,       "misc",         &_settings_newgame, only_startup);
+	proc(ini, _difficulty_settings,   "difficulty",   &_settings_newgame, only_startup);
+	proc(ini, _economy_settings,      "economy",      &_settings_newgame, only_startup);
+	proc(ini, _game_settings,         "game",         &_settings_newgame, only_startup);
+	proc(ini, _gui_settings,          "gui",          &_settings_newgame, only_startup);
+	proc(ini, _misc_settings,         "misc",         &_settings_newgame, only_startup);
+	proc(ini, _linkgraph_settings,    "linkgraph",    &_settings_newgame, only_startup);
+	proc(ini, _locale_settings,       "locale",       &_settings_newgame, only_startup);
+	proc(ini, _network_settings,      "network",      &_settings_newgame, only_startup);
+	proc(ini, _news_display_settings, "news_display", &_settings_newgame, only_startup);
+	proc(ini, _pathfinder_settings,   "pf",           &_settings_newgame, only_startup);
+	proc(ini, _script_settings,       "script",       &_settings_newgame, only_startup);
+	proc(ini, _world_settings,        "world",        &_settings_newgame, only_startup);
 
-	proc(ini, _settings,         "patches",  &_settings_newgame, only_startup);
 	proc(ini, _currency_settings,"currency", &_custom_currency, only_startup);
 	proc(ini, _company_settings, "company",  &_settings_client.company, only_startup);
 
@@ -1747,7 +1755,7 @@ static const SettingDesc *GetSettingFromName(const std::string_view name, const 
  */
 void GetSettingSaveLoadByPrefix(std::string_view prefix, std::vector<SaveLoad> &saveloads)
 {
-	for (auto &desc : _settings) {
+	for (auto &desc : _game_settings) {
 		const SettingDesc *sd = GetSettingDesc(desc);
 		if (!SlIsObjectCurrentlyValid(sd->save.version_from, sd->save.version_to)) continue;
 		if (StrStartsWith(sd->name, prefix)) saveloads.push_back(sd->save);
@@ -1775,7 +1783,15 @@ static const SettingDesc *GetCompanySettingFromName(std::string_view name)
  */
 const SettingDesc *GetSettingFromName(const std::string_view name)
 {
-	auto sd = GetSettingFromName(name, _settings);
+	auto sd = GetSettingFromName(name, _game_settings);
+	if (sd != nullptr) return sd;
+	sd = GetSettingFromName(name, _network_settings);
+	if (sd != nullptr) return sd;
+	sd = GetSettingFromName(name, _news_display_settings);
+	if (sd != nullptr) return sd;
+	sd = GetSettingFromName(name, _driver_settings);
+	if (sd != nullptr) return sd;
+	sd = GetSettingFromName(name, _gui_settings);
 	if (sd != nullptr) return sd;
 
 	return GetCompanySettingFromName(name);
@@ -2018,7 +2034,24 @@ void IConsoleListSettings(const char *prefilter)
 {
 	IConsolePrint(CC_HELP, "All settings with their current value:");
 
-	for (auto &desc : _settings) {
+	for (auto &desc : _game_settings) {
+		const SettingDesc *sd = GetSettingDesc(desc);
+		if (!SlIsObjectCurrentlyValid(sd->save.version_from, sd->save.version_to)) continue;
+		if (prefilter != nullptr && sd->name.find(prefilter) == std::string::npos) continue;
+		char value[80];
+		sd->FormatValue(value, lastof(value), &GetGameSettings());
+		IConsolePrint(CC_DEFAULT, "{} = {}", sd->name, value);
+	}
+	// TODO -- Deduplicate
+	for (auto &desc : _network_settings) {
+		const SettingDesc *sd = GetSettingDesc(desc);
+		if (!SlIsObjectCurrentlyValid(sd->save.version_from, sd->save.version_to)) continue;
+		if (prefilter != nullptr && sd->name.find(prefilter) == std::string::npos) continue;
+		char value[80];
+		sd->FormatValue(value, lastof(value), &GetGameSettings());
+		IConsolePrint(CC_DEFAULT, "{} = {}", sd->name, value);
+	}
+	for (auto &desc : _gui_settings) {
 		const SettingDesc *sd = GetSettingDesc(desc);
 		if (!SlIsObjectCurrentlyValid(sd->save.version_from, sd->save.version_to)) continue;
 		if (prefilter != nullptr && sd->name.find(prefilter) == std::string::npos) continue;
@@ -2032,14 +2065,12 @@ void IConsoleListSettings(const char *prefilter)
 
 /**
  * Get the SaveLoad description for the SettingTable.
- * @param settings SettingDesc struct containing all information.
  * @param is_loading True iff the SaveLoad table is for loading.
  * @return Vector with SaveLoad entries for the SettingTable.
  */
-static std::vector<SaveLoad> GetSettingsDesc(const SettingTable &settings, bool is_loading)
+static void GetSettingsDesc(bool is_loading, const SettingTable &table, std::vector<SaveLoad> &saveloads)
 {
-	std::vector<SaveLoad> saveloads;
-	for (auto &desc : settings) {
+	for (auto &desc : table) {
 		const SettingDesc *sd = GetSettingDesc(desc);
 		if (sd->flags & SF_NOT_IN_SAVE) continue;
 
@@ -2056,29 +2087,13 @@ static std::vector<SaveLoad> GetSettingsDesc(const SettingTable &settings, bool 
 		if (!sd->name.empty()) sv.name = sd->name;
 		saveloads.push_back(sv);
 	}
-
-	return saveloads;
 }
 
-/**
- * Save and load handler for settings
- * @param settings SettingDesc struct containing all information
- * @param object can be either nullptr in which case we load global variables or
- * a pointer to a struct which is getting saved
- */
-static void LoadSettings(const SettingTable &settings, void *object, const SaveLoadCompatTable &slct)
+static void MakeSettingsValid(void *object, const SettingTable &settings)
 {
-	const std::vector<SaveLoad> slt = SlCompatTableHeader(GetSettingsDesc(settings, true), slct);
-
-	if (!IsSavegameVersionBefore(SLV_RIFF_TO_ARRAY) && SlIterateArray() == -1) return;
-	SlObject(object, slt);
-	if (!IsSavegameVersionBefore(SLV_RIFF_TO_ARRAY) && SlIterateArray() != -1) SlErrorCorrupt("Too many settings entries");
-
 	/* Ensure all IntSettings are valid (min/max could have changed between versions etc). */
 	for (auto &desc : settings) {
 		const SettingDesc *sd = GetSettingDesc(desc);
-		if (sd->flags & SF_NOT_IN_SAVE) continue;
-		if ((sd->flags & SF_NO_NETWORK_SYNC) && _networking && !_network_server) continue;
 		if (!SlIsObjectCurrentlyValid(sd->save.version_from, sd->save.version_to)) continue;
 
 		if (sd->IsIntSetting()) {
@@ -2089,19 +2104,20 @@ static void LoadSettings(const SettingTable &settings, void *object, const SaveL
 }
 
 /**
- * Save and load handler for settings
- * @param settings SettingDesc struct containing all information
+ * Load handler for old OPTS settings.
  * @param object can be either nullptr in which case we load global variables or
  * a pointer to a struct which is getting saved
  */
-static void SaveSettings(const SettingTable &settings, void *object)
+static void LoadOldSettings(void *object)
 {
-	const std::vector<SaveLoad> slt = GetSettingsDesc(settings, false);
+	std::vector<SaveLoad> slto;
+	GetSettingsDesc(true, SettingTable(_gameopt_settings), slto);
 
-	SlTableHeader(slt);
+	const std::vector<SaveLoad> slt = SlCompatTableHeader(slto, _gameopt_sl_compat);
 
-	SlSetArrayIndex(0);
 	SlObject(object, slt);
+
+	MakeSettingsValid(object, _gameopt_settings);
 }
 
 static void Load_OPTS()
@@ -2110,8 +2126,42 @@ static void Load_OPTS()
 	 * a networking environment. This ensures for example that the local
 	 * autosave-frequency stays when joining a network-server */
 	PrepareOldDiffCustom();
-	LoadSettings(_gameopt_settings, &_settings_game, _gameopt_sl_compat);
+	LoadOldSettings(&_settings_game);
 	HandleOldDiffCustom(true);
+}
+
+static const SettingTable saveload_tables[] = {
+	_difficulty_settings,
+	_economy_settings,
+	_game_settings,
+	_linkgraph_settings,
+	_locale_settings,
+	_pathfinder_settings,
+	_script_settings,
+	_world_settings,
+};
+
+/**
+ * Save and load handler for settings
+ * @param object can be either nullptr in which case we load global variables or
+ * a pointer to a struct which is getting saved
+ */
+static void LoadSettings(void *object)
+{
+	std::vector<SaveLoad> slto;
+	for (auto &setting_table : saveload_tables) {
+		GetSettingsDesc(true, setting_table, slto);
+	}
+
+	const std::vector<SaveLoad> slt = SlCompatTableHeader(slto, _settings_sl_compat);
+
+	if (!IsSavegameVersionBefore(SLV_RIFF_TO_ARRAY) && SlIterateArray() == -1) return;
+	SlObject(object, slt);
+	if (!IsSavegameVersionBefore(SLV_RIFF_TO_ARRAY) && SlIterateArray() != -1) SlErrorCorrupt("Too many settings entries");
+
+	for (auto &setting_table : saveload_tables) {
+		MakeSettingsValid(object, setting_table);
+	}
 }
 
 static void Load_PATS()
@@ -2119,17 +2169,25 @@ static void Load_PATS()
 	/* Copy over default setting since some might not get loaded in
 	 * a networking environment. This ensures for example that the local
 	 * currency setting stays when joining a network-server */
-	LoadSettings(_settings, &_settings_game, _settings_sl_compat);
+	LoadSettings(&_settings_game);
 }
 
 static void Check_PATS()
 {
-	LoadSettings(_settings, &_load_check_data.settings, _settings_sl_compat);
+	LoadSettings(&_load_check_data.settings);
 }
 
 static void Save_PATS()
 {
-	SaveSettings(_settings, &_settings_game);
+	std::vector<SaveLoad> slt;
+	for (auto &setting_table : saveload_tables) {
+		GetSettingsDesc(false, setting_table, slt);
+	}
+
+	SlTableHeader(slt);
+
+	SlSetArrayIndex(0);
+	SlObject(&_settings_game, slt);
 }
 
 static const ChunkHandler setting_chunk_handlers[] = {
