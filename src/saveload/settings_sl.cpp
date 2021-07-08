@@ -164,17 +164,17 @@ struct PATSChunkHandler : ChunkHandler {
 		/* Copy over default setting since some might not get loaded in
 		 * a networking environment. This ensures for example that the local
 		 * currency setting stays when joining a network-server */
-		LoadSettings(_settings, &_settings_game, _settings_sl_compat);
+		LoadSettings(GetSettingsTable(), &_settings_game, _settings_sl_compat);
 	}
 
 	void LoadCheck(size_t) const override
 	{
-		LoadSettings(_settings, &_load_check_data.settings, _settings_sl_compat);
+		LoadSettings(GetSettingsTable(), &_load_check_data.settings, _settings_sl_compat);
 	}
 
 	void Save() const override
 	{
-		SaveSettings(_settings, &_settings_game);
+		SaveSettings(GetSettingsTable(), &_settings_game);
 	}
 };
 

@@ -72,7 +72,7 @@ static ErrorList _settings_error_list; ///< Errors while loading minimal setting
 static auto &GenericSettingTables()
 {
 	static const SettingTable _generic_setting_tables[] = {
-		_settings,
+		GetSettingsTable(),
 		_network_settings,
 	};
 	return _generic_setting_tables;
@@ -1399,7 +1399,7 @@ static const SettingDesc *GetSettingFromName(const std::string_view name, const 
  */
 void GetSettingSaveLoadByPrefix(std::string_view prefix, std::vector<SaveLoad> &saveloads)
 {
-	for (auto &desc : _settings) {
+	for (auto &desc : GetSettingsTable()) {
 		const SettingDesc *sd = GetSettingDesc(desc);
 		if (!SlIsObjectCurrentlyValid(sd->save.version_from, sd->save.version_to)) continue;
 		if (StrStartsWith(sd->name, prefix)) saveloads.push_back(sd->save);
