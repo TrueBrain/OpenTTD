@@ -49,6 +49,9 @@
 
 #include "safeguards.h"
 
+SettingTable _settings{ _settings_table };
+SettingTable _pf_settings{ _pf_settings_table };
+
 SettingTable _network_settings{ _network_settings_table };
 SettingTable _network_private_settings{ _network_private_settings_table };
 SettingTable _network_secrets_settings{ _network_secrets_settings_table };

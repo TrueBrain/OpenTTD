@@ -164,10 +164,10 @@ struct PATSChunkHandler : ChunkHandler {
 		static std::vector<SettingVariant> saveload_settings;
 
 		if (saveload_settings.empty()) {
-			for (auto &setting : GetSettingsTable()) {
+			for (auto &setting : _settings) {
 				saveload_settings.push_back(setting);
 			}
-			for (auto &setting : GetPfSettingsTable()) {
+			for (auto &setting : _pf_settings) {
 				saveload_settings.push_back(setting);
 			}
 		}

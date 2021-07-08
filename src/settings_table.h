@@ -17,8 +17,8 @@
 
 typedef span<const SettingVariant> SettingTable;
 
-const SettingTable GetSettingsTable();
-const SettingTable GetPfSettingsTable();
+extern SettingTable _settings;
+extern SettingTable _pf_settings;
 
 extern SettingTable _network_settings;
 extern SettingTable _network_private_settings;
