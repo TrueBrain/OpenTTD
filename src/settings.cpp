@@ -73,6 +73,7 @@ static auto &GenericSettingTables()
 {
 	static const SettingTable _generic_setting_tables[] = {
 		GetSettingsTable(),
+		GetPfSettingsTable(),
 		_network_settings,
 	};
 	return _generic_setting_tables;

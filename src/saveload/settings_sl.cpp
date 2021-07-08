@@ -159,22 +159,38 @@ struct OPTSChunkHandler : ChunkHandler {
 struct PATSChunkHandler : ChunkHandler {
 	PATSChunkHandler() : ChunkHandler('PATS', CH_TABLE) {}
 
+	std::vector<SettingVariant> GetSaveLoadSettings() const
+	{
+		static std::vector<SettingVariant> saveload_settings;
+
+		if (saveload_settings.empty()) {
+			for (auto &setting : GetSettingsTable()) {
+				saveload_settings.push_back(setting);
+			}
+			for (auto &setting : GetPfSettingsTable()) {
+				saveload_settings.push_back(setting);
+			}
+		}
+
+		return saveload_settings;
+	}
+
 	void Load() const override
 	{
 		/* Copy over default setting since some might not get loaded in
 		 * a networking environment. This ensures for example that the local
 		 * currency setting stays when joining a network-server */
-		LoadSettings(GetSettingsTable(), &_settings_game, _settings_sl_compat);
+		LoadSettings(this->GetSaveLoadSettings(), &_settings_game, _settings_sl_compat);
 	}
 
 	void LoadCheck(size_t) const override
 	{
-		LoadSettings(GetSettingsTable(), &_load_check_data.settings, _settings_sl_compat);
+		LoadSettings(this->GetSaveLoadSettings(), &_load_check_data.settings, _settings_sl_compat);
 	}
 
 	void Save() const override
 	{
-		SaveSettings(GetSettingsTable(), &_settings_game);
+		SaveSettings(this->GetSaveLoadSettings(), &_settings_game);
 	}
 };
 
