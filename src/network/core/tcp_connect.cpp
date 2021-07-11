@@ -46,6 +46,10 @@ TCPServerConnecter::TCPServerConnecter(const std::string &connection_string, uin
 			this->connection_string = this->server_address.connection_string;
 			break;
 
+		case SERVER_ADDRESS_INVITE_CODE:
+			// TODO -- The next commit will add this functionality.
+			break;
+
 		default:
 			NOT_REACHED();
 	}
@@ -66,6 +70,16 @@ TCPConnecter::~TCPConnecter()
 	this->sock_to_address.clear();
 
 	if (this->ai != nullptr) freeaddrinfo(this->ai);
+}
+
+/**
+ * Kill this connecter.
+ * It will abort as soon as it can and not call any of the callbacks.
+ */
+void TCPConnecter::Kill()
+{
+	/* Delay the removing of the socket till the next CheckActivity(). */
+	this->killed = true;
 }
 
 /**
@@ -239,6 +253,8 @@ void TCPConnecter::Resolve()
  */
 bool TCPConnecter::CheckActivity()
 {
+	if (this->killed.load()) return true;
+
 	switch (this->status.load()) {
 		case Status::INIT:
 			/* Start the thread delayed, so the vtable is loaded. This allows classes
@@ -267,6 +283,10 @@ bool TCPConnecter::CheckActivity()
 
 		case Status::CONNECTING:
 			break;
+
+		/* This status is never reached for SERVER_ADDRESS_DIRECT. */
+		case Status::HAS_RESULT:
+			NOT_REACHED();
 	}
 
 	/* If there are no attempts pending, connect to the next. */
@@ -365,6 +385,44 @@ bool TCPConnecter::CheckActivity()
 
 	this->OnConnect(connected_socket);
 	return true;
+}
+
+/**
+ * Check if there was activity for this connecter.
+ * @return True iff the TCPConnecter is done and can be cleaned up.
+ */
+bool TCPServerConnecter::CheckActivity()
+{
+	if (this->killed.load()) return true;
+
+	switch (this->server_address.type) {
+		case SERVER_ADDRESS_DIRECT:
+			return TCPConnecter::CheckActivity();
+
+		case SERVER_ADDRESS_INVITE_CODE:
+			if (this->status.load() != Status::HAS_RESULT) return false;
+
+			if (this->result_socket == INVALID_SOCKET) {
+				this->OnFailure();
+			} else {
+				this->OnConnect(this->result_socket);
+			}
+			return true;
+
+		default:
+			NOT_REACHED();
+	}
+}
+
+/**
+ * Set the resulting socket of the connection attempt.
+ * This socket is fully setup and ready to send/recv game protocol packets.
+ * @param sock The socket, or INVALID_SOCKET if no connection could be established.
+ */
+void TCPServerConnecter::SetResult(SOCKET sock)
+{
+	this->result_socket = sock;
+	this->status = Status::HAS_RESULT;
 }
 
 /**
