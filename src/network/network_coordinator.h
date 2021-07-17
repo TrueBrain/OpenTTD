@@ -12,6 +12,7 @@
 
 #include "core/tcp_coordinator.h"
 #include "network_stun.h"
+#include "network_turn.h"
 #include <map>
 
 /**
@@ -42,6 +43,10 @@
  *        - a) Server/client connect, client sends CLIENT_CONNECTED to Game Coordinator.
  *        - b) Server/client connect fails, both send SERCLI_CONNECT_FAILED to Game Coordinator.
  *        - Game Coordinator tries other combination if available.
+  *    3) TURN?
+ *        - GC sends SERVER_TURN_CONNECT to server/client.
+ *        - a) Server/client connect, client closes GC connection.
+ *        - b) Server/client connect fails, both send CLIENT_CONNECT_FAILED to GC.
  *  - If all fails, Game Coordinator sends GC_CONNECT_FAILED to indicate no connection is possible.
  */
 
@@ -52,6 +57,7 @@ private:
 	std::map<std::string, TCPServerConnecter *> connecter; ///< Based on tokens, the current connecters that are pending.
 	std::map<std::string, TCPServerConnecter *> connecter_pre; ///< Based on invite codes, the current connecters that are pending.
 	std::map<std::string, std::map<int, std::unique_ptr<ClientNetworkStunSocketHandler>>> stun_handlers; ///< All pending STUN handlers, stored by token:family.
+	std::unique_ptr<ClientNetworkTurnSocketHandler> turn_handler; ///< Pending TURN handler (if any).
 	TCPConnecter *game_connecter = nullptr; ///< Pending connecter to the game server.
 
 protected:
@@ -63,6 +69,7 @@ protected:
 	bool Receive_GC_DIRECT_CONNECT(Packet *p) override;
 	bool Receive_GC_STUN_REQUEST(Packet *p) override;
 	bool Receive_GC_STUN_CONNECT(Packet *p) override;
+	bool Receive_SERVER_TURN_CONNECT(Packet *p) override;
 
 public:
 	/** The idle timeout; when to close the connection because it's idle. */
@@ -84,9 +91,10 @@ public:
 	void CloseToken(const std::string &token);
 	void CloseAllTokens();
 	void CloseStunHandler(const std::string &token, uint8 family = AF_UNSPEC);
+	void CloseTurnHandler(const std::string &token);
 
 	void Register();
-	void SendServerUpdate();
+	void SendServerUpdate(GameInfoNewGRFMode newgrf_mode);
 	void GetListing();
 
 	void ConnectToServer(const std::string &invite_code, TCPServerConnecter *connecter);
