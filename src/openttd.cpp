@@ -1417,6 +1417,62 @@ bool RequestNewGRFScan(NewGRFScanCallback *callback)
 	return true;
 }
 
+#ifdef __EMSCRIPTEN__
+struct TrueGRFScanCallback : public NewGRFScanCallback {
+	uint32 newgame_seed = 0;
+	uint32 grfid = '1URT';
+
+	bool HasTrueGRFActive()
+	{
+		for (const GRFConfig *a = _grfconfig_newgame; a != nullptr; a = a->next) {
+			if (a->ident.grfid == this->grfid) return true;
+		}
+		return false;
+	}
+
+	void OnNewGRFsScanned() override
+	{
+		if (!this->HasTrueGRFActive()) {
+			const GRFConfig *gc = FindGRFConfig(this->grfid, FGCM_ANY);
+			AppendToGRFConfigList(&_grfconfig_newgame, new GRFConfig(*gc));
+		}
+
+		ResetGRFConfig(false);
+		ReloadNewGRFData();
+
+		if (this->newgame_seed != 0) {
+			StartNewGameWithoutGUI(this->newgame_seed);
+		}
+	}
+};
+
+void InjectTrueGRF(uint32 newgame_seed, uint32 grfid)
+{
+	static TrueGRFScanCallback _truegrf_scan_callback;
+
+	_settings_client.gui.newgrf_developer_tools = true;
+	_truegrf_scan_callback.grfid = BSWAP32(grfid);
+	_truegrf_scan_callback.newgame_seed = newgame_seed;
+	RequestNewGRFScan(&_truegrf_scan_callback);
+}
+
+extern "C" {
+
+void CDECL em_openttd_inject_truegrf(uint32 length, uint8 *data, uint32 newgame_seed, uint32 grfid)
+{
+	std::string filename = FioGetDirectory(SP_AUTODOWNLOAD_DIR, NEWGRF_DIR);
+	filename += "truegrf.grf";
+
+	FILE *fout = fopen(filename.c_str(), "wb");
+	fwrite(data, 1, length, fout);
+	fclose(fout);
+
+	InjectTrueGRF(newgame_seed, grfid);
+}
+
+}
+#endif
+
 void GameLoop()
 {
 	if (_game_mode == GM_BOOTSTRAP) {

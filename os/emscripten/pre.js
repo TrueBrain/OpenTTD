@@ -24,7 +24,6 @@ Module.preRun.push(function() {
     personal_dir = '/home/web_user/.openttd';
     content_download_dir = personal_dir + '/content_download'
 
-    /* Because of the "-c" above, all user-data is stored in /user_data. */
     FS.mkdir(personal_dir);
     FS.mount(IDBFS, {}, personal_dir);
 
@@ -70,6 +69,11 @@ Module.preRun.push(function() {
 
     window.openttd_abort = function() {
         Module.onAbort();
+    }
+
+    window.openttd_inject_truegrf = function(data, newgame_seed, grfid) {
+        inject_truegrf = Module.cwrap("em_openttd_inject_truegrf", null, ["number", "array", "number", "number"]);
+        inject_truegrf(data.length, data, newgame_seed, grfid);
     }
 
     window.openttd_server_list = function() {
