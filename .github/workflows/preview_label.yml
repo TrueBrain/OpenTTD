@@ -16,28 +16,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-    - name: Check if label was added by core developer
-      id: core_developer
-      continue-on-error: true
-      uses: octokit/request-action@v2.x
-      with:
-        route: GET /orgs/OpenTTD/teams/${{ env.TEAM_CORE_DEVELOPER }}/memberships/${{ github.event.sender.login }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.PREVIEW_GITHUB_TOKEN }}
-
-    - if: steps.core_developer.outcome == 'failure'
-      name: Remove preview label if not core developer
-      uses: octokit/request-action@v2.x
-      with:
-        route: DELETE /repos/{owner}/{repo}/issues/{issue_number}/labels/preview
-        owner: ${{ github.event.repository.owner.login }}
-        repo: ${{ github.event.repository.name }}
-        issue_number: ${{ github.event.number }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.PREVIEW_GITHUB_TOKEN }}
-
-    - if: steps.core_developer.outcome == 'success'
-      name: Create deployment
+    - name: Create deployment
       id: deployment
       uses: octokit/request-action@v2.x
       with:
@@ -57,8 +36,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.PREVIEW_GITHUB_TOKEN }}
 
-    - if: steps.core_developer.outcome == 'success'
-      name: Trigger 'preview build'
+    - name: Trigger 'preview build'
       uses: peter-evans/repository-dispatch@v1
       with:
         token: ${{ secrets.PREVIEW_GITHUB_TOKEN }}
