@@ -493,9 +493,13 @@ add_files(
     vehiclelist.h
     viewport.cpp
     viewport_cmd.h
+    viewport_drawer.cpp
+    viewport_drawer.h
     viewport_func.h
     viewport_gui.cpp
     viewport_kdtree.h
+    viewport_kdtree.cpp
+    viewport_sprite_sorter_default.cpp
     viewport_sprite_sorter.h
     viewport_type.h
     void_cmd.cpp

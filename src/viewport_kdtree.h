@@ -5,7 +5,7 @@
 * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <http://www.gnu.org/licenses/>.
 */
 
-/** @file town_kdtree.h Declarations for accessing the k-d tree of towns */
+/** @file viewport_kdtree.h Declarations for accessing the k-d tree of towns */
 
 #ifndef VIEWPORT_KDTREE_H
 #define VIEWPORT_KDTREE_H
@@ -15,6 +15,13 @@
 #include "station_base.h"
 #include "town_type.h"
 #include "signs_base.h"
+
+enum TileHighlightType {
+	THT_NONE,
+	THT_WHITE,
+	THT_BLUE,
+	THT_RED,
+};
 
 struct ViewportSignKdtreeItem {
 	enum ItemType : uint16 {
@@ -79,5 +86,9 @@ typedef Kdtree<ViewportSignKdtreeItem, decltype(&Kdtree_ViewportSignXYFunc), int
 extern ViewportSignKdtree _viewport_sign_kdtree;
 
 void RebuildViewportKdtree();
+void ViewportAddKdtreeSigns(DrawPixelInfo *dpi);
+bool CheckClickOnViewportSign(const Viewport *vp, int x, int y);
+void MarkCatchmentTilesDirty();
+TileHighlightType GetTileHighlightType(TileIndex t);
 
 #endif

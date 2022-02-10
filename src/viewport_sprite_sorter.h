@@ -51,6 +51,9 @@ bool ViewportSortParentSpritesSSE41Checker();
 void ViewportSortParentSpritesSSE41(ParentSpriteToSortVector *psdv);
 #endif
 
+bool ViewportSortParentSpritesChecker();
+void ViewportSortParentSprites(ParentSpriteToSortVector *psdv);
+
 void InitializeSpriteSorter();
 
 #endif /* VIEWPORT_SPRITE_SORTER_H */
