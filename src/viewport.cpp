@@ -110,9 +110,16 @@ static const int MAX_TILE_EXTENT_BOTTOM = ZOOM_LVL_BASE * (TILE_PIXELS + 2 * TIL
 
 static bool MarkViewportDirty(const Viewport *vp, int left, int top, int right, int bottom);
 
-static ViewportDrawer _vd;
+static ViewportDrawer *_vd = nullptr;
+static std::vector<ViewportDrawer> *_vd_queue = nullptr;
 
 TileHighlightData _thd;
+
+static ViewportDrawer *GetCurrentViewportDrawer()
+{
+	assert(_vd != nullptr);
+	return _vd;
+}
 
 static Point MapXYZToViewport(const Viewport *vp, int x, int y, int z)
 {
@@ -415,7 +422,7 @@ void HandleZoomMessage(Window *w, const Viewport *vp, byte widget_zoom_in, byte 
 
 void DrawGroundSpriteAt(SpriteID image, PaletteID pal, int32 x, int32 y, int z, const SubSprite *sub, int extra_offs_x, int extra_offs_y)
 {
-	_vd.DrawGroundSpriteAt(image, pal, x, y, z, sub, extra_offs_x, extra_offs_y);
+	GetCurrentViewportDrawer()->DrawGroundSpriteAt(image, pal, x, y, z, sub, extra_offs_x, extra_offs_y);
 }
 
 /**
@@ -430,17 +437,17 @@ void DrawGroundSpriteAt(SpriteID image, PaletteID pal, int32 x, int32 y, int z, 
  */
 void DrawGroundSprite(SpriteID image, PaletteID pal, const SubSprite *sub, int extra_offs_x, int extra_offs_y)
 {
-	_vd.DrawGroundSpriteAt(image, pal, 0, 0, 0, sub, extra_offs_x, extra_offs_y);
+	GetCurrentViewportDrawer()->DrawGroundSpriteAt(image, pal, 0, 0, 0, sub, extra_offs_x, extra_offs_y);
 }
 
 void OffsetGroundSprite(int x, int y)
 {
-	_vd.OffsetGroundSprite(x, y);
+	GetCurrentViewportDrawer()->OffsetGroundSprite(x, y);
 }
 
 void AddSortableSpriteToDraw(SpriteID image, PaletteID pal, int x, int y, int w, int h, int dz, int z, bool transparent, int bb_offset_x, int bb_offset_y, int bb_offset_z, const SubSprite *sub)
 {
-	_vd.AddSortableSpriteToDraw(image, pal, x, y, w, h, dz, z, transparent, bb_offset_x, bb_offset_y, bb_offset_z, sub);
+	GetCurrentViewportDrawer()->AddSortableSpriteToDraw(image, pal, x, y, w, h, dz, z, transparent, bb_offset_x, bb_offset_y, bb_offset_z, sub);
 }
 
 /**
@@ -463,8 +470,9 @@ void AddSortableSpriteToDraw(SpriteID image, PaletteID pal, int x, int y, int w,
  */
 void StartSpriteCombine()
 {
-	assert(_vd.combine_sprites == SPRITE_COMBINE_NONE);
-	_vd.combine_sprites = SPRITE_COMBINE_PENDING;
+	auto vd = GetCurrentViewportDrawer();
+	assert(vd->combine_sprites == SPRITE_COMBINE_NONE);
+	vd->combine_sprites = SPRITE_COMBINE_PENDING;
 }
 
 /**
@@ -473,13 +481,14 @@ void StartSpriteCombine()
  */
 void EndSpriteCombine()
 {
-	assert(_vd.combine_sprites != SPRITE_COMBINE_NONE);
-	_vd.combine_sprites = SPRITE_COMBINE_NONE;
+	auto vd = GetCurrentViewportDrawer();
+	assert(vd->combine_sprites != SPRITE_COMBINE_NONE);
+	vd->combine_sprites = SPRITE_COMBINE_NONE;
 }
 
 void AddChildSpriteScreen(SpriteID image, PaletteID pal, int x, int y, bool transparent, const SubSprite *sub, bool scale)
 {
-	_vd.AddChildSpriteScreen(image, pal, x, y, transparent, sub, scale);
+	GetCurrentViewportDrawer()->AddChildSpriteScreen(image, pal, x, y, transparent, sub, scale);
 }
 
 /**
@@ -512,14 +521,14 @@ void ViewportAddString(const DrawPixelInfo *dpi, ZoomLevel small_from, const Vie
 	}
 
 	if (!small) {
-		_vd.AddStringToDraw(sign->center - sign_half_width, sign->top, string_normal, params_1, params_2, colour, sign->width_normal);
+		GetCurrentViewportDrawer()->AddStringToDraw(sign->center - sign_half_width, sign->top, string_normal, params_1, params_2, colour, sign->width_normal);
 	} else {
 		int shadow_offset = 0;
 		if (string_small_shadow != STR_NULL) {
 			shadow_offset = 4;
-			_vd.AddStringToDraw(sign->center - sign_half_width + shadow_offset, sign->top, string_small_shadow, params_1, params_2, INVALID_COLOUR, sign->width_small);
+			GetCurrentViewportDrawer()->AddStringToDraw(sign->center - sign_half_width + shadow_offset, sign->top, string_small_shadow, params_1, params_2, INVALID_COLOUR, sign->width_small);
 		}
-		_vd.AddStringToDraw(sign->center - sign_half_width, sign->top - shadow_offset, string_small, params_1, params_2,
+		GetCurrentViewportDrawer()->AddStringToDraw(sign->center - sign_half_width, sign->top - shadow_offset, string_small, params_1, params_2,
 				colour, sign->width_small | 0x8000);
 	}
 }
@@ -580,9 +589,43 @@ void ViewportSign::MarkDirty(ZoomLevel maxzoom) const
 	}
 }
 
+static std::mutex _viewport_mutex;
+
 void ViewportDoDraw(const Viewport *vp, int left, int top, int right, int bottom)
 {
-	_vd.ViewportDoDraw(vp, left, top, right, bottom);
+	{
+		std::lock_guard<std::mutex> lock_wait(_viewport_mutex);
+
+		if (_vd_queue == nullptr) {
+			_vd_queue = new std::vector<ViewportDrawer>();
+		}
+
+		_vd = &_vd_queue->emplace_back(vp);
+	}
+
+	_vd->ViewportDoDraw(left, top, right, bottom);
+}
+
+void ViewportDoBlitter()
+{
+	std::vector<ViewportDrawer> *current_queue = nullptr;
+
+	{
+		std::lock_guard<std::mutex> lock_wait(_viewport_mutex);
+
+		if (_vd_queue == nullptr) {
+			return;
+		}
+
+		current_queue = _vd_queue;
+		_vd_queue = nullptr;
+	}
+
+	for (auto vd : *current_queue) {
+		vd.ViewportDoBlitter();
+	}
+
+	delete current_queue;
 }
 
 static inline void ViewportDraw(const Viewport *vp, int left, int top, int right, int bottom)
@@ -599,7 +642,7 @@ static inline void ViewportDraw(const Viewport *vp, int left, int top, int right
 	if (top < vp->top) top = vp->top;
 	if (bottom > vp->top + vp->height) bottom = vp->top + vp->height;
 
-	_vd.ViewportDoDraw(vp,
+	ViewportDoDraw(vp,
 		ScaleByZoom(left - vp->left, vp->zoom) + vp->virtual_left,
 		ScaleByZoom(top - vp->top, vp->zoom) + vp->virtual_top,
 		ScaleByZoom(right - vp->left, vp->zoom) + vp->virtual_left,

@@ -3117,12 +3117,13 @@ void UpdateWindows()
 		}
 	}
 
-	DrawDirtyBlocks();
-
 	for (Window *w : Window::Iterate()) {
 		/* Update viewport only if window is not shaded. */
 		if (w->viewport != nullptr && !w->IsShaded()) UpdateViewportPosition(w);
 	}
+
+	DrawDirtyBlocks();
+
 	NetworkDrawChatMessage();
 	/* Redraw mouse cursor in case it was hidden */
 	DrawMouseCursor();

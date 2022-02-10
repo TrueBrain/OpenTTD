@@ -74,11 +74,11 @@ class ViewportDrawer {
 	StringSpriteToDrawVector string_sprites_to_draw;
 	TileSpriteToDrawVector tile_sprites_to_draw;
 	ParentSpriteToDrawVector parent_sprites_to_draw;
-	ParentSpriteToSortVector parent_sprites_to_sort; ///< Parent sprite pointer array used for sorting
 	ChildScreenSpriteToDrawVector child_screen_sprites_to_draw;
 
 	int *last_child;
-    TileInfo *cur_ti;
+	TileInfo *cur_ti;
+	const Viewport *vp;
 
 	int foundation[FOUNDATION_PART_END];             ///< Foundation sprites (index into parent_sprites_to_draw).
 	FoundationPart foundation_part;                  ///< Currently active foundation for ground sprite drawing.
@@ -104,12 +104,15 @@ class ViewportDrawer {
 public:
 	SpriteCombineMode combine_sprites;               ///< Current mode of "sprite combining". @see StartSpriteCombine
 
+	ViewportDrawer(const struct Viewport *vp) : vp(vp) {};
+
 	void AddStringToDraw(int x, int y, StringID string, uint64 params_1, uint64 params_2, Colours colour, uint16 width);
 	void DrawGroundSpriteAt(SpriteID image, PaletteID pal, int32 x, int32 y, int z, const SubSprite *sub, int extra_offs_x, int extra_offs_y);
 	void OffsetGroundSprite(int x, int y);
 	void AddSortableSpriteToDraw(SpriteID image, PaletteID pal, int x, int y, int w, int h, int dz, int z, bool transparent, int bb_offset_x, int bb_offset_y, int bb_offset_z, const SubSprite *sub);
 	void AddChildSpriteScreen(SpriteID image, PaletteID pal, int x, int y, bool transparent, const SubSprite *sub, bool scale);
-	void ViewportDoDraw(const struct Viewport *vp, int left, int top, int right, int bottom);
+	void ViewportDoDraw(int left, int top, int right, int bottom);
+	void ViewportDoBlitter();
 };
 
 #endif /* VIEWPORT_DRAWER_H */

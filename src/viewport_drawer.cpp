@@ -859,7 +859,7 @@ void ViewportDrawer::ViewportDrawStrings(ZoomLevel zoom, const StringSpriteToDra
 	}
 }
 
-void ViewportDrawer::ViewportDoDraw(const Viewport *vp, int left, int top, int right, int bottom)
+void ViewportDrawer::ViewportDoDraw(int left, int top, int right, int bottom)
 {
 	DrawPixelInfo *old_dpi = _cur_dpi;
 	_cur_dpi = &this->dpi;
@@ -888,16 +888,26 @@ void ViewportDrawer::ViewportDoDraw(const Viewport *vp, int left, int top, int r
 
 	DrawTextEffects(&this->dpi);
 
+    _cur_dpi = old_dpi;
+}
+
+void ViewportDrawer::ViewportDoBlitter()
+{
+	DrawPixelInfo *old_dpi = _cur_dpi;
+	_cur_dpi = &this->dpi;
+
 	if (this->tile_sprites_to_draw.size() != 0) this->ViewportDrawTileSprites(&this->tile_sprites_to_draw);
 
+	ParentSpriteToSortVector parent_sprites_to_sort;
+
 	for (auto &psd : this->parent_sprites_to_draw) {
-		this->parent_sprites_to_sort.push_back(&psd);
+		parent_sprites_to_sort.push_back(&psd);
 	}
 
-	_vp_sprite_sorter(&this->parent_sprites_to_sort);
-	this->ViewportDrawParentSprites(&this->parent_sprites_to_sort, &this->child_screen_sprites_to_draw);
+	_vp_sprite_sorter(&parent_sprites_to_sort);
+	this->ViewportDrawParentSprites(&parent_sprites_to_sort, &this->child_screen_sprites_to_draw);
 
-	if (_draw_bounding_boxes) this->ViewportDrawBoundingBoxes(&this->parent_sprites_to_sort);
+	if (_draw_bounding_boxes) this->ViewportDrawBoundingBoxes(&parent_sprites_to_sort);
 	if (_draw_dirty_blocks) ViewportDrawDirtyBlocks();
 
 	DrawPixelInfo dp = this->dpi;
@@ -908,9 +918,11 @@ void ViewportDrawer::ViewportDoDraw(const Viewport *vp, int left, int top, int r
 	_cur_dpi = &dp;
 
 	if (vp->overlay != nullptr && vp->overlay->GetCargoMask() != 0 && vp->overlay->GetCompanyMask() != 0) {
+		int mask = ScaleByZoom(-1, vp->zoom);
+
 		/* translate to window coordinates */
-		dp.left = x;
-		dp.top = y;
+		dp.left = UnScaleByZoom(this->dpi.left - (vp->virtual_left & mask), vp->zoom) + vp->left;;
+		dp.top = UnScaleByZoom(this->dpi.top - (vp->virtual_top & mask), vp->zoom) + vp->top;
 		vp->overlay->Draw(&dp);
 	}
 
@@ -922,10 +934,4 @@ void ViewportDrawer::ViewportDoDraw(const Viewport *vp, int left, int top, int r
 	}
 
 	_cur_dpi = old_dpi;
-
-	this->string_sprites_to_draw.clear();
-	this->tile_sprites_to_draw.clear();
-	this->parent_sprites_to_draw.clear();
-	this->parent_sprites_to_sort.clear();
-	this->child_screen_sprites_to_draw.clear();
 }

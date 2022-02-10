@@ -152,6 +152,11 @@ void VideoDriver::Tick()
 			this->PopulateSystemSprites();
 		}
 
+		TICC();
+		extern void ViewportDoBlitter();
+		ViewportDoBlitter();
+		TOCC("blitter", 100);
+
 		this->CheckPaletteAnim();
 		this->Paint();
 

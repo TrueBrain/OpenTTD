@@ -893,6 +893,8 @@ static void *HandleInvalidSpriteRequest(SpriteID sprite, SpriteType requested, S
 	}
 }
 
+static std::recursive_mutex _sprite_mutex2;
+
 /**
  * Reads a sprite (from disk or sprite cache).
  * If the sprite is not available or of wrong type, a fallback sprite is returned.
@@ -904,6 +906,8 @@ static void *HandleInvalidSpriteRequest(SpriteID sprite, SpriteType requested, S
  */
 void *GetRawSprite(SpriteID sprite, SpriteType type, AllocatorProc *allocator, SpriteEncoder *encoder)
 {
+	std::lock_guard<std::recursive_mutex> lock_wait(_sprite_mutex2);
+
 	assert(type != ST_MAPGEN || IsMapgenSpriteID(sprite));
 	assert(type < ST_INVALID);
 
@@ -934,9 +938,12 @@ void *GetRawSprite(SpriteID sprite, SpriteType type, AllocatorProc *allocator, S
 	}
 }
 
+static std::mutex _sprite_mutex;
 
 static void GfxInitSpriteCache()
 {
+	std::lock_guard<std::mutex> lock_wait(_sprite_mutex);
+
 	/* initialize sprite cache heap */
 	int bpp = BlitterFactory::GetCurrentBlitter()->GetScreenDepth();
 	uint target_size = (bpp > 0 ? _sprite_cache_size * bpp / 8 : 1) * 1024 * 1024;
