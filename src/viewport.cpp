@@ -155,13 +155,23 @@ enum SpriteCombineMode {
 	SPRITE_COMBINE_ACTIVE,   ///< %Sprite combining is active. #AddSortableSpriteToDraw outputs child sprites.
 };
 
+enum TileHighlightType {
+	THT_NONE,
+	THT_WHITE,
+	THT_BLUE,
+	THT_RED,
+};
+
+const Station *_viewport_highlight_station; ///< Currently selected station for coverage area highlight
+const Town *_viewport_highlight_town;       ///< Currently selected town for coverage area highlight
+
 typedef std::vector<TileSpriteToDraw> TileSpriteToDrawVector;
 typedef std::vector<StringSpriteToDraw> StringSpriteToDrawVector;
 typedef std::vector<ParentSpriteToDraw> ParentSpriteToDrawVector;
 typedef std::vector<ChildScreenSpriteToDraw> ChildScreenSpriteToDrawVector;
 
 /** Data structure storing rendering information */
-struct ViewportDrawer {
+class ViewportDrawer {
 	DrawPixelInfo dpi;
 
 	StringSpriteToDrawVector string_sprites_to_draw;
@@ -172,12 +182,31 @@ struct ViewportDrawer {
 
 	int *last_child;
 
-	SpriteCombineMode combine_sprites;               ///< Current mode of "sprite combining". @see StartSpriteCombine
-
 	int foundation[FOUNDATION_PART_END];             ///< Foundation sprites (index into parent_sprites_to_draw).
 	FoundationPart foundation_part;                  ///< Currently active foundation for ground sprite drawing.
 	int *last_foundation_child[FOUNDATION_PART_END]; ///< Tail of ChildSprite list of the foundations. (index into child_screen_sprites_to_draw)
 	Point foundation_offset[FOUNDATION_PART_END];    ///< Pixel offset for ground sprites on the foundations.
+
+	void AddTileSpriteToDraw(SpriteID image, PaletteID pal, int32 x, int32 y, int z, const SubSprite *sub = nullptr, int extra_offs_x = 0, int extra_offs_y = 0);
+	void AddChildSpriteToFoundation(SpriteID image, PaletteID pal, const SubSprite *sub, FoundationPart foundation_part, int extra_offs_x, int extra_offs_y);
+	void AddCombinedSprite(SpriteID image, PaletteID pal, int x, int y, int z, const SubSprite *sub);
+	void DrawSelectionSprite(SpriteID image, PaletteID pal, const TileInfo *ti, int z_offset, FoundationPart foundation_part);
+	void DrawTileSelectionRect(const TileInfo *ti, PaletteID pal);
+	void DrawAutorailSelection(const TileInfo *ti, uint autorail_type);
+	void DrawTileHighlightType(const TileInfo *ti, TileHighlightType tht);
+	void ViewportAddLandscape();
+	void HighlightTownLocalAuthorityTiles(const TileInfo *ti);
+	void DrawTileSelection(const TileInfo *ti);
+
+public:
+	SpriteCombineMode combine_sprites;               ///< Current mode of "sprite combining". @see StartSpriteCombine
+
+	void AddStringToDraw(int x, int y, StringID string, uint64 params_1, uint64 params_2, Colours colour, uint16 width);
+	void DrawGroundSpriteAt(SpriteID image, PaletteID pal, int32 x, int32 y, int z, const SubSprite *sub, int extra_offs_x, int extra_offs_y);
+	void OffsetGroundSprite(int x, int y);
+	void AddSortableSpriteToDraw(SpriteID image, PaletteID pal, int x, int y, int w, int h, int dz, int z, bool transparent, int bb_offset_x, int bb_offset_y, int bb_offset_z, const SubSprite *sub);
+	void AddChildSpriteScreen(SpriteID image, PaletteID pal, int x, int y, bool transparent, const SubSprite *sub, bool scale);
+	void ViewportDoDraw(const Viewport *vp, int left, int top, int right, int bottom);
 };
 
 static bool MarkViewportDirty(const Viewport *vp, int left, int top, int right, int bottom);
@@ -502,11 +531,11 @@ void HandleZoomMessage(Window *w, const Viewport *vp, byte widget_zoom_in, byte 
  * @param extra_offs_x Pixel X offset for the sprite position.
  * @param extra_offs_y Pixel Y offset for the sprite position.
  */
-static void AddTileSpriteToDraw(SpriteID image, PaletteID pal, int32 x, int32 y, int z, const SubSprite *sub = nullptr, int extra_offs_x = 0, int extra_offs_y = 0)
+void ViewportDrawer::AddTileSpriteToDraw(SpriteID image, PaletteID pal, int32 x, int32 y, int z, const SubSprite *sub, int extra_offs_x, int extra_offs_y)
 {
 	assert((image & SPRITE_MASK) < MAX_SPRITES);
 
-	TileSpriteToDraw &ts = _vd.tile_sprites_to_draw.emplace_back();
+	TileSpriteToDraw &ts = this->tile_sprites_to_draw.emplace_back();
 	ts.image = image;
 	ts.pal = pal;
 	ts.sub = sub;
@@ -527,20 +556,20 @@ static void AddTileSpriteToDraw(SpriteID image, PaletteID pal, int32 x, int32 y,
  * @param extra_offs_x Pixel X offset for the sprite position.
  * @param extra_offs_y Pixel Y offset for the sprite position.
  */
-static void AddChildSpriteToFoundation(SpriteID image, PaletteID pal, const SubSprite *sub, FoundationPart foundation_part, int extra_offs_x, int extra_offs_y)
+void ViewportDrawer::AddChildSpriteToFoundation(SpriteID image, PaletteID pal, const SubSprite *sub, FoundationPart foundation_part, int extra_offs_x, int extra_offs_y)
 {
 	assert(IsInsideMM(foundation_part, 0, FOUNDATION_PART_END));
-	assert(_vd.foundation[foundation_part] != -1);
-	Point offs = _vd.foundation_offset[foundation_part];
+	assert(this->foundation[foundation_part] != -1);
+	Point offs = this->foundation_offset[foundation_part];
 
 	/* Change the active ChildSprite list to the one of the foundation */
-	int *old_child = _vd.last_child;
-	_vd.last_child = _vd.last_foundation_child[foundation_part];
+	int *old_child = this->last_child;
+	this->last_child = this->last_foundation_child[foundation_part];
 
-	AddChildSpriteScreen(image, pal, offs.x + extra_offs_x, offs.y + extra_offs_y, false, sub, false);
+	this->AddChildSpriteScreen(image, pal, offs.x + extra_offs_x, offs.y + extra_offs_y, false, sub, false);
 
 	/* Switch back to last ChildSprite list */
-	_vd.last_child = old_child;
+	this->last_child = old_child;
 }
 
 /**
@@ -556,17 +585,22 @@ static void AddChildSpriteToFoundation(SpriteID image, PaletteID pal, const SubS
  * @param extra_offs_x Pixel X offset for the sprite position.
  * @param extra_offs_y Pixel Y offset for the sprite position.
  */
-void DrawGroundSpriteAt(SpriteID image, PaletteID pal, int32 x, int32 y, int z, const SubSprite *sub, int extra_offs_x, int extra_offs_y)
+void ViewportDrawer::DrawGroundSpriteAt(SpriteID image, PaletteID pal, int32 x, int32 y, int z, const SubSprite *sub, int extra_offs_x, int extra_offs_y)
 {
 	/* Switch to first foundation part, if no foundation was drawn */
-	if (_vd.foundation_part == FOUNDATION_PART_NONE) _vd.foundation_part = FOUNDATION_PART_NORMAL;
+	if (this->foundation_part == FOUNDATION_PART_NONE) this->foundation_part = FOUNDATION_PART_NORMAL;
 
-	if (_vd.foundation[_vd.foundation_part] != -1) {
+	if (this->foundation[this->foundation_part] != -1) {
 		Point pt = RemapCoords(x, y, z);
-		AddChildSpriteToFoundation(image, pal, sub, _vd.foundation_part, pt.x + extra_offs_x * ZOOM_LVL_BASE, pt.y + extra_offs_y * ZOOM_LVL_BASE);
+		this->AddChildSpriteToFoundation(image, pal, sub, this->foundation_part, pt.x + extra_offs_x * ZOOM_LVL_BASE, pt.y + extra_offs_y * ZOOM_LVL_BASE);
 	} else {
-		AddTileSpriteToDraw(image, pal, _cur_ti->x + x, _cur_ti->y + y, _cur_ti->z + z, sub, extra_offs_x * ZOOM_LVL_BASE, extra_offs_y * ZOOM_LVL_BASE);
+		this->AddTileSpriteToDraw(image, pal, _cur_ti->x + x, _cur_ti->y + y, _cur_ti->z + z, sub, extra_offs_x * ZOOM_LVL_BASE, extra_offs_y * ZOOM_LVL_BASE);
 	}
+}
+
+void DrawGroundSpriteAt(SpriteID image, PaletteID pal, int32 x, int32 y, int z, const SubSprite *sub, int extra_offs_x, int extra_offs_y)
+{
+	_vd.DrawGroundSpriteAt(image, pal, x, y, z, sub, extra_offs_x, extra_offs_y);
 }
 
 /**
@@ -581,7 +615,7 @@ void DrawGroundSpriteAt(SpriteID image, PaletteID pal, int32 x, int32 y, int z, 
  */
 void DrawGroundSprite(SpriteID image, PaletteID pal, const SubSprite *sub, int extra_offs_x, int extra_offs_y)
 {
-	DrawGroundSpriteAt(image, pal, 0, 0, 0, sub, extra_offs_x, extra_offs_y);
+	_vd.DrawGroundSpriteAt(image, pal, 0, 0, 0, sub, extra_offs_x, extra_offs_y);
 }
 
 /**
@@ -591,25 +625,30 @@ void DrawGroundSprite(SpriteID image, PaletteID pal, const SubSprite *sub, int e
  * @param x sprite x-offset (screen coordinates) of ground sprites relative to the "foundation"-ParentSprite.
  * @param y sprite y-offset (screen coordinates) of ground sprites relative to the "foundation"-ParentSprite.
  */
-void OffsetGroundSprite(int x, int y)
+void ViewportDrawer::OffsetGroundSprite(int x, int y)
 {
 	/* Switch to next foundation part */
-	switch (_vd.foundation_part) {
+	switch (this->foundation_part) {
 		case FOUNDATION_PART_NONE:
-			_vd.foundation_part = FOUNDATION_PART_NORMAL;
+			this->foundation_part = FOUNDATION_PART_NORMAL;
 			break;
 		case FOUNDATION_PART_NORMAL:
-			_vd.foundation_part = FOUNDATION_PART_HALFTILE;
+			this->foundation_part = FOUNDATION_PART_HALFTILE;
 			break;
 		default: NOT_REACHED();
 	}
 
-	/* _vd.last_child == nullptr if foundation sprite was clipped by the viewport bounds */
-	if (_vd.last_child != nullptr) _vd.foundation[_vd.foundation_part] = (uint)_vd.parent_sprites_to_draw.size() - 1;
+	/* this->last_child == nullptr if foundation sprite was clipped by the viewport bounds */
+	if (this->last_child != nullptr) this->foundation[this->foundation_part] = (uint)this->parent_sprites_to_draw.size() - 1;
 
-	_vd.foundation_offset[_vd.foundation_part].x = x * ZOOM_LVL_BASE;
-	_vd.foundation_offset[_vd.foundation_part].y = y * ZOOM_LVL_BASE;
-	_vd.last_foundation_child[_vd.foundation_part] = _vd.last_child;
+	this->foundation_offset[this->foundation_part].x = x * ZOOM_LVL_BASE;
+	this->foundation_offset[this->foundation_part].y = y * ZOOM_LVL_BASE;
+	this->last_foundation_child[this->foundation_part] = this->last_child;
+}
+
+void OffsetGroundSprite(int x, int y)
+{
+	_vd.OffsetGroundSprite(x, y);
 }
 
 /**
@@ -623,19 +662,19 @@ void OffsetGroundSprite(int x, int y)
  * @param z position z of the sprite.
  * @param sub Only draw a part of the sprite.
  */
-static void AddCombinedSprite(SpriteID image, PaletteID pal, int x, int y, int z, const SubSprite *sub)
+void ViewportDrawer::AddCombinedSprite(SpriteID image, PaletteID pal, int x, int y, int z, const SubSprite *sub)
 {
 	Point pt = RemapCoords(x, y, z);
 	const Sprite *spr = GetSprite(image & SPRITE_MASK, ST_NORMAL);
 
-	if (pt.x + spr->x_offs >= _vd.dpi.left + _vd.dpi.width ||
-			pt.x + spr->x_offs + spr->width <= _vd.dpi.left ||
-			pt.y + spr->y_offs >= _vd.dpi.top + _vd.dpi.height ||
-			pt.y + spr->y_offs + spr->height <= _vd.dpi.top)
+	if (pt.x + spr->x_offs >= this->dpi.left + this->dpi.width ||
+			pt.x + spr->x_offs + spr->width <= this->dpi.left ||
+			pt.y + spr->y_offs >= this->dpi.top + this->dpi.height ||
+			pt.y + spr->y_offs + spr->height <= this->dpi.top)
 		return;
 
-	const ParentSpriteToDraw &pstd = _vd.parent_sprites_to_draw.back();
-	AddChildSpriteScreen(image, pal, pt.x - pstd.left, pt.y - pstd.top, false, sub, false);
+	const ParentSpriteToDraw &pstd = this->parent_sprites_to_draw.back();
+	this->AddChildSpriteScreen(image, pal, pt.x - pstd.left, pt.y - pstd.top, false, sub, false);
 }
 
 /**
@@ -663,7 +702,7 @@ static void AddCombinedSprite(SpriteID image, PaletteID pal, int x, int y, int z
  * @param bb_offset_z bounding box extent towards negative Z (world)
  * @param sub Only draw a part of the sprite.
  */
-void AddSortableSpriteToDraw(SpriteID image, PaletteID pal, int x, int y, int w, int h, int dz, int z, bool transparent, int bb_offset_x, int bb_offset_y, int bb_offset_z, const SubSprite *sub)
+void ViewportDrawer::AddSortableSpriteToDraw(SpriteID image, PaletteID pal, int x, int y, int w, int h, int dz, int z, bool transparent, int bb_offset_x, int bb_offset_y, int bb_offset_z, const SubSprite *sub)
 {
 	int32 left, right, top, bottom;
 
@@ -675,12 +714,12 @@ void AddSortableSpriteToDraw(SpriteID image, PaletteID pal, int x, int y, int w,
 		pal = PALETTE_TO_TRANSPARENT;
 	}
 
-	if (_vd.combine_sprites == SPRITE_COMBINE_ACTIVE) {
-		AddCombinedSprite(image, pal, x, y, z, sub);
+	if (this->combine_sprites == SPRITE_COMBINE_ACTIVE) {
+		this->AddCombinedSprite(image, pal, x, y, z, sub);
 		return;
 	}
 
-	_vd.last_child = nullptr;
+	this->last_child = nullptr;
 
 	Point pt = RemapCoords(x, y, z);
 	int tmp_left, tmp_top, tmp_x = pt.x, tmp_y = pt.y;
@@ -708,14 +747,14 @@ void AddSortableSpriteToDraw(SpriteID image, PaletteID pal, int x, int y, int w,
 	}
 
 	/* Do not add the sprite to the viewport, if it is outside */
-	if (left   >= _vd.dpi.left + _vd.dpi.width ||
-	    right  <= _vd.dpi.left                 ||
-	    top    >= _vd.dpi.top + _vd.dpi.height ||
-	    bottom <= _vd.dpi.top) {
+	if (left   >= this->dpi.left + this->dpi.width ||
+	    right  <= this->dpi.left                 ||
+	    top    >= this->dpi.top + this->dpi.height ||
+	    bottom <= this->dpi.top) {
 		return;
 	}
 
-	ParentSpriteToDraw &ps = _vd.parent_sprites_to_draw.emplace_back();
+	ParentSpriteToDraw &ps = this->parent_sprites_to_draw.emplace_back();
 	ps.x = tmp_x;
 	ps.y = tmp_y;
 
@@ -736,9 +775,14 @@ void AddSortableSpriteToDraw(SpriteID image, PaletteID pal, int x, int y, int w,
 
 	ps.first_child = -1;
 
-	_vd.last_child = &ps.first_child;
+	this->last_child = &ps.first_child;
 
-	if (_vd.combine_sprites == SPRITE_COMBINE_PENDING) _vd.combine_sprites = SPRITE_COMBINE_ACTIVE;
+	if (this->combine_sprites == SPRITE_COMBINE_PENDING) this->combine_sprites = SPRITE_COMBINE_ACTIVE;
+}
+
+void AddSortableSpriteToDraw(SpriteID image, PaletteID pal, int x, int y, int w, int h, int dz, int z, bool transparent, int bb_offset_x, int bb_offset_y, int bb_offset_z, const SubSprite *sub)
+{
+	_vd.AddSortableSpriteToDraw(image, pal, x, y, w, h, dz, z, transparent, bb_offset_x, bb_offset_y, bb_offset_z, sub);
 }
 
 /**
@@ -817,12 +861,12 @@ bool IsInsideRotatedRectangle(int x, int y)
  * @param transparent if true, switch the palette between the provided palette and the transparent palette,
  * @param sub Only draw a part of the sprite.
  */
-void AddChildSpriteScreen(SpriteID image, PaletteID pal, int x, int y, bool transparent, const SubSprite *sub, bool scale)
+void ViewportDrawer::AddChildSpriteScreen(SpriteID image, PaletteID pal, int x, int y, bool transparent, const SubSprite *sub, bool scale)
 {
 	assert((image & SPRITE_MASK) < MAX_SPRITES);
 
 	/* If the ParentSprite was clipped by the viewport bounds, do not draw the ChildSprites either */
-	if (_vd.last_child == nullptr) return;
+	if (this->last_child == nullptr) return;
 
 	/* make the sprites transparent with the right palette */
 	if (transparent) {
@@ -830,9 +874,9 @@ void AddChildSpriteScreen(SpriteID image, PaletteID pal, int x, int y, bool tran
 		pal = PALETTE_TO_TRANSPARENT;
 	}
 
-	*_vd.last_child = (uint)_vd.child_screen_sprites_to_draw.size();
+	*this->last_child = (uint)this->child_screen_sprites_to_draw.size();
 
-	ChildScreenSpriteToDraw &cs = _vd.child_screen_sprites_to_draw.emplace_back();
+	ChildScreenSpriteToDraw &cs = this->child_screen_sprites_to_draw.emplace_back();
 	cs.image = image;
 	cs.pal = pal;
 	cs.sub = sub;
@@ -843,15 +887,20 @@ void AddChildSpriteScreen(SpriteID image, PaletteID pal, int x, int y, bool tran
 	/* Append the sprite to the active ChildSprite list.
 	 * If the active ParentSprite is a foundation, update last_foundation_child as well.
 	 * Note: ChildSprites of foundations are NOT sequential in the vector, as selection sprites are added at last. */
-	if (_vd.last_foundation_child[0] == _vd.last_child) _vd.last_foundation_child[0] = &cs.next;
-	if (_vd.last_foundation_child[1] == _vd.last_child) _vd.last_foundation_child[1] = &cs.next;
-	_vd.last_child = &cs.next;
+	if (this->last_foundation_child[0] == this->last_child) this->last_foundation_child[0] = &cs.next;
+	if (this->last_foundation_child[1] == this->last_child) this->last_foundation_child[1] = &cs.next;
+	this->last_child = &cs.next;
 }
 
-static void AddStringToDraw(int x, int y, StringID string, uint64 params_1, uint64 params_2, Colours colour, uint16 width)
+void AddChildSpriteScreen(SpriteID image, PaletteID pal, int x, int y, bool transparent, const SubSprite *sub, bool scale)
+{
+	_vd.AddChildSpriteScreen(image, pal, x, y, transparent, sub, scale);
+}
+
+void ViewportDrawer::AddStringToDraw(int x, int y, StringID string, uint64 params_1, uint64 params_2, Colours colour, uint16 width)
 {
 	assert(width != 0);
-	StringSpriteToDraw &ss = _vd.string_sprites_to_draw.emplace_back();
+	StringSpriteToDraw &ss = this->string_sprites_to_draw.emplace_back();
 	ss.string = string;
 	ss.x = x;
 	ss.y = y;
@@ -873,15 +922,15 @@ static void AddStringToDraw(int x, int y, StringID string, uint64 params_1, uint
  * @param z_offset Z offset relative to the groundsprite. Only used for the sprite position, not for sprite sorting.
  * @param foundation_part Foundation part the sprite belongs to.
  */
-static void DrawSelectionSprite(SpriteID image, PaletteID pal, const TileInfo *ti, int z_offset, FoundationPart foundation_part)
+void ViewportDrawer::DrawSelectionSprite(SpriteID image, PaletteID pal, const TileInfo *ti, int z_offset, FoundationPart foundation_part)
 {
 	/* FIXME: This is not totally valid for some autorail highlights that extend over the edges of the tile. */
-	if (_vd.foundation[foundation_part] == -1) {
+	if (this->foundation[foundation_part] == -1) {
 		/* draw on real ground */
-		AddTileSpriteToDraw(image, pal, ti->x, ti->y, ti->z + z_offset);
+		this->AddTileSpriteToDraw(image, pal, ti->x, ti->y, ti->z + z_offset);
 	} else {
 		/* draw on top of foundation */
-		AddChildSpriteToFoundation(image, pal, nullptr, foundation_part, 0, -z_offset * ZOOM_LVL_BASE);
+		this->AddChildSpriteToFoundation(image, pal, nullptr, foundation_part, 0, -z_offset * ZOOM_LVL_BASE);
 	}
 }
 
@@ -891,7 +940,7 @@ static void DrawSelectionSprite(SpriteID image, PaletteID pal, const TileInfo *t
  * @param ti TileInfo Tile that is being drawn
  * @param pal Palette to apply.
  */
-static void DrawTileSelectionRect(const TileInfo *ti, PaletteID pal)
+void ViewportDrawer::DrawTileSelectionRect(const TileInfo *ti, PaletteID pal)
 {
 	if (!IsValidTile(ti->tile)) return;
 
@@ -899,7 +948,7 @@ static void DrawTileSelectionRect(const TileInfo *ti, PaletteID pal)
 	if (IsHalftileSlope(ti->tileh)) {
 		Corner halftile_corner = GetHalftileSlopeCorner(ti->tileh);
 		SpriteID sel2 = SPR_HALFTILE_SELECTION_FLAT + halftile_corner;
-		DrawSelectionSprite(sel2, pal, ti, 7 + TILE_HEIGHT, FOUNDATION_PART_HALFTILE);
+		this->DrawSelectionSprite(sel2, pal, ti, 7 + TILE_HEIGHT, FOUNDATION_PART_HALFTILE);
 
 		Corner opposite_corner = OppositeCorner(halftile_corner);
 		if (IsSteepSlope(ti->tileh)) {
@@ -911,7 +960,7 @@ static void DrawTileSelectionRect(const TileInfo *ti, PaletteID pal)
 	} else {
 		sel = SPR_SELECT_TILE + SlopeToSpriteOffset(ti->tileh);
 	}
-	DrawSelectionSprite(sel, pal, ti, 7, FOUNDATION_PART_NORMAL);
+	this->DrawSelectionSprite(sel, pal, ti, 7, FOUNDATION_PART_NORMAL);
 }
 
 static bool IsPartOfAutoLine(int px, int py)
@@ -951,7 +1000,7 @@ static const HighLightStyle _autorail_type[6][2] = {
  * @param *ti TileInfo Tile that is being drawn
  * @param autorail_type Offset into _AutorailTilehSprite[][]
  */
-static void DrawAutorailSelection(const TileInfo *ti, uint autorail_type)
+void ViewportDrawer::DrawAutorailSelection(const TileInfo *ti, uint autorail_type)
 {
 	SpriteID image;
 	PaletteID pal;
@@ -978,18 +1027,8 @@ static void DrawAutorailSelection(const TileInfo *ti, uint autorail_type)
 		pal = PALETTE_SEL_TILE_RED;
 	}
 
-	DrawSelectionSprite(image, _thd.make_square_red ? PALETTE_SEL_TILE_RED : pal, ti, 7, foundation_part);
+	this->DrawSelectionSprite(image, _thd.make_square_red ? PALETTE_SEL_TILE_RED : pal, ti, 7, foundation_part);
 }
-
-enum TileHighlightType {
-	THT_NONE,
-	THT_WHITE,
-	THT_BLUE,
-	THT_RED,
-};
-
-const Station *_viewport_highlight_station; ///< Currently selected station for coverage area highlight
-const Town *_viewport_highlight_town;       ///< Currently selected town for coverage area highlight
 
 /**
  * Get tile highlight type of coverage area for a given tile.
@@ -1029,14 +1068,14 @@ static TileHighlightType GetTileHighlightType(TileIndex t)
  * @param *ti TileInfo Tile that is being drawn
  * @param tht Highlight type to draw.
  */
-static void DrawTileHighlightType(const TileInfo *ti, TileHighlightType tht)
+void ViewportDrawer::DrawTileHighlightType(const TileInfo *ti, TileHighlightType tht)
 {
 	switch (tht) {
 		default:
 		case THT_NONE: break;
-		case THT_WHITE: DrawTileSelectionRect(ti, PAL_NONE); break;
-		case THT_BLUE:  DrawTileSelectionRect(ti, PALETTE_SEL_TILE_BLUE); break;
-		case THT_RED:   DrawTileSelectionRect(ti, PALETTE_SEL_TILE_RED); break;
+		case THT_WHITE: this->DrawTileSelectionRect(ti, PAL_NONE); break;
+		case THT_BLUE:  this->DrawTileSelectionRect(ti, PALETTE_SEL_TILE_BLUE); break;
+		case THT_RED:   this->DrawTileSelectionRect(ti, PALETTE_SEL_TILE_RED); break;
 	}
 }
 
@@ -1044,7 +1083,7 @@ static void DrawTileHighlightType(const TileInfo *ti, TileHighlightType tht)
  * Highlights tiles insede local authority of selected towns.
  * @param *ti TileInfo Tile that is being drawn
  */
-static void HighlightTownLocalAuthorityTiles(const TileInfo *ti)
+void ViewportDrawer::HighlightTownLocalAuthorityTiles(const TileInfo *ti)
 {
 	/* Going through cases in order of computational time. */
 
@@ -1054,7 +1093,7 @@ static void HighlightTownLocalAuthorityTiles(const TileInfo *ti)
 	if (GetTileType(ti->tile) == MP_HOUSE) {
 		if (!Town::GetByTile(ti->tile)->show_zone) return;
 
-		DrawTileSelectionRect(ti, PALETTE_CRASH);
+		this->DrawTileSelectionRect(ti, PALETTE_CRASH);
 		return;
 	}
 
@@ -1069,7 +1108,7 @@ static void HighlightTownLocalAuthorityTiles(const TileInfo *ti)
 	Town *closest_town = ClosestTownFromTile(ti->tile, _settings_game.economy.dist_local_authority);
 
 	if (closest_town->show_zone) {
-		DrawTileSelectionRect(ti, PALETTE_CRASH);
+		this->DrawTileSelectionRect(ti, PALETTE_CRASH);
 	}
 
 }
@@ -1078,17 +1117,17 @@ static void HighlightTownLocalAuthorityTiles(const TileInfo *ti)
  * Checks if the specified tile is selected and if so draws selection using correct selectionstyle.
  * @param *ti TileInfo Tile that is being drawn
  */
-static void DrawTileSelection(const TileInfo *ti)
+void ViewportDrawer::DrawTileSelection(const TileInfo *ti)
 {
 	/* Highlight tiles insede local authority of selected towns. */
-	HighlightTownLocalAuthorityTiles(ti);
+	this->HighlightTownLocalAuthorityTiles(ti);
 
 	/* Draw a red error square? */
 	bool is_redsq = _thd.redsq == ti->tile;
-	if (is_redsq) DrawTileSelectionRect(ti, PALETTE_TILE_RED_PULSATING);
+	if (is_redsq) this->DrawTileSelectionRect(ti, PALETTE_TILE_RED_PULSATING);
 
 	TileHighlightType tht = GetTileHighlightType(ti->tile);
-	DrawTileHighlightType(ti, tht);
+	this->DrawTileHighlightType(ti, tht);
 
 	/* No tile selection active? */
 	if ((_thd.drawstyle & HT_DRAG_MASK) == HT_NONE) return;
@@ -1103,7 +1142,7 @@ static void DrawTileSelection(const TileInfo *ti)
 			IsInsideBS(ti->y, _thd.pos.y, _thd.size.y)) {
 draw_inner:
 		if (_thd.drawstyle & HT_RECT) {
-			if (!is_redsq) DrawTileSelectionRect(ti, _thd.make_square_red ? PALETTE_SEL_TILE_RED : PAL_NONE);
+			if (!is_redsq) this->DrawTileSelectionRect(ti, _thd.make_square_red ? PALETTE_SEL_TILE_RED : PAL_NONE);
 		} else if (_thd.drawstyle & HT_POINT) {
 			/* Figure out the Z coordinate for the single dot. */
 			int z = 0;
@@ -1120,12 +1159,12 @@ draw_inner:
 					if (IsSteepSlope(ti->tileh)) z -= TILE_HEIGHT;
 				}
 			}
-			DrawSelectionSprite(_cur_dpi->zoom <= ZOOM_LVL_DETAIL ? SPR_DOT : SPR_DOT_SMALL, PAL_NONE, ti, z, foundation_part);
+			this->DrawSelectionSprite(_cur_dpi->zoom <= ZOOM_LVL_DETAIL ? SPR_DOT : SPR_DOT_SMALL, PAL_NONE, ti, z, foundation_part);
 		} else if (_thd.drawstyle & HT_RAIL) {
 			/* autorail highlight piece under cursor */
 			HighLightStyle type = _thd.drawstyle & HT_DIR_MASK;
 			assert(type < HT_DIR_END);
-			DrawAutorailSelection(ti, _autorail_type[type][0]);
+			this->DrawAutorailSelection(ti, _autorail_type[type][0]);
 		} else if (IsPartOfAutoLine(ti->x, ti->y)) {
 			/* autorail highlighting long line */
 			HighLightStyle dir = _thd.drawstyle & HT_DIR_MASK;
@@ -1138,7 +1177,7 @@ draw_inner:
 				side = Delta(Delta(TileX(start), TileX(ti->tile)), Delta(TileY(start), TileY(ti->tile)));
 			}
 
-			DrawAutorailSelection(ti, _autorail_type[dir][side]);
+			this->DrawAutorailSelection(ti, _autorail_type[dir][side]);
 		}
 		return;
 	}
@@ -1148,7 +1187,7 @@ draw_inner:
 			IsInsideBS(ti->x, _thd.pos.x + _thd.offs.x, _thd.size.x + _thd.outersize.x) &&
 			IsInsideBS(ti->y, _thd.pos.y + _thd.offs.y, _thd.size.y + _thd.outersize.y)) {
 		/* Draw a blue rect. */
-		DrawTileSelectionRect(ti, PALETTE_SEL_TILE_BLUE);
+		this->DrawTileSelectionRect(ti, PALETTE_SEL_TILE_BLUE);
 		return;
 	}
 }
@@ -1168,13 +1207,13 @@ static int GetViewportY(Point tile)
 /**
  * Add the landscape to the viewport, i.e. all ground tiles and buildings.
  */
-static void ViewportAddLandscape()
+void ViewportDrawer::ViewportAddLandscape()
 {
-	assert(_vd.dpi.top <= _vd.dpi.top + _vd.dpi.height);
-	assert(_vd.dpi.left <= _vd.dpi.left + _vd.dpi.width);
+	assert(this->dpi.top <= this->dpi.top + this->dpi.height);
+	assert(this->dpi.left <= this->dpi.left + this->dpi.width);
 
-	Point upper_left = InverseRemapCoords(_vd.dpi.left, _vd.dpi.top);
-	Point upper_right = InverseRemapCoords(_vd.dpi.left + _vd.dpi.width, _vd.dpi.top);
+	Point upper_left = InverseRemapCoords(this->dpi.left, this->dpi.top);
+	Point upper_right = InverseRemapCoords(this->dpi.left + this->dpi.width, this->dpi.top);
 
 	/* Transformations between tile coordinates and viewport rows/columns: See vp_column_row
 	 *   column = y - x
@@ -1237,14 +1276,14 @@ static void ViewportAddLandscape()
 
 			int viewport_y = GetViewportY(tilecoord);
 
-			if (viewport_y + MAX_TILE_EXTENT_BOTTOM < _vd.dpi.top) {
+			if (viewport_y + MAX_TILE_EXTENT_BOTTOM < this->dpi.top) {
 				/* The tile in this column is not visible yet.
 				 * Tiles in other columns may be visible, but we need more rows in any case. */
 				last_row = false;
 				continue;
 			}
 
-			int min_visible_height = viewport_y - (_vd.dpi.top + _vd.dpi.height);
+			int min_visible_height = viewport_y - (this->dpi.top + this->dpi.height);
 			bool tile_visible = min_visible_height <= 0;
 
 			if (tile_type != MP_VOID) {
@@ -1269,14 +1308,14 @@ static void ViewportAddLandscape()
 
 			if (tile_visible) {
 				last_row = false;
-				_vd.foundation_part = FOUNDATION_PART_NONE;
-				_vd.foundation[0] = -1;
-				_vd.foundation[1] = -1;
-				_vd.last_foundation_child[0] = nullptr;
-				_vd.last_foundation_child[1] = nullptr;
+				this->foundation_part = FOUNDATION_PART_NONE;
+				this->foundation[0] = -1;
+				this->foundation[1] = -1;
+				this->last_foundation_child[0] = nullptr;
+				this->last_foundation_child[1] = nullptr;
 
 				_tile_type_procs[tile_type]->draw_tile_proc(&tile_info);
-				if (tile_info.tile != INVALID_TILE) DrawTileSelection(&tile_info);
+				if (tile_info.tile != INVALID_TILE) this->DrawTileSelection(&tile_info);
 			}
 		}
 	}
@@ -1312,14 +1351,14 @@ void ViewportAddString(const DrawPixelInfo *dpi, ZoomLevel small_from, const Vie
 	}
 
 	if (!small) {
-		AddStringToDraw(sign->center - sign_half_width, sign->top, string_normal, params_1, params_2, colour, sign->width_normal);
+		_vd.AddStringToDraw(sign->center - sign_half_width, sign->top, string_normal, params_1, params_2, colour, sign->width_normal);
 	} else {
 		int shadow_offset = 0;
 		if (string_small_shadow != STR_NULL) {
 			shadow_offset = 4;
-			AddStringToDraw(sign->center - sign_half_width + shadow_offset, sign->top, string_small_shadow, params_1, params_2, INVALID_COLOUR, sign->width_small);
+			_vd.AddStringToDraw(sign->center - sign_half_width + shadow_offset, sign->top, string_small_shadow, params_1, params_2, INVALID_COLOUR, sign->width_small);
 		}
-		AddStringToDraw(sign->center - sign_half_width, sign->top - shadow_offset, string_small, params_1, params_2,
+		_vd.AddStringToDraw(sign->center - sign_half_width, sign->top - shadow_offset, string_small, params_1, params_2,
 				colour, sign->width_small | 0x8000);
 	}
 }
@@ -1716,49 +1755,49 @@ static void ViewportDrawStrings(ZoomLevel zoom, const StringSpriteToDrawVector *
 	}
 }
 
-void ViewportDoDraw(const Viewport *vp, int left, int top, int right, int bottom)
+void ViewportDrawer::ViewportDoDraw(const Viewport *vp, int left, int top, int right, int bottom)
 {
 	DrawPixelInfo *old_dpi = _cur_dpi;
-	_cur_dpi = &_vd.dpi;
+	_cur_dpi = &this->dpi;
 
-	_vd.dpi.zoom = vp->zoom;
+	this->dpi.zoom = vp->zoom;
 	int mask = ScaleByZoom(-1, vp->zoom);
 
-	_vd.combine_sprites = SPRITE_COMBINE_NONE;
+	this->combine_sprites = SPRITE_COMBINE_NONE;
 
-	_vd.dpi.width = (right - left) & mask;
-	_vd.dpi.height = (bottom - top) & mask;
-	_vd.dpi.left = left & mask;
-	_vd.dpi.top = top & mask;
-	_vd.dpi.pitch = old_dpi->pitch;
-	_vd.last_child = nullptr;
+	this->dpi.width = (right - left) & mask;
+	this->dpi.height = (bottom - top) & mask;
+	this->dpi.left = left & mask;
+	this->dpi.top = top & mask;
+	this->dpi.pitch = old_dpi->pitch;
+	this->last_child = nullptr;
 
-	int x = UnScaleByZoom(_vd.dpi.left - (vp->virtual_left & mask), vp->zoom) + vp->left;
-	int y = UnScaleByZoom(_vd.dpi.top - (vp->virtual_top & mask), vp->zoom) + vp->top;
+	int x = UnScaleByZoom(this->dpi.left - (vp->virtual_left & mask), vp->zoom) + vp->left;
+	int y = UnScaleByZoom(this->dpi.top - (vp->virtual_top & mask), vp->zoom) + vp->top;
 
-	_vd.dpi.dst_ptr = BlitterFactory::GetCurrentBlitter()->MoveTo(old_dpi->dst_ptr, x - old_dpi->left, y - old_dpi->top);
+	this->dpi.dst_ptr = BlitterFactory::GetCurrentBlitter()->MoveTo(old_dpi->dst_ptr, x - old_dpi->left, y - old_dpi->top);
 
-	ViewportAddLandscape();
-	ViewportAddVehicles(&_vd.dpi);
+	this->ViewportAddLandscape();
+	ViewportAddVehicles(&this->dpi);
 
-	ViewportAddKdtreeSigns(&_vd.dpi);
+	ViewportAddKdtreeSigns(&this->dpi);
 
-	DrawTextEffects(&_vd.dpi);
+	DrawTextEffects(&this->dpi);
 
-	if (_vd.tile_sprites_to_draw.size() != 0) ViewportDrawTileSprites(&_vd.tile_sprites_to_draw);
+	if (this->tile_sprites_to_draw.size() != 0) ViewportDrawTileSprites(&this->tile_sprites_to_draw);
 
-	for (auto &psd : _vd.parent_sprites_to_draw) {
-		_vd.parent_sprites_to_sort.push_back(&psd);
+	for (auto &psd : this->parent_sprites_to_draw) {
+		this->parent_sprites_to_sort.push_back(&psd);
 	}
 
-	_vp_sprite_sorter(&_vd.parent_sprites_to_sort);
-	ViewportDrawParentSprites(&_vd.parent_sprites_to_sort, &_vd.child_screen_sprites_to_draw);
+	_vp_sprite_sorter(&this->parent_sprites_to_sort);
+	ViewportDrawParentSprites(&this->parent_sprites_to_sort, &this->child_screen_sprites_to_draw);
 
-	if (_draw_bounding_boxes) ViewportDrawBoundingBoxes(&_vd.parent_sprites_to_sort);
+	if (_draw_bounding_boxes) ViewportDrawBoundingBoxes(&this->parent_sprites_to_sort);
 	if (_draw_dirty_blocks) ViewportDrawDirtyBlocks();
 
-	DrawPixelInfo dp = _vd.dpi;
-	ZoomLevel zoom = _vd.dpi.zoom;
+	DrawPixelInfo dp = this->dpi;
+	ZoomLevel zoom = this->dpi.zoom;
 	dp.zoom = ZOOM_LVL_NORMAL;
 	dp.width = UnScaleByZoom(dp.width, zoom);
 	dp.height = UnScaleByZoom(dp.height, zoom);
@@ -1771,20 +1810,25 @@ void ViewportDoDraw(const Viewport *vp, int left, int top, int right, int bottom
 		vp->overlay->Draw(&dp);
 	}
 
-	if (_vd.string_sprites_to_draw.size() != 0) {
+	if (this->string_sprites_to_draw.size() != 0) {
 		/* translate to world coordinates */
-		dp.left = UnScaleByZoom(_vd.dpi.left, zoom);
-		dp.top = UnScaleByZoom(_vd.dpi.top, zoom);
-		ViewportDrawStrings(zoom, &_vd.string_sprites_to_draw);
+		dp.left = UnScaleByZoom(this->dpi.left, zoom);
+		dp.top = UnScaleByZoom(this->dpi.top, zoom);
+		ViewportDrawStrings(zoom, &this->string_sprites_to_draw);
 	}
 
 	_cur_dpi = old_dpi;
 
-	_vd.string_sprites_to_draw.clear();
-	_vd.tile_sprites_to_draw.clear();
-	_vd.parent_sprites_to_draw.clear();
-	_vd.parent_sprites_to_sort.clear();
-	_vd.child_screen_sprites_to_draw.clear();
+	this->string_sprites_to_draw.clear();
+	this->tile_sprites_to_draw.clear();
+	this->parent_sprites_to_draw.clear();
+	this->parent_sprites_to_sort.clear();
+	this->child_screen_sprites_to_draw.clear();
+}
+
+void ViewportDoDraw(const Viewport *vp, int left, int top, int right, int bottom)
+{
+	_vd.ViewportDoDraw(vp, left, top, right, bottom);
 }
 
 static inline void ViewportDraw(const Viewport *vp, int left, int top, int right, int bottom)
@@ -1801,7 +1845,7 @@ static inline void ViewportDraw(const Viewport *vp, int left, int top, int right
 	if (top < vp->top) top = vp->top;
 	if (bottom > vp->top + vp->height) bottom = vp->top + vp->height;
 
-	ViewportDoDraw(vp,
+	_vd.ViewportDoDraw(vp,
 		ScaleByZoom(left - vp->left, vp->zoom) + vp->virtual_left,
 		ScaleByZoom(top - vp->top, vp->zoom) + vp->virtual_top,
 		ScaleByZoom(right - vp->left, vp->zoom) + vp->virtual_left,
