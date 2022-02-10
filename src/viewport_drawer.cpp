@@ -36,7 +36,6 @@ uint _dirty_block_colour = 0;
 static const int MAX_TILE_EXTENT_TOP    = ZOOM_LVL_BASE * MAX_BUILDING_PIXELS;             ///< Maximum top    extent of tile relative to north corner (not considering bridges).
 static const int MAX_TILE_EXTENT_BOTTOM = ZOOM_LVL_BASE * (TILE_PIXELS + 2 * TILE_HEIGHT); ///< Maximum bottom extent of tile relative to north corner (worst case: #SLOPE_STEEP_N).
 
-static TileInfo *_cur_ti;
 static VpSpriteSorter _vp_sprite_sorter = nullptr;
 
 /* [direction][side] */
@@ -214,7 +213,7 @@ void ViewportDrawer::DrawGroundSpriteAt(SpriteID image, PaletteID pal, int32 x, 
 		Point pt = RemapCoords(x, y, z);
 		this->AddChildSpriteToFoundation(image, pal, sub, this->foundation_part, pt.x + extra_offs_x * ZOOM_LVL_BASE, pt.y + extra_offs_y * ZOOM_LVL_BASE);
 	} else {
-		this->AddTileSpriteToDraw(image, pal, _cur_ti->x + x, _cur_ti->y + y, _cur_ti->z + z, sub, extra_offs_x * ZOOM_LVL_BASE, extra_offs_y * ZOOM_LVL_BASE);
+		this->AddTileSpriteToDraw(image, pal, this->cur_ti->x + x, this->cur_ti->y + y, this->cur_ti->z + z, sub, extra_offs_x * ZOOM_LVL_BASE, extra_offs_y * ZOOM_LVL_BASE);
 	}
 }
 
@@ -694,7 +693,7 @@ void ViewportDrawer::ViewportAddLandscape()
 
 			TileType tile_type;
 			TileInfo tile_info;
-			_cur_ti = &tile_info;
+			this->cur_ti = &tile_info;
 			tile_info.x = tilecoord.x * TILE_SIZE; // FIXME tile_info should use signed integers
 			tile_info.y = tilecoord.y * TILE_SIZE;
 

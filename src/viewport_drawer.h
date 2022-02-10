@@ -78,6 +78,7 @@ class ViewportDrawer {
 	ChildScreenSpriteToDrawVector child_screen_sprites_to_draw;
 
 	int *last_child;
+    TileInfo *cur_ti;
 
 	int foundation[FOUNDATION_PART_END];             ///< Foundation sprites (index into parent_sprites_to_draw).
 	FoundationPart foundation_part;                  ///< Currently active foundation for ground sprite drawing.
