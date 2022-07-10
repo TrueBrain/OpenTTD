@@ -165,6 +165,29 @@ static constexpr auto _cmd_dispatch = MakeDispatchTable(std::make_integer_sequen
 #endif
 
 
+void TestCommand(unsigned char *buf, size_t len)
+{
+	if (len < 6) return;
+
+	CommandPacket cp = {};
+
+	cp.cmd     = static_cast<Commands>(buf[0] << 8 | buf[1]);
+	cp.tile    = buf[2] << 24 | buf[3] << 16 | buf[4] << 8 | buf[5];
+	cp.callback = _callback_table[0];
+
+	if (!IsValidCommand(cp.cmd))               return;
+	if (GetCommandFlags(cp.cmd) & CMD_OFFLINE) return;
+	if ((GetCommandFlags(cp.cmd) & CMD_SERVER)) return;
+
+	std::vector<byte> data(buf + 6, buf + len);
+	cp.data    = _cmd_dispatch[cp.cmd].Sanitize(data);
+
+	if (GetCommandFlags(cp.cmd) & CMD_CLIENT_ID) NetworkReplaceCommandClientId(cp, CLIENT_ID_FIRST);
+
+	_cmd_dispatch[cp.cmd].Unpack[0](&cp);
+}
+
+
 /**
  * Append a CommandPacket at the end of the queue.
  * @param p The packet to append to the queue.
