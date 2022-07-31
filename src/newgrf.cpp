@@ -9368,7 +9368,7 @@ static void DecodeSpecialSprite(byte *buf, uint num, GrfLoadingStage stage)
 		}
 	} catch (...) {
 		grfmsg(1, "DecodeSpecialSprite: Tried to read past end of pseudo-sprite data");
-		DisableGrf(STR_NEWGRF_ERROR_READ_BOUNDS);
+		//DisableGrf(STR_NEWGRF_ERROR_READ_BOUNDS);
 	}
 }
 

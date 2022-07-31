@@ -336,7 +336,7 @@ static void ShutdownGame()
  * Load the introduction game.
  * @param load_newgrfs Whether to load the NewGRFs or not.
  */
-static void LoadIntroGame(bool load_newgrfs = true)
+void LoadIntroGame(bool load_newgrfs = true)
 {
 	_game_mode = GM_MENU;
 
@@ -808,6 +808,7 @@ int openttd_main(int argc, char *argv[])
 	/* ScanNewGRFFiles now has control over the scanner. */
 	RequestNewGRFScan(scanner.release());
 
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 	VideoDriver::GetInstance()->MainLoop();
 
 	WaitTillSaved();
@@ -822,6 +823,7 @@ int openttd_main(int argc, char *argv[])
 
 	/* Reset windowing system, stop drivers, free used memory, ... */
 	ShutdownGame();
+#endif
 	return ret;
 }
 

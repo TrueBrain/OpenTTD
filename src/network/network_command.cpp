@@ -165,7 +165,7 @@ static constexpr auto _cmd_dispatch = MakeDispatchTable(std::make_integer_sequen
 #endif
 
 
-void TestCommand(unsigned char *buf, size_t len)
+void TestCommand(const unsigned char *buf, size_t len)
 {
 	if (len < 6) return;
 
