@@ -528,7 +528,7 @@ public:
 				icon.top    = r.top + (this->resize.step_height - this->legend.height + 1) / 2;
 				icon.bottom = icon.top + this->legend.height - 1;
 
-				for (uint16_t i = this->vscroll->GetPosition(); this->vscroll->IsVisible(i) && i < this->vscroll->GetCount(); i++) {
+				for (int32_t i = this->vscroll->GetPosition(); this->vscroll->IsVisible(i) && i < this->vscroll->GetCount(); i++) {
 					IndustryType type = this->list[i];
 					bool selected = this->selected_type == type;
 					const IndustrySpec *indsp = GetIndustrySpec(type);

@@ -601,7 +601,7 @@ struct FramerateWindow : Window {
 	void DrawElementTimesColumn(const Rect &r, StringID heading_str, const CachedDecimal *values) const
 	{
 		const Scrollbar *sb = this->GetScrollbar(WID_FRW_SCROLLBAR);
-		uint16_t skip = sb->GetPosition();
+		int32_t skip = sb->GetPosition();
 		int drawable = this->num_displayed;
 		int y = r.top;
 		DrawString(r.left, r.right, y, heading_str, TC_FROMSTRING, SA_CENTER, true);
@@ -623,7 +623,7 @@ struct FramerateWindow : Window {
 	void DrawElementAllocationsColumn(const Rect &r) const
 	{
 		const Scrollbar *sb = this->GetScrollbar(WID_FRW_SCROLLBAR);
-		uint16_t skip = sb->GetPosition();
+		int32_t skip = sb->GetPosition();
 		int drawable = this->num_displayed;
 		int y = r.top;
 		DrawString(r.left, r.right, y, STR_FRAMERATE_MEMORYUSE, TC_FROMSTRING, SA_CENTER, true);
@@ -657,7 +657,7 @@ struct FramerateWindow : Window {
 			case WID_FRW_TIMES_NAMES: {
 				/* Render a column of titles for performance element names */
 				const Scrollbar *sb = this->GetScrollbar(WID_FRW_SCROLLBAR);
-				uint16_t skip = sb->GetPosition();
+				int32_t skip = sb->GetPosition();
 				int drawable = this->num_displayed;
 				int y = r.top + GetCharacterHeight(FS_NORMAL) + WidgetDimensions::scaled.vsep_normal; // first line contains headings in the value columns
 				for (PerformanceElement e : DISPLAY_ORDER_PFE) {
