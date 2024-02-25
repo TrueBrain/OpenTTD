@@ -680,10 +680,10 @@ public:
 class Scrollbar {
 private:
 	const bool is_vertical; ///< Scrollbar has vertical orientation.
-	uint16_t count;           ///< Number of elements in the list.
-	uint16_t cap;             ///< Number of visible elements of the scroll bar.
-	uint16_t pos;             ///< Index of first visible item of the list.
-	uint16_t stepsize;        ///< Distance to scroll, when pressing the buttons or using the wheel.
+	int32_t count;           ///< Number of elements in the list.
+	int32_t cap;             ///< Number of visible elements of the scroll bar.
+	int32_t pos;             ///< Index of first visible item of the list.
+	int32_t stepsize;        ///< Distance to scroll, when pressing the buttons or using the wheel.
 
 public:
 	/** Stepping sizes when scrolling */
@@ -701,7 +701,7 @@ public:
 	 * Gets the number of elements in the list
 	 * @return the number of elements
 	 */
-	inline uint16_t GetCount() const
+	inline int32_t GetCount() const
 	{
 		return this->count;
 	}
@@ -710,7 +710,7 @@ public:
 	 * Gets the number of visible elements of the scrollbar
 	 * @return the number of visible elements
 	 */
-	inline uint16_t GetCapacity() const
+	inline int32_t GetCapacity() const
 	{
 		return this->cap;
 	}
@@ -719,7 +719,7 @@ public:
 	 * Gets the position of the first visible element in the list
 	 * @return the position of the element
 	 */
-	inline uint16_t GetPosition() const
+	inline int32_t GetPosition() const
 	{
 		return this->pos;
 	}
@@ -729,7 +729,7 @@ public:
 	 * @param item to check
 	 * @return true iff the item is visible
 	 */
-	inline bool IsVisible(uint16_t item) const
+	inline bool IsVisible(int item) const
 	{
 		return IsInsideBS(item, this->GetPosition(), this->GetCapacity());
 	}
@@ -751,7 +751,7 @@ public:
 	{
 		assert(stepsize > 0);
 
-		this->stepsize = ClampTo<uint16_t>(stepsize);
+		this->stepsize = ClampTo<int32_t>(stepsize);
 	}
 
 	/**
@@ -761,9 +761,9 @@ public:
 	 */
 	void SetCount(size_t num)
 	{
-		assert(num <= MAX_UVALUE(uint16_t));
+		assert(num < INT32_MAX);
 
-		this->count = ClampTo<uint16_t>(num);
+		this->count = ClampTo<int32_t>(num);
 		/* Ensure position is within bounds */
 		this->SetPosition(this->pos);
 	}
@@ -775,9 +775,9 @@ public:
 	 */
 	void SetCapacity(size_t capacity)
 	{
-		assert(capacity <= MAX_UVALUE(uint16_t));
+		assert(capacity < INT32_MAX);
 
-		this->cap = ClampTo<uint16_t>(capacity);
+		this->cap = ClampTo<int32_t>(capacity);
 		/* Ensure position is within bounds */
 		this->SetPosition(this->pos);
 	}
@@ -846,7 +846,7 @@ public:
 	template <typename Tcontainer>
 	typename Tcontainer::iterator GetScrolledItemFromWidget(Tcontainer &container, int clickpos, const Window * const w, WidgetID widget, int padding = 0, int line_height = -1) const
 	{
-		assert(this->GetCount() == container.size()); // Scrollbar and container size must match.
+		assert((size_t)this->GetCount() == container.size()); // Scrollbar and container size must match.
 		int row = this->GetScrolledRowFromWidget(clickpos, w, widget, padding, line_height);
 		if (row == INT_MAX) return std::end(container);
 
