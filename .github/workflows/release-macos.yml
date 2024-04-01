@@ -46,9 +46,19 @@ jobs:
           core.exportVariable('VCPKG_BINARY_SOURCES', 'clear;x-gha,readwrite')
 
     - name: Install vcpkg
+      shell: bash
       run: |
         git clone https://github.com/microsoft/vcpkg ${{ runner.temp }}/vcpkg
         ${{ runner.temp }}/vcpkg/bootstrap-vcpkg.sh -disableMetrics
+
+        cat ${{ runner.temp }}/vcpkg/ports/liblzma/portfile.cmake | sed 's@tukaani-project/xz@bminor/xz@g' > ${{ runner.temp }}/vcpkg/ports/liblzma/portfile.cmake.tmp
+        mv ${{ runner.temp }}/vcpkg/ports/liblzma/portfile.cmake.tmp ${{ runner.temp }}/vcpkg/ports/liblzma/portfile.cmake
+
+        cd /
+        ${{ runner.temp }}/vcpkg/vcpkg install \
+          liblzma:x64-osx \
+          liblzma:arm64-osx \
+          # EOF
 
     - name: Install dependencies
       env:

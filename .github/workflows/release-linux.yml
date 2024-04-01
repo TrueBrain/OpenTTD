@@ -123,6 +123,13 @@ jobs:
           ./bootstrap-vcpkg.sh -disableMetrics
         )
 
+        sed -i 's@tukaani-project/xz@bminor/xz@g' /vcpkg/ports/liblzma/portfile.cmake
+
+        cd /
+        /vcpkg/vcpkg install \
+          liblzma:x64-linux \
+          # EOF
+
         echo "::group::Install breakpad dependencies"
         cargo install --locked dump_syms
         echo "::endgroup::"

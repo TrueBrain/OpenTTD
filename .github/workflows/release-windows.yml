@@ -58,6 +58,15 @@ jobs:
         git clone https://github.com/microsoft/vcpkg ${{ runner.temp }}\vcpkg
         ${{ runner.temp }}\vcpkg\bootstrap-vcpkg.bat -disableMetrics
 
+        sed -i 's@tukaani-project/xz@bminor/xz@g' ${{ runner.temp }}/vcpkg/ports/liblzma/portfile.cmake
+
+        cd ..
+        ${{ runner.temp }}/vcpkg/vcpkg install \
+          liblzma:x64-windows-static \
+          liblzma:x86-windows-static \
+          liblzma:arm64-windows-static \
+          # EOF
+
     - name: Install dependencies
       shell: bash
       run: |
