@@ -120,6 +120,8 @@ jobs:
 
         (
           cd /vcpkg
+          mkdir downloads
+          wget https://github.com/bminor/xz/archive/v5.4.4.tar.gz -O downloads/tukaani-project-xz-v5.4.4.tar.gz
           ./bootstrap-vcpkg.sh -disableMetrics
         )
 

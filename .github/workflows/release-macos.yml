@@ -50,6 +50,9 @@ jobs:
         git clone https://github.com/microsoft/vcpkg ${{ runner.temp }}/vcpkg
         ${{ runner.temp }}/vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
+        mkdir -p ${{ runner.temp }}/vcpkg/downloads
+        wget https://github.com/bminor/xz/archive/v5.4.4.tar.gz -O ${{ runner.temp }}/vcpkg/downloads/tukaani-project-xz-v5.4.4.tar.gz
+
     - name: Install dependencies
       env:
         HOMEBREW_NO_AUTO_UPDATE: 1
