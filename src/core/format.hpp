@@ -29,6 +29,8 @@ struct fmt::formatter<E, Char> : fmt::formatter<typename std::underlying_type_t<
 	}
 };
 
+#if !defined(STRGEN) && !defined(SETTINGSGEN)
+
 template <ConvertibleThroughBase T, typename Char>
 struct fmt::formatter<T, Char> : fmt::formatter<typename T::BaseType> {
 	using underlying_type = typename T::BaseType;
@@ -45,4 +47,5 @@ struct fmt::formatter<T, Char> : fmt::formatter<typename T::BaseType> {
 	}
 };
 
+#endif /* !defined(STRGEN) && !defined(SETTINGSGEN) */
 #endif /* FORMAT_HPP */
